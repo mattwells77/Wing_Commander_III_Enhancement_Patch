@@ -765,7 +765,7 @@ static void Lock_2DSpace_Surface() {
     (**pp_wc3_db_game_main).rc.right = GUI_WIDTH - 1;
     (**pp_wc3_db_game_main).rc.bottom = GUI_HEIGHT - 1;
 
-    (**pp_wc3_db_game).rc_inv.left = GUI_WIDTH - 1;
+    (**pp_wc3_db_game).rc_inv.left = buffer_space_2D_pitch - 1;
     (**pp_wc3_db_game).rc_inv.top = GUI_HEIGHT - 1;
 
 }
