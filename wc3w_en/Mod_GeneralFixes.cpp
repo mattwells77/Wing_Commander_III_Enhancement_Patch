@@ -64,6 +64,77 @@ static BOOL __stdcall  movie_thread_end_fix(HANDLE hThread, DWORD  dwExitCode) {
 }
 
 
+//Look for and load files located in the "theGameDir"\\data folder in place of files located in the .tre archives.
+//__________________________________________
+static BOOL Load_Data_File(char* pfile_name) {
+
+    //"..\\..\\" signifies that the file is located in a .tre archive.
+    if (strncmp(pfile_name, "..\\..\\", 6) == 0) {
+
+        //check if the file exists under relative path \data
+        if (GetFileAttributesA(pfile_name + 4) != INVALID_FILE_ATTRIBUTES) {
+            size_t file_name_len = strlen(pfile_name) + 1;
+
+            char* file_name_backup = new char[file_name_len + 1];
+            strncpy_s(file_name_backup, file_name_len, pfile_name, file_name_len);
+            //change the path removing the path intro leaving .\data\"etc"
+            strncpy_s(pfile_name, file_name_len, file_name_backup + 4, file_name_len - 4);
+            delete[] file_name_backup;
+            Debug_Info("Load_Data_File File FOUND: %s", pfile_name);
+        } 
+    }
+    //Debug_Info("Load_Data_File: %s", pfile_name);
+    return wc3_find_file_in_tre(pfile_name);
+}
+
+
+//________________________________________________
+static void __declspec(naked) load_data_file(void) {
+
+    __asm {
+        mov ebx, [esp + 0x4]//pointer to file name in file_class
+
+        push ebp
+        push esi
+
+        push ebx
+        call Load_Data_File
+        add esp, 0x4
+
+        pop esi
+        pop ebp
+
+        ret
+    }
+}
+
+
+/*
+static void Print_Closed_Handle(BOOL close_good, void* p_this_class) {
+    Debug_Info("Print_Closed_Handle: %s, close_flag_good_zero:%d", p_this_class, close_good);
+}
+
+
+void* p_close_file_handle = (void*)0x485280;
+//______________________________________________________
+static void __declspec(naked) close_file_handle(void) {
+
+    __asm {
+        push eax
+        call p_close_file_handle
+        add esp, 0x4
+
+        pushad
+        push esi
+        push eax
+        call Print_Closed_Handle
+        add esp, 0x8
+        popad
+        ret
+    }
+}
+*/
+
 //_______________________________
 void Modifications_GeneralFixes() {
 
@@ -75,4 +146,9 @@ void Modifications_GeneralFixes() {
 
     MemWrite16(0x41C646, 0x15FF, 0xE890);
     FuncWrite32(0x41C648, 0x4B531C, (DWORD)&movie_thread_end_fix);
+
+    //Load files in place of files located in .tre archives.
+    FuncReplace32(0x483A83, 0x1229, (DWORD)&load_data_file);
+    //check if files are being closed.
+    //FuncReplace32(0x483B6A, 0x1712, (DWORD)&close_file_handle);
 }

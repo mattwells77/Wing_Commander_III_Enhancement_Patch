@@ -125,6 +125,9 @@ DWORD* p_wc3_key_scancode = nullptr;
 bool* p_wc3_movie_halt_flag = nullptr;
 
 
+BOOL(__thiscall* wc3_load_file_handle)(void*, BOOL print_error_flag, BOOL unknown_flag) = nullptr;
+LONG(*wc3_find_file_in_tre)(char* pfile_name) = nullptr;
+
 //_______________
 void WC3W_Setup() {
 
@@ -232,6 +235,8 @@ void WC3W_Setup() {
 
     wc3_nav_screen_update_position = (void(__thiscall *)(void*))0x430460;
   
+    wc3_load_file_handle = (BOOL(__thiscall*)(void*, BOOL, BOOL))0x483A60;
+    wc3_find_file_in_tre = (LONG(*)(char*))0x484CB0;
 
     p_wc3_frequency = (LARGE_INTEGER*)0x4A9768;
     p_wc3_space_time_max = (LARGE_INTEGER*)0x4A9A78;

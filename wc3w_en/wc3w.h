@@ -131,3 +131,7 @@ extern BOOL(__thiscall* wc3_sig_movie_play_sequence)(void*, DWORD);
 
 extern void(*wc3_movie_update_joystick_double_click_exit)();
 extern BOOL(*wc3_movie_exit)();
+
+
+extern BOOL(__thiscall* wc3_load_file_handle)(void*, BOOL print_error_flag, BOOL unknown_flag);
+extern LONG(*wc3_find_file_in_tre)(char* pfile_name);
