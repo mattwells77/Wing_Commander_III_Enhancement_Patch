@@ -135,6 +135,26 @@ static void __declspec(naked) close_file_handle(void) {
 }
 */
 
+//Fixed a code error on a call to the "VirtualProtect" function, where the "lpflOldProtect" parameter was set to NULL when it should point to a place to store the previous access protection value.
+//______________________________
+static void VirtualProtect_Fix() {
+    DWORD oldProtect;
+    VirtualProtect((LPVOID)0x476080, 0x47D7AE - 0x476080, PAGE_EXECUTE_READWRITE, &oldProtect);
+}
+
+
+//____________________________________________________
+static void __declspec(naked) virtualprotect_fix(void) {
+
+    __asm {
+        pushad
+        call VirtualProtect_Fix
+        popad
+        ret
+    }
+}
+
+
 //_______________________________
 void Modifications_GeneralFixes() {
 
@@ -151,4 +171,8 @@ void Modifications_GeneralFixes() {
     FuncReplace32(0x483A83, 0x1229, (DWORD)&load_data_file);
     //check if files are being closed.
     //FuncReplace32(0x483B6A, 0x1712, (DWORD)&close_file_handle);
+
+
+    //Fixed a code error on a call to the "VirtualProtect" function, where the "lpflOldProtect" parameter was set to NULL when it should point to a place to store the previous access protection value.
+    FuncReplace32(0x404FF1, 0x060B, (DWORD)&virtualprotect_fix);
 }
