@@ -247,16 +247,16 @@ static BOOL Window_Setup(HWND hwnd, bool is_windowed) {
     refreshRate.Numerator = ConfigReadInt("SPACE", "NAV_SCREEN_KEY_RESPONCE_HZ", CONFIG_SPACE_NAV_SCREEN_KEY_RESPONCE_HZ);
     nav_update_time.QuadPart = p_wc3_frequency->QuadPart / refreshRate.Numerator;
 
+    //Set the max refresh rate in space, original 24 FPS. Set to zero to use screen refresh rate, a negative value will use the original value.  
     refreshRate.Numerator = ConfigReadInt("SPACE", "SPACE_REFRESH_RATE_HZ", CONFIG_SPACE_SPACE_REFRESH_RATE_HZ);
-    if (refreshRate.Numerator == -1)
+    if ((int)refreshRate.Numerator < 0)
         refreshRate.Numerator = 24;
     else if (refreshRate.Numerator == 0)
         Get_Monitor_Refresh_Rate(hwnd, &refreshRate);
 
-    //Debug_Info("space refresh rate: %d %d", refreshRate.Numerator, refreshRate.Denominator);
-    //Debug_Info("space refresh rate: %f", (float)refreshRate.Numerator / refreshRate.Denominator);
+    Debug_Info("space refresh rate max: n:%d / d:%d, HZ:%f", refreshRate.Numerator, refreshRate.Denominator, (float)refreshRate.Numerator / refreshRate.Denominator);
+    p_wc3_space_time_max->QuadPart = p_wc3_frequency->QuadPart * refreshRate.Denominator / refreshRate.Numerator;
 
-    p_wc3_space_time_max->QuadPart = p_wc3_frequency->QuadPart / refreshRate.Numerator / refreshRate.Denominator;
     //Debug_Info("frequency: %d, %d, space time max: %d, %d, space time min: %d, %d", p_wc3_frequency->LowPart, p_wc3_frequency->HighPart, p_wc3_space_time_max->LowPart, p_wc3_space_time_max->HighPart, p_wc3_space_time_min->LowPart, p_wc3_space_time_min->HighPart);
     Debug_Info("Window Setup: Done");
     return 1;
