@@ -71,8 +71,9 @@ static BOOL Load_Data_File(char* pfile_name) {
     //"..\\..\\" signifies that the file is located in a .tre archive.
     if (strncmp(pfile_name, "..\\..\\", 6) == 0) {
 
+        DWORD file_attributes = GetFileAttributesA(pfile_name + 4);
         //check if the file exists under relative path \data
-        if (GetFileAttributesA(pfile_name + 4) != INVALID_FILE_ATTRIBUTES) {
+        if (file_attributes != INVALID_FILE_ATTRIBUTES && !(file_attributes & FILE_ATTRIBUTE_DIRECTORY) ) {
             size_t file_name_len = strlen(pfile_name) + 1;
 
             char* file_name_backup = new char[file_name_len + 1];
