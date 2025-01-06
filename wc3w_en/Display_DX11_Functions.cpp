@@ -247,6 +247,12 @@ static void RenderTargets_Destroy() {
 }
 
 
+//________________________________
+GEN_SURFACE* Get_Space2D_Surface() {
+    return surface_space2D;
+}
+
+
 //________________________________________________
 void Display_Dx_Present(PRESENT_TYPE present_type) {
 
@@ -281,6 +287,9 @@ void Display_Dx_Present(PRESENT_TYPE present_type) {
         }
         if (surface_space3D)
             surface_space3D->Display();
+
+        if (pMovie_vlc_Inflight && (*p_wc3_space_view_type == SPACE_VIEW_TYPE::Cockpit || *p_wc3_space_view_type == SPACE_VIEW_TYPE::CockHud))
+            pMovie_vlc_Inflight->Display();
 
         if (surface_space2D) {
             palette_buff_data->UpdateData(g_d3dDeviceContext, 0, &pal_mask_cockpit_hud);

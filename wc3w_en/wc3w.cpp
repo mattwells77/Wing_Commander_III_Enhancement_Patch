@@ -26,6 +26,7 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 char* p_wc3_szAppName = nullptr;
+HINSTANCE* pp_hinstWC3W = nullptr;
 
 bool* p_wc3_window_has_focus = nullptr;
 bool* p_wc3_is_windowed = nullptr;
@@ -48,7 +49,7 @@ LONG* p_wc3_y_centre_rear = nullptr;
 LONG* p_wc3_x_centre_hud = nullptr;
 LONG* p_wc3_y_centre_hud = nullptr;
 
-BYTE* p_wc3_space_view_type = nullptr;
+SPACE_VIEW_TYPE* p_wc3_space_view_type = nullptr;
 
 BOOL* p_wc3_is_mouse_present = nullptr;
 WORD* p_wc3_mouse_button = nullptr;
@@ -67,6 +68,29 @@ LARGE_INTEGER* p_wc3_space_time_max = nullptr;
 LARGE_INTEGER* p_wc3_space_time_min = nullptr;
 LARGE_INTEGER* p_wc3_space_time_current = nullptr;
 LARGE_INTEGER* p_wc3_space_time4 = nullptr;
+
+
+LONG* p_wc3_ambient_music_volume = nullptr;
+
+BYTE* p_wc3_is_sound_enabled = nullptr;
+void* p_wc3_audio_class = nullptr;
+
+
+MOVIE_CLASS_INFLIGHT_01** pp_movie_class_inflight_01 = nullptr;
+MOVIE_CLASS_INFLIGHT_02* p_movie_class_inflight_02 = nullptr;
+
+//a reference to the current sound, 
+DWORD* p_wc3_inflight_audio_ref = nullptr;
+//not sure what this does, made use of when inserting "Inflight_Movie_Audio_Check" function.
+BYTE* p_wc3_inflight_audio_unk01 = nullptr;
+
+//buffer rect structures used for drawing inflight movie frames, re-purposed to create a transparent rect in the cockpit/hud graphic for displaying HR movie's through.
+DRAW_BUFFER_MAIN* p_wc3_inflight_draw_buff_main = nullptr;
+DRAW_BUFFER* p_wc3_inflight_draw_buff = nullptr;
+
+//return address when playing HR movies to skip over regular movie playback.
+void* p_wc3_play_inflight_hr_movie_return_address = nullptr;
+
 
 void** pp_wc3_music_thread_class = nullptr;
 void(__thiscall* wc3_music_thread_class_destructor)(void*) = nullptr;
@@ -128,6 +152,13 @@ bool* p_wc3_movie_halt_flag = nullptr;
 BOOL(__thiscall* wc3_load_file_handle)(void*, BOOL print_error_flag, BOOL unknown_flag) = nullptr;
 LONG(*wc3_find_file_in_tre)(char* pfile_name) = nullptr;
 
+void (*wc3_copy_rect)(DRAW_BUFFER_MAIN* p_fromBuff, LONG from_x, LONG from_y, DRAW_BUFFER_MAIN* p_toBuff, LONG to_x, LONG to_y, DWORD pal_offset) = nullptr;
+LONG(__thiscall* wc3_play_audio_01)(void*, DWORD arg01, DWORD arg02, DWORD arg03, DWORD arg04) = nullptr;
+void(__thiscall*wc3_set_music_volume)(void*, LONG level) = nullptr;
+
+void* (*wc3_allocate_mem_main)(DWORD) = nullptr;
+void(*wc3_deallocate_mem_main)(void*) = nullptr;
+
 //_______________
 void WC3W_Setup() {
 
@@ -156,7 +187,7 @@ void WC3W_Setup() {
     p_wc3_x_centre_hud = (LONG*)0x4A2D38;
     p_wc3_y_centre_hud = (LONG*)0x4A2D3C;
 
-    p_wc3_space_view_type = (BYTE*)0x4A2D24;
+    p_wc3_space_view_type = (SPACE_VIEW_TYPE*)0x4A2D24;
 
     //p_wc3_client_width = (DWORD*)0x49F9A8;
     //p_wc3_client_height = (DWORD*)0x49F9AC;
@@ -243,4 +274,28 @@ void WC3W_Setup() {
     p_wc3_space_time_min = (LARGE_INTEGER*)0x4A9760;
     p_wc3_space_time_current = (LARGE_INTEGER*)0x4A26E8;
     p_wc3_space_time4 = (LARGE_INTEGER*)0x4A2750;
+
+
+    p_movie_class_inflight_02 = (MOVIE_CLASS_INFLIGHT_02*)0x4AB340;
+    pp_movie_class_inflight_01 = (MOVIE_CLASS_INFLIGHT_01**)0x4A3358;
+
+    wc3_copy_rect = (void (*)(DRAW_BUFFER_MAIN*, LONG, LONG, DRAW_BUFFER_MAIN*, LONG, LONG, DWORD)) 0x473687;
+    wc3_play_audio_01 = (LONG(__thiscall*)(void*, DWORD, DWORD, DWORD, DWORD))0x438E10;
+    wc3_set_music_volume = (void(__thiscall*)(void*, LONG))0x439370;
+
+    p_wc3_ambient_music_volume = (LONG*)0x4AB7B0;
+    p_wc3_is_sound_enabled = (BYTE*)0x4A3A48;
+    p_wc3_audio_class = (void*)0x4A9580;
+
+    p_wc3_inflight_audio_ref = (DWORD*)0x4A3354;
+    p_wc3_inflight_audio_unk01 = (BYTE*)0x4A3338;
+
+    p_wc3_play_inflight_hr_movie_return_address = (void*)0x423024;
+
+    p_wc3_inflight_draw_buff_main = (DRAW_BUFFER_MAIN*)0x4AB300;
+    p_wc3_inflight_draw_buff = (DRAW_BUFFER*)0x4AB318;
+
+
+    wc3_allocate_mem_main = (void* (*)(DWORD))0x480B0B;
+    wc3_deallocate_mem_main = (void(*)(void*))0x480C92;
 }

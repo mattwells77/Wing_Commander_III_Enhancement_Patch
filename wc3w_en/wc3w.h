@@ -49,10 +49,123 @@ struct VIDframe {
     BYTE* buff;//0x28
 };
 
+//this structure is very incomplete and likely larger than specified.
+struct MOVIE_CLASS_01 {
+    DWORD unk00;
+    DWORD unk04;
+    DWORD unk08;
+    DWORD unk0C;
+    DWORD unk10;
+    DWORD unk14;
+    DWORD unk18;
+    DWORD unk1C;
+    DWORD unk20;
+    DWORD unk24;//*p_func(Arg1 BYTE *p_buff)
+    DWORD unk28;
+    DWORD unk2C;
+    DWORD unk30;
+    DWORD unk34;
+    DWORD unk38;
+    DWORD unk3C;
+    DWORD unk40;
+    DWORD unk44;
+    DWORD unk48;
+    DWORD unk4C;
+    DWORD unk50;
+    DWORD branch_max;//0x54
+    DWORD unk58;
+    DWORD unk5C;
+    DWORD branch_current;//0x60
+    DWORD unk64;
+    DWORD unk68;
+    DWORD unk6C;
+    char* path;//0x70
+    DWORD unk74;
+    DWORD unk78;
+    DWORD unk7C;
+};
+
+
+//this structure is very incomplete and likely larger than specified.
+struct HUD_CLASS_01 {
+    DWORD unk00;
+    DWORD unk04;
+    DWORD unk08;
+    DWORD unk0C;
+    DWORD unk10;
+    DWORD unk14;
+    DWORD unk18;
+    DWORD unk1C;
+    DWORD unk20;
+    LONG hud_x;//x1
+    LONG hud_y;//y1
+    DWORD unk2C;
+    DWORD unk30;
+    DWORD unk34;
+    DWORD unk38;
+    DWORD unk3C;
+    DWORD unk40;
+    DWORD unk44;
+    DWORD unk48;
+    LONG comm_x;//x2
+    LONG comm_y;//y2
+    DWORD unk54;
+    DWORD unk58;
+    DWORD unk5C;
+
+};
+
+//this structure is very incomplete and likely larger than specified.
+struct MOVIE_CLASS_INFLIGHT_01 {
+    DWORD unk00;
+    DWORD flags;//0x04
+    DWORD timecode_start_of_file_30fps;//0x08
+    DWORD timecode_length_from_video_start_30fps;//0x0C
+    DWORD video_frame_offset_15fps_neg;//0x10
+    DWORD timecode_start_of_audio_30fps;//0x14
+    DWORD unk18;
+    char file_name[16];//0x1C
+    DWORD unk2C;
+    DWORD unk30;
+    DWORD unk34;
+    DWORD unk38;
+    DWORD unk3C;
+    DWORD unk40;
+    DWORD unk44;
+    DWORD unk48;
+};
+
+//this structure is very incomplete and likely larger than specified.
+struct MOVIE_CLASS_INFLIGHT_02 {
+    MOVIE_CLASS_01* p_movie_class;//0x00
+    char* file_path;//0x04
+    DWORD unk08;//0x08
+    DWORD width;//0x0C
+    DWORD height;//0x10
+    LONG current_frame;//0x14
+};
+
+
+enum class SPACE_VIEW_TYPE : WORD {
+    Cockpit = 0,
+    CockLeft = 1,
+    CockRight = 2,
+    CockBack = 3,
+    Chase = 4,
+    Rotate = 5,
+    CockHud = 6,
+    UNK07 = 7,
+    UNK08 = 8,
+    NavMap = 9,
+    UNK10 = 10,
+    Track = 11,
+};
+
 
 void WC3W_Setup();
 
 extern char* p_wc3_szAppName;
+extern HINSTANCE* pp_hinstWC3W;
 
 extern bool* p_wc3_window_has_focus;
 extern bool* p_wc3_is_windowed;
@@ -77,7 +190,7 @@ extern LONG* p_wc3_y_centre_rear;
 extern LONG* p_wc3_x_centre_hud;
 extern LONG* p_wc3_y_centre_hud;
 
-extern BYTE* p_wc3_space_view_type;
+extern SPACE_VIEW_TYPE* p_wc3_space_view_type;
 
 extern BOOL* p_wc3_is_mouse_present;
 
@@ -104,6 +217,28 @@ extern bool* p_wc3_movie_halt_flag;
 
 extern LONG* p_wc3_subtitles_enabled;
 extern LONG* p_wc3_language_ref;
+
+extern MOVIE_CLASS_INFLIGHT_01** pp_movie_class_inflight_01;
+extern MOVIE_CLASS_INFLIGHT_02* p_movie_class_inflight_02;
+
+extern LONG* p_wc3_ambient_music_volume;
+
+extern BYTE* p_wc3_is_sound_enabled;
+extern void* p_wc3_audio_class;
+
+//a reference to the current sound, 
+extern DWORD* p_wc3_inflight_audio_ref;
+//not sure what this does, made use of when inserting "Inflight_Movie_Audio_Check" function.
+extern BYTE* p_wc3_inflight_audio_unk01;
+
+//buffer rect structures used for drawing inflight movie frames, re-purposed to create a transparent rect in the cockpit/hud graphic for displaying HR movie's through.
+extern DRAW_BUFFER_MAIN* p_wc3_inflight_draw_buff_main;
+extern DRAW_BUFFER* p_wc3_inflight_draw_buff;
+
+//return address when playing HR movies to skip over regular movie playback.
+extern void* p_wc3_play_inflight_hr_movie_return_address;
+
+
 
 extern void(__thiscall* wc3_draw_hud_targeting_elements)(void*);
 extern void(__thiscall* wc3_draw_hud_view_text)(void*);
@@ -135,3 +270,11 @@ extern BOOL(*wc3_movie_exit)();
 
 extern BOOL(__thiscall* wc3_load_file_handle)(void*, BOOL print_error_flag, BOOL unknown_flag);
 extern LONG(*wc3_find_file_in_tre)(char* pfile_name);
+//pal_offset  colour (0-255) for filled rect, if pal_offset above 255 from-buffer is copied to to-buff.
+extern void (*wc3_copy_rect)(DRAW_BUFFER_MAIN* p_fromBuff, LONG from_x, LONG from_y, DRAW_BUFFER_MAIN* p_toBuff, LONG to_x, LONG to_y, DWORD pal_offset);
+extern LONG(__thiscall* wc3_play_audio_01)(void*, DWORD arg01, DWORD arg02, DWORD arg03, DWORD arg04);
+
+extern void(__thiscall*wc3_set_music_volume)(void*, LONG level);
+
+extern void*(*wc3_allocate_mem_main)(DWORD);
+extern void(*wc3_deallocate_mem_main)(void*);

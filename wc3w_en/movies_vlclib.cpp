@@ -53,6 +53,30 @@ std::string movie_config_path;
 BOOL are_movie_path_setting_set = FALSE;
 int branch_offset_ms = 0;
 
+BOOL inflight_use_audio_from_file_if_present = 1;
+SCALE_TYPE inflight_display_aspect_type = SCALE_TYPE::fit;
+
+LibVlc_MovieInflight* pMovie_vlc_Inflight = nullptr;
+
+//____________________________________________________________________________________
+static BOOL Create_Movie_Path_Inflight(const char* movie_name, std::string* p_retPath) {
+    if (!p_retPath)
+        return FALSE;
+
+    p_retPath->clear();
+    p_retPath->append(movie_dir);
+    p_retPath->append("inflight\\");
+    p_retPath->append(movie_name);
+    p_retPath->append(movie_ext);
+
+
+    Debug_Info("Create_Movie_Path: %s", p_retPath->c_str());
+    if (GetFileAttributesA(p_retPath->c_str()) == INVALID_FILE_ATTRIBUTES)
+        return FALSE;
+
+    return TRUE;
+}
+
 
 //__________________________________________
 static bool isPathRelative(const char* path) {
@@ -123,6 +147,13 @@ static BOOL Set_Movie_Settings() {
     //get the offset between movie branches in milliseconds.
     branch_offset_ms = ConfigReadInt("MOVIES", "BRANCH_OFFSET_MS", CONFIG_MOVIES_BRANCH_OFFSET_MS);
     Debug_Info("movie branch offset: %d ms", branch_offset_ms);
+
+
+    inflight_use_audio_from_file_if_present = ConfigReadInt("MOVIES", "INFLIGHT_USE_AUDIO_FROM_FILE_IF_PRESENT", CONFIG_MOVIES_INFLIGHT_USE_AUDIO_FROM_FILE_IF_PRESENT);
+    if(ConfigReadInt("MOVIES", "INFLIGHT_DISPLAY_ASPECT_TYPE", CONFIG_MOVIES_INFLIGHT_DISPLAY_ASPECT_TYPE) == 0)
+        inflight_display_aspect_type = SCALE_TYPE::fill;
+    else
+        inflight_display_aspect_type = SCALE_TYPE::fit;
 
     delete[] char_buff;
     return are_movie_path_setting_set = TRUE;
@@ -469,5 +500,233 @@ void LibVlc_Movie::InitialiseForPlay_End() {
         mediaPlayer.setPause(true);
         isPlaying = false;
     }
+}
 
+
+
+//___________________________________________________________________________________________________________________________________________________________
+LibVlc_MovieInflight::LibVlc_MovieInflight(const char* mve_file_name, RECT* p_rc_dest_unscaled, libvlc_time_t in_time_ms_start, libvlc_time_t in_time_ms_end) {
+    //Debug_Info("LibVlc_MovieInflight: Create Start");
+    Set_Movie_Settings();
+    isPlaying = false;
+    hasPlayed = false;
+    isError = false;
+    has_audio = false;
+
+    surface = nullptr;
+    surface_bg = nullptr;
+    play_setup_start = false;
+    play_setup_complete = false;
+    play_counter_start = false;
+    play_counter_started = false;
+    position = 0;
+    paused = false;
+    rc_dest_unscaled = { 0,0,0,0 };
+
+    time_ms_start = in_time_ms_start;
+    time_ms_end = in_time_ms_end;
+    time_ms_length = time_ms_end - time_ms_start;
+    play_end_time_in_ticks.QuadPart = 0;
+
+    char movie_name[9]{ 0 };
+
+    strncpy_s(movie_name, _countof(movie_name), mve_file_name, _countof(movie_name) - 1);
+    char* ext = strrchr(movie_name, '.');
+    if (ext) {
+        *ext = '\0';
+    }
+    char* c = movie_name;
+    while (*c) {
+        *c = tolower(*c);
+        c++;
+    }
+
+
+    if (p_rc_dest_unscaled) {
+        CopyRect(&rc_dest_unscaled, p_rc_dest_unscaled);
+        if (!surface_bg && inflight_display_aspect_type == SCALE_TYPE::fit) {
+            //Debug_Info("surface_bg: %dx%d", rc_dest_unscaled.right - rc_dest_unscaled.left + 1, rc_dest_unscaled.bottom - rc_dest_unscaled.top + 1);
+            surface_bg = new GEN_SURFACE(rc_dest_unscaled.right - rc_dest_unscaled.left + 1, rc_dest_unscaled.bottom - rc_dest_unscaled.top + 1, 32);
+            //set backgound to roughly match cockpit monitor colour.
+            surface_bg->Clear_Texture(0xFF202020);
+
+        }
+    }
+    else {
+        Debug_Info("LibVlc_MovieInflight: destination Rect not set: %s", movie_name);
+        isError = true;
+    }
+
+    ///////////////////disable audio playback/////////////////////////////////
+   // if(!inflight_use_audio_from_file_if_present)
+       // mediaPlayer.setAudioTrack(-1);
+    //Debug_Info("LibVlc_MovieInflight: volume level: %d", mediaPlayer.volume());
+
+    using namespace std::placeholders; // for `_1`
+
+
+    mediaPlayer.eventManager().onPlaying(std::bind(&LibVlc_MovieInflight::on_play, this));
+    mediaPlayer.eventManager().onStopped(std::bind(&LibVlc_MovieInflight::on_stopped, this));
+
+    mediaPlayer.eventManager().onEncounteredError(std::bind(&LibVlc_MovieInflight::on_encountered_error, this));
+    mediaPlayer.eventManager().onTimeChanged(std::bind(&LibVlc_MovieInflight::on_time_changed, this, _1));
+
+    mediaPlayer.eventManager().onBuffering(std::bind(&LibVlc_MovieInflight::on_buffering, this, _1));
+    mediaPlayer.eventManager().onEndReached(std::bind(&LibVlc_MovieInflight::on_end_reached, this));
+
+
+    mediaPlayer.setVideoCallbacks(std::bind(&LibVlc_MovieInflight::lock, this, _1), std::bind(&LibVlc_MovieInflight::unlock, this, _1, _2), std::bind(&LibVlc_MovieInflight::display, this, _1));
+    mediaPlayer.setVideoFormatCallbacks(std::bind(&LibVlc_MovieInflight::format, this, _1, _2, _3, _4, _5), std::bind(&LibVlc_MovieInflight::cleanup, this));
+
+    path.clear();
+
+    if (!Create_Movie_Path_Inflight(movie_name, &path)) {
+        Debug_Info("LibVlc_MovieInflight: Create Movie Path FAILED: %s , %s", movie_name, path.c_str());
+        isError = true;
+    }
+    else
+        Debug_Info("LibVlc_MovieInflight: Created Movie Path: %s", path.c_str());
+
+}
+
+
+//______________________________________________
+void LibVlc_MovieInflight::initialise_for_play() {
+    // these need to be set once playback has started
+    if (play_setup_start && !play_setup_complete) {
+        //disable subtitles, we don't want subs overlayed on the inflight video.
+        mediaPlayer.setSpu(-1);
+        //setup audio
+        if (!inflight_use_audio_from_file_if_present)
+            mediaPlayer.setAudioTrack(-1);
+
+        if (mediaPlayer.audioTrack() != -1) {
+            Debug_Info("initialise_for_play: HD movie HAS AUDIO");
+            has_audio = true;
+        }
+        //set the movie start time
+        mediaPlayer.setTime(time_ms_start);
+        play_setup_complete = true;
+    }
+    // starting counter after first lock to reduces syncing issues with hd video and wc3 audio playback.
+    if (play_counter_start && !play_counter_started) {
+        if (time_ms_end) {
+            QueryPerformanceCounter(&play_end_time_in_ticks);
+            play_end_time_in_ticks.QuadPart += time_ms_end * p_wc3_frequency->QuadPart / 1000LL; ;
+        }
+        play_counter_started = true;
+    }
+}
+
+//_______________________________
+bool LibVlc_MovieInflight::Play() {
+    if (isError)
+        isPlaying = false;
+    else {
+        //Debug_Info("LibVlc_MovieInflight: Play Start");
+        SetMedia(path);
+        isPlaying = mediaPlayer.play();
+        if (!isPlaying)
+            isError = true;
+        if (isError)
+            return false;
+    }
+    //Debug_Info("LibVlc_MovieInflight: Play END");
+    return isPlaying;
+}
+
+
+//___________________________________________________
+void LibVlc_MovieInflight::SetMedia(std::string path) {
+    VLC::Media media;
+
+#if LIBVLC_VERSION_INT >= LIBVLC_VERSION(4, 0, 0, 0)
+    media = VLC::Media(path, VLC::Media::FromPath);
+#else
+    Debug_Info("LibVlc_Movie: SetMedia: %s", path.c_str());
+    media = VLC::Media(vlc_instance, path, VLC::Media::FromPath);
+
+#endif
+    mediaPlayer.setMedia(media);
+
+}
+
+
+//___________________________________________________________________________
+void LibVlc_MovieInflight::Update_Display_Dimensions(RECT* p_rc_gui_unscaled) {
+    if (p_rc_gui_unscaled) {
+        if (p_rc_gui_unscaled->left != rc_dest_unscaled.left || p_rc_gui_unscaled->right != rc_dest_unscaled.right || p_rc_gui_unscaled->top != rc_dest_unscaled.top || p_rc_gui_unscaled->bottom != rc_dest_unscaled.bottom) {
+            CopyRect(&rc_dest_unscaled, p_rc_gui_unscaled);
+            //Debug_Info("LibVlc_MovieInflight: Update_Display_Dimensions UPDATED: %s", path.c_str());
+        }
+        else
+            return;
+    }
+
+    GEN_SURFACE* pSpace2D_surface = Get_Space2D_Surface();
+    float scaleX = 1.0f, scaleY = 1.0f;
+    float posX = 1.0f, posY = 1.0f;
+    if (pSpace2D_surface) {
+        pSpace2D_surface->GetScaledPixelDimensions(&scaleX, &scaleY);
+        pSpace2D_surface->GetPosition(&posX, &posY);
+    }
+
+    float dest_width = (float)rc_dest_unscaled.right - rc_dest_unscaled.left + 1;
+    float dest_height = (float)rc_dest_unscaled.bottom - rc_dest_unscaled.top + 1;
+    
+    unsigned int int_width = 0;
+    unsigned int int_height = 0;
+    mediaPlayer.size(0, &int_width, &int_height);
+
+    if (inflight_display_aspect_type == SCALE_TYPE::fill) {
+        if (surface) {
+            surface->SetPosition(posX + rc_dest_unscaled.left * scaleX, posY + rc_dest_unscaled.top * scaleY);
+            surface->SetScale(scaleX, scaleY);
+            surface->SetScale(dest_width / (float)int_width * scaleX, dest_height / (float)int_height * scaleX);
+        }
+        return;
+    }
+
+    float movie_width = (float)int_width;
+    float movie_height = (float)int_height;
+    float movieRO = movie_width / movie_height;
+    float destRO = dest_width / (float)dest_height;
+
+    float x = 0;
+    float y = 0;
+    float width = dest_width;
+    float height = dest_height;
+
+    if (movieRO > destRO) {
+        x = 0;
+        width = (float)dest_width;
+        height = (dest_width / movieRO);
+        y = ((float)dest_height - height) / 2;
+    }
+    else {
+        y = 0;
+        height = (float)dest_height;
+        width = dest_height * movieRO;
+        x = ((float)dest_width - width) / 2;
+    }
+
+    if (surface) {
+        surface->SetPosition(posX + (rc_dest_unscaled.left + x) * scaleX, posY + (rc_dest_unscaled.top + y) * scaleY);
+        surface->SetScale(width / movie_width * scaleX, height / movie_height * scaleY);
+    }
+    if (surface_bg) {
+        surface_bg->SetPosition(posX + rc_dest_unscaled.left * scaleX, posY + rc_dest_unscaled.top * scaleY);
+        surface_bg->SetScale(scaleX, scaleY);
+    }
+}
+
+
+//__________________________________
+void LibVlc_MovieInflight::Display() {
+    if (!play_counter_started)
+        return;
+    if (surface_bg && *p_wc3_space_view_type == SPACE_VIEW_TYPE::Cockpit)
+        surface_bg->Display();
+    if (surface)
+        surface->Display();
 }

@@ -186,6 +186,11 @@ static bool Display_Exit() {
     if (pMovie_vlc)
         delete pMovie_vlc;
     pMovie_vlc = nullptr;
+
+    if (pMovie_vlc_Inflight)
+        delete pMovie_vlc_Inflight;
+    pMovie_vlc_Inflight = nullptr;
+
     Display_Dx_Destroy();
     return 0;
 }
@@ -1056,6 +1061,10 @@ static bool WinProc_Main(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam) 
                 pMovie_vlc->Pause(false);
                 pMovie_vlc->SetScale(); 
             }
+            if (pMovie_vlc_Inflight) {
+                pMovie_vlc_Inflight->Pause(false);
+                pMovie_vlc_Inflight->Update_Display_Dimensions(nullptr);
+            }
             SetWindowTitle(hwnd, L"");
         }
         
@@ -1066,6 +1075,8 @@ static bool WinProc_Main(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam) 
         is_in_sizemove = true;
         if (pMovie_vlc)
             pMovie_vlc->Pause(true);
+        if (pMovie_vlc_Inflight)
+            pMovie_vlc_Inflight->Pause(true);
         break;
 
     case WM_EXITSIZEMOVE:
@@ -1075,6 +1086,10 @@ static bool WinProc_Main(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam) 
         if (pMovie_vlc) {
             pMovie_vlc->Pause(false);
             pMovie_vlc->SetScale();
+        }
+        if (pMovie_vlc_Inflight) {
+            pMovie_vlc_Inflight->Pause(false);
+            pMovie_vlc_Inflight->Update_Display_Dimensions(nullptr);
         }
         SetWindowTitle(hwnd, L"");
         break;
@@ -1137,6 +1152,8 @@ static bool WinProc_Main(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam) 
             //Debug_Info("SC_RESTORE");
             if (pMovie_vlc)
                 pMovie_vlc->Pause(true);
+            if (pMovie_vlc_Inflight)
+                pMovie_vlc_Inflight->Pause(true);
             return 0;
             break;
         default:
@@ -1198,6 +1215,8 @@ static bool WinProc_Main(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam) 
             }
             if (pMovie_vlc)
                 pMovie_vlc->Pause(true);
+            if (pMovie_vlc_Inflight)
+                pMovie_vlc_Inflight->Pause(true);
         }
         else {
             Debug_Info("WM_ACTIVATEAPP true");
@@ -1208,6 +1227,8 @@ static bool WinProc_Main(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam) 
             }
             if (pMovie_vlc)
                 pMovie_vlc->Pause(false);
+            if (pMovie_vlc_Inflight)
+                pMovie_vlc_Inflight->Pause(false);
         }
         return 0;
         //case WM_ERASEBKGND:
@@ -1616,6 +1637,266 @@ static void __declspec(naked) play_movie_sequence(void) {
 }
 
 
+//Finds the number of frames between two SMPTE timecode's, these timecodes are 30 fps.
+//SMPTE timecode format hh/mm/ss/frames 30fps
+//________________________________________________________________________________________
+static LONG Get_Num_Frames_Between_Timecodes_30fps(DWORD timecode_start, DWORD timecode_end) {
+
+    DWORD temp = 0;
+    DWORD seconds_30fps = 0;
+    DWORD minuts_30fps = 0;
+    DWORD hours_30fps = 0;
+
+    DWORD start = timecode_start % 100;
+    temp = timecode_start / 100;
+
+    seconds_30fps = temp % 100;
+    seconds_30fps *= 30;
+
+    temp /= 100;
+    minuts_30fps = temp % 100;
+    minuts_30fps *= 1800;
+
+    temp /= 100;
+    hours_30fps = temp % 100;
+    hours_30fps *= 108000;
+
+
+    
+    start = start + seconds_30fps + minuts_30fps + hours_30fps;
+    //Debug_Info("Get_Time_Position: start frames: %d", start);
+
+    DWORD end = timecode_end % 100;
+    temp = timecode_end / 100;
+
+    seconds_30fps = temp % 100;
+    seconds_30fps *= 30;
+
+    temp /= 100;
+    minuts_30fps = temp % 100;
+    minuts_30fps *= 1800;
+
+    temp /= 100;
+    hours_30fps = temp % 100;
+    hours_30fps *= 108000;
+
+    end = end + seconds_30fps + minuts_30fps + hours_30fps;
+    //Debug_Info("Get_Time_Position: end frames: %d", end);
+    if (end < start)
+        return 0;
+
+    return (end - start);
+}
+
+
+//___________________________________________________________
+static BOOL Play_Inflight_Movie(HUD_CLASS_01* p_hud_class_01) {
+    if (*pp_movie_class_inflight_01) {
+        static LARGE_INTEGER inflight_audio_play_start_time{0};
+        static LARGE_INTEGER inflight_audio_play_start_offset{0};
+
+        if (!(*p_wc3_inflight_draw_buff).buff && !pMovie_vlc_Inflight) {
+            Debug_Info("Play_Inflight_Movie: timecodes: timecode_start_of_file:%d, timecode_start_of_scene:%d, timecode_duration:%d, scene_video_neg_frame_offset:%d", (*pp_movie_class_inflight_01)->timecode_start_of_file_30fps, (*pp_movie_class_inflight_01)->timecode_start_of_audio_30fps, (*pp_movie_class_inflight_01)->timecode_length_from_video_start_30fps, (*pp_movie_class_inflight_01)->video_frame_offset_15fps_neg);
+            
+            //SMPTE timecode's are used to set the play position in some movie's, seems to be mostly the pilot head's.
+            LONG sound_start_frame = Get_Num_Frames_Between_Timecodes_30fps((*pp_movie_class_inflight_01)->timecode_start_of_file_30fps, (*pp_movie_class_inflight_01)->timecode_start_of_audio_30fps);
+            if (sound_start_frame < 0)
+                sound_start_frame = 0;
+            inflight_audio_play_start_offset.QuadPart = static_cast<libvlc_time_t>(sound_start_frame) * 1000 / 30;
+
+            LONG video_start_frame = sound_start_frame - (*pp_movie_class_inflight_01)->video_frame_offset_15fps_neg * 2;
+            if (video_start_frame < 0)
+                video_start_frame = 0;
+
+            LONG end = Get_Num_Frames_Between_Timecodes_30fps(0, (*pp_movie_class_inflight_01)->timecode_length_from_video_start_30fps) + video_start_frame;
+            
+            Debug_Info("Play_Inflight_Movie: frames30fps: start:%d,sound_start_frame:%d, end:%d", video_start_frame, sound_start_frame, end);
+            Debug_Info("Play_Inflight_Movie:       times: start:%d, sound_start_frame:%d, end:%d", video_start_frame * 1000 / 30, (sound_start_frame) * 1000 / 30, (end) * 1000 / 30);
+
+            RECT rc_dest{ p_hud_class_01->hud_x + p_hud_class_01->comm_x, p_hud_class_01->hud_y + p_hud_class_01->comm_y,  p_hud_class_01->hud_x + p_hud_class_01->comm_x + (LONG)p_movie_class_inflight_02->width - 1, p_hud_class_01->hud_y + p_hud_class_01->comm_y + (LONG)p_movie_class_inflight_02->height - 1 };
+            Debug_Info("size:%d,%d,%d,%d", rc_dest.left, rc_dest.top, rc_dest.right, rc_dest.bottom);
+            pMovie_vlc_Inflight = new LibVlc_MovieInflight((*pp_movie_class_inflight_01)->file_name, &rc_dest, static_cast<libvlc_time_t>(video_start_frame) * 1000 / 30, static_cast<libvlc_time_t>(end) * 1000 / 30);
+            if (!pMovie_vlc_Inflight->Play()) {
+                delete pMovie_vlc_Inflight;
+                pMovie_vlc_Inflight = nullptr;
+                return FALSE;
+            }
+
+            //(*p_wc3_inflight_draw_buff).buff needs to exist to evoke the inflight movie destructor function.
+            if (!(*p_wc3_inflight_draw_buff).buff) {
+                (*p_wc3_inflight_draw_buff).buff = (BYTE*)wc3_allocate_mem_main(p_movie_class_inflight_02->width * p_movie_class_inflight_02->height);
+                (*p_wc3_inflight_draw_buff).rc_inv.left = (LONG)p_movie_class_inflight_02->width - 1;
+                (*p_wc3_inflight_draw_buff).rc_inv.top = (LONG)p_movie_class_inflight_02->height - 1;
+                (*p_wc3_inflight_draw_buff).rc_inv.right = 0;
+                (*p_wc3_inflight_draw_buff).rc_inv.bottom = 0;
+
+                (*p_wc3_inflight_draw_buff_main).db = p_wc3_inflight_draw_buff;
+                (*p_wc3_inflight_draw_buff_main).rc.left = 0;
+                (*p_wc3_inflight_draw_buff_main).rc.top = 0;
+                (*p_wc3_inflight_draw_buff_main).rc.right = (LONG)p_movie_class_inflight_02->width - 1;
+                (*p_wc3_inflight_draw_buff_main).rc.bottom = (LONG)p_movie_class_inflight_02->height - 1;
+            }
+
+            inflight_audio_play_start_time.QuadPart = 0;
+        }
+        //Debug_Info("Process_Inflight_Movie MVE: current frame:%d", p_movie_class_inflight_02->current_frame);
+        //Debug_Info("Process_Inflight_Movie MVE: time count:%d,strt vid:%d,end vid:%d,strt aud:%d,curr:%d", *(DWORD**)0x4AB28C, *(DWORD**)0x4AB338, *(DWORD**)0x4AB2C8, *(DWORD**)0x4AB33C, *(DWORD**)0x4AB354);
+        if (!pMovie_vlc_Inflight)
+            return FALSE;
+        
+        libvlc_time_t current_time = pMovie_vlc_Inflight->Check_Play_Time();
+        //Debug_Info("Play_Inflight_Movie: current time :%d ms", (int)current_time);
+
+        if (!pMovie_vlc_Inflight->IsPlayInitialised()) {
+            //Debug_Info("Play_Inflight_Movie: waiting for movie initialisation");
+            return TRUE;
+        }
+        
+        // timecode_start_of_audio_30fps is used as a flag to initiate audio playback.
+        // setting this here once playback is initialised and audio start time reached.
+        if ((*pp_movie_class_inflight_01)->timecode_start_of_audio_30fps != 0) {
+            LARGE_INTEGER inflight_video_play_time{};
+            QueryPerformanceCounter(&inflight_video_play_time);
+            if (inflight_audio_play_start_time.QuadPart == 0)
+                inflight_audio_play_start_time.QuadPart = inflight_video_play_time.QuadPart + inflight_audio_play_start_offset.QuadPart;
+            if (inflight_audio_play_start_time.QuadPart < inflight_video_play_time.QuadPart)
+                (*pp_movie_class_inflight_01)->timecode_start_of_audio_30fps = 0;
+        }
+
+        //check if video display dimensions have changed and update if necessary.
+        RECT rc_dest{ p_hud_class_01->hud_x + p_hud_class_01->comm_x, p_hud_class_01->hud_y + p_hud_class_01->comm_y,  p_hud_class_01->hud_x + p_hud_class_01->comm_x + (LONG)p_movie_class_inflight_02->width - 1, p_hud_class_01->hud_y + p_hud_class_01->comm_y + (LONG)p_movie_class_inflight_02->height - 1 };
+        pMovie_vlc_Inflight->Update_Display_Dimensions(&rc_dest);
+
+        //set the movie class pointer to null to signal to wc3 that the movie has ended.
+        if (pMovie_vlc_Inflight && pMovie_vlc_Inflight->HasPlayed()) {
+            *pp_movie_class_inflight_01 = nullptr;
+            Debug_Info("Play_Inflight_Movie: Movie Finished");
+            return TRUE;
+        }
+
+        //clear the rect on the cockpit/hud so that the movie drawn beneath will be visible.
+        wc3_copy_rect(p_wc3_inflight_draw_buff_main, 0, 0, *pp_wc3_db_game_main, p_hud_class_01->hud_x + p_hud_class_01->comm_x, p_hud_class_01->hud_y + p_hud_class_01->comm_y, (BYTE)255);
+    }
+    return TRUE;
+}
+
+
+//_____________________________________________________
+static void __declspec(naked) play_inflight_movie(void) {
+
+    __asm {
+        push ebx
+        push ecx
+        push edx
+        push edi
+        push esi
+        push ebp
+
+        push esi
+        call Play_Inflight_Movie
+        add esp, 0x4
+
+        pop ebp
+        pop esi
+        pop edi
+        pop edx
+        pop ecx
+        pop ebx
+
+        cmp eax, FALSE
+        je play_mve
+
+        pop eax //pop ret address and skip over regular mve playback code 
+        jmp p_wc3_play_inflight_hr_movie_return_address
+        
+        play_mve :
+        mov eax, p_wc3_inflight_draw_buff
+        cmp dword ptr ds:[eax], 0
+        ret
+    }
+}
+
+
+//_________________________________
+static void Inflight_Movie_Unload() {
+    //check if the finished hd movie has audio, and if so return the volume of the background music to normal setting.
+    if (pMovie_vlc_Inflight) {
+        if (pMovie_vlc_Inflight->HasAudio()) {
+            Debug_Info("Inflight_Movie_Unload HasAudio - volume returned to normal");
+            wc3_set_music_volume(p_wc3_audio_class, *p_wc3_ambient_music_volume);
+        }
+        
+        delete pMovie_vlc_Inflight;
+        pMovie_vlc_Inflight = nullptr;
+        Debug_Info("Inflight_Movie_Unload done");
+    }
+}
+
+
+//_______________________________________________________
+static void __declspec(naked) inflight_movie_unload(void) {
+
+    __asm {
+        pushad
+
+        call Inflight_Movie_Unload
+
+        popad
+
+        mov eax, p_wc3_inflight_draw_buff
+        cmp dword ptr ds:[eax] , ebx
+        ret
+    }
+}
+
+
+//______________________________________
+static LONG Inflight_Movie_Audio_Check() {
+    //check if the hd movie has audio, and if so lower the volume of the background music while playing.
+    if (*p_wc3_inflight_audio_ref == 0 && pMovie_vlc_Inflight && pMovie_vlc_Inflight->HasAudio()) {
+        Debug_Info("Inflight_Movie_Check_Audio HasAudio - volume lowered");
+        LONG audio_vol = *p_wc3_ambient_music_volume - 4;
+        if (audio_vol < 0)
+            audio_vol = 0;
+        wc3_set_music_volume(p_wc3_audio_class, audio_vol);
+        return FALSE;
+
+    }
+    return *p_wc3_inflight_audio_unk01;
+}
+
+
+//____________________________________________________________
+static void __declspec(naked) inflight_movie_audio_check(void) {
+
+    __asm {
+        push eax
+        
+        push ebx
+        push ecx
+        push edx
+        push edi
+        push esi
+        push ebp
+
+        call Inflight_Movie_Audio_Check
+
+        pop ebp
+        pop esi
+        pop edi
+        pop edx
+        pop ecx
+        pop ebx
+
+        cmp al, 0
+
+        pop eax
+        ret
+
+    }
+}
+
+
 //___________________________
 void Modifications_Display() {
 
@@ -1869,6 +2150,18 @@ void Modifications_Display() {
  //   MemWrite32(0x4304C9, 0x00000800, 32);
     //004304D6 | .  8186 FC000000 00080000        ADD DWORD PTR DS : [ESI + 0FC] , 800
  //   MemWrite32(0x4304DC, 0x00000800, 32);
+
+
+    MemWrite16(0x422EA5, 0x3D83, 0xE890);
+    FuncWrite32(0x422EA7, 0x4AB318, (DWORD)&play_inflight_movie);
+    MemWrite8(0x422EAB, 0x00, 0x90);
+
+    MemWrite16(0x423085, 0x1D39, 0xE890);
+    FuncWrite32(0x423087, 0x4AB318, (DWORD)&inflight_movie_unload);
+
+    MemWrite16(0x433731, 0x3D80, 0xE890);
+    FuncWrite32(0x433733, 0x4A3338, (DWORD)&inflight_movie_audio_check);
+    MemWrite8(0x433737, 0x00, 0x90);
 
 }
 

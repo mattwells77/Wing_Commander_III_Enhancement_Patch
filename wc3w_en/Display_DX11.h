@@ -1000,26 +1000,29 @@ public:
         return 0;
     };
     BOOL Clear_Texture(DWORD colour) {
-        VOID* pSurface = nullptr;
+        if (!pTex_Staging || !pTex)
+            return FALSE;
+        void* pSurface = nullptr;
         LONG pitch = 0;
         if (Lock(&pSurface, &pitch) != S_OK)
             return FALSE;
-        if(GetPixelWidth()==1)
+        if(pixelWidth == 1)
             memset(pSurface, (BYTE)colour, pitch * height);
-        else {
-            UINT pixel_width = GetPixelWidth();
-            if (pixel_width == 2)
-                WORD col = (WORD)colour;
-            else
-                DWORD col = colour;
-            for (UINT y = 0; y < height; y++) {
-                UINT x = 0;
-                while (x + pixel_width < (UINT)pitch) {
-                    x = colour;
-                    x += pixel_width;
-                }
+        else if (pixelWidth == 2) {
+            DWORD size = pitch / 2 * height;
+            WORD colourOffset = 0;
+            while (colourOffset < size) {
+                ((WORD*)pSurface)[colourOffset] = (WORD)colour;
+                colourOffset++;
             }
-
+        }
+        else if (pixelWidth == 4) {
+            DWORD size = pitch / 4 * height;
+            DWORD colourOffset = 0;
+            while (colourOffset < size) {
+                ((DWORD*)pSurface)[colourOffset] = colour;
+                colourOffset++;
+            }
         }
         Unlock();
         return TRUE;
@@ -1086,6 +1089,8 @@ void Palette_Update(BYTE* p_pal_buff, WORD offset, DWORD num_entries);
 
 void MovieRT_SetRenderTarget();
 void MovieRT_Clear();
+
+GEN_SURFACE* Get_Space2D_Surface();
 
 BOOL Display_Dx_Setup(HWND hwnd, UINT width, UINT height);
 void Display_Dx_Destroy();
