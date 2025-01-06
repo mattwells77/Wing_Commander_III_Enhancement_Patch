@@ -548,24 +548,32 @@ static void __declspec(naked) set_space_view_pov1(void) {
 
 // Adjust width, height and centre point of THIRD person POV space views.
 // __fastcall used here as class "this" is parsed on the ecx register.
-//___________________________________________________
-static void __fastcall Set_Space_View_POV3(void* p_space_class) {
+//_____________________________________________________________________________________
+static void __fastcall Set_Space_View_POV3(void* p_space_class, DRAW_BUFFER_MAIN* p_db) {
 
     WORD* p_view_vars = (WORD*)p_space_class;
 
     //Debug_Info("Set_Space_View_POV3 - %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d", p_view_vars[0], p_view_vars[1], p_view_vars[2], p_view_vars[3], p_view_vars[4], p_view_vars[5], p_view_vars[6], p_view_vars[7],
     //    p_view_vars[8], p_view_vars[9], p_view_vars[10], p_view_vars[11], p_view_vars[12], p_view_vars[13], p_view_vars[14], p_view_vars[15]);
+    is_cockpit_view = FALSE;
 
     WORD width = (WORD)clientWidth;
     WORD height = (WORD)clientHeight;
-    
+
+    //rear view vdu screen is 122*100, check for it here to prevent it being resized.
+    if (p_db && p_db->rc.right == 121 && p_db->rc.bottom == 99) {
+        width = 122;
+        height = 100;
+        //if in cockpit view, make sure flag is set to enable clipping rect.
+        if (*p_wc3_space_view_type == SPACE_VIEW_TYPE::Cockpit)
+            is_cockpit_view = TRUE;
+    }
     p_view_vars[4] = width;
     p_view_vars[5] = height;
 
     p_view_vars[6] = width / 2;
     p_view_vars[7] = height / 2;
 
-    is_cockpit_view = FALSE;
     surface_space2D->ScaleToScreen(SCALE_TYPE::fit);
     //Debug_Info("Set_Space_View_POV3 - %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d", p_view_vars[0], p_view_vars[1], p_view_vars[2], p_view_vars[3], p_view_vars[4], p_view_vars[5], p_view_vars[6], p_view_vars[7],
     //    p_view_vars[8], p_view_vars[9], p_view_vars[10], p_view_vars[11], p_view_vars[12], p_view_vars[13], p_view_vars[14], p_view_vars[15]);
@@ -586,8 +594,9 @@ static void __declspec(naked) set_space_view_pov3(void) {
         push edi
 
         //push ecx
+        mov edx, [esp+0x14]
         call Set_Space_View_POV3
-        // add esp, 0x4
+
 
         pop edi
         pop esi
@@ -679,10 +688,10 @@ static void __declspec(naked) lock_3dspace_surface_pov1(void) {
 
 //_________________________________________________________
 static void Lock_3DSpace_Surface_POV3(void* p_space_struct) {
-
+    Debug_Info("Lock_3DSpace_Surface_POV3");
     if (((WORD*)p_space_struct)[4] != (WORD)clientWidth || ((WORD*)p_space_struct)[5] != (WORD)clientHeight) {
-        //Debug_Info("RESIZING SPACE VIEW POV3");
-        Set_Space_View_POV3((WORD*)p_space_struct);
+        Debug_Info("RESIZING SPACE VIEW POV3");
+        Set_Space_View_POV3((WORD*)p_space_struct, nullptr);
     }
     Lock_3DSpace_Surface();
 }
