@@ -275,7 +275,7 @@ void Display_Dx_Present(PRESENT_TYPE present_type) {
     Set_ViewPort(clientWidth, clientHeight);
 
     if (present_type == PRESENT_TYPE::space) {
-        if (is_nav_view || (is_cockpit_view && !is_cockpit_fullscreen)) {//when nav screen is up or the cockpit is visible but not streched to fill the screen, clip 3d space view to the cockpit's rect.
+        if (is_nav_view || (is_cockpit_view && cockpit_scale_type == SCALE_TYPE::fit && crop_cockpit_rect)) {//when nav screen is up or the cockpit is visible but not streched to fill the screen, clip 3d space view to the cockpit's rect.
             float x_unit = 0;
             float y_unit = 0;
             float x = 0;

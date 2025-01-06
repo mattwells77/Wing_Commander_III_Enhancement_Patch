@@ -35,7 +35,8 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 BOOL is_cockpit_view = FALSE;
-BOOL is_cockpit_fullscreen = TRUE;
+SCALE_TYPE cockpit_scale_type = SCALE_TYPE::fit;
+BOOL crop_cockpit_rect = TRUE;
 BOOL is_nav_view = FALSE;
 
 BOOL clip_cursor = FALSE;
@@ -198,9 +199,12 @@ static bool Display_Exit() {
 
 //___________________________________________________
 static BOOL Window_Setup(HWND hwnd, bool is_windowed) {
-
-    if (ConfigReadInt("SPACE", "COCKPIT_MAINTAIN_ASPECT_RATIO", CONFIG_SPACE_COCKPIT_MAINTAIN_ASPECT_RATIO))
-        is_cockpit_fullscreen = FALSE;
+    
+    int COCKPIT_MAINTAIN_ASPECT_RATIO = ConfigReadInt("SPACE", "COCKPIT_MAINTAIN_ASPECT_RATIO", CONFIG_SPACE_COCKPIT_MAINTAIN_ASPECT_RATIO);
+    if (COCKPIT_MAINTAIN_ASPECT_RATIO == 0)
+        cockpit_scale_type = SCALE_TYPE::fill;
+    else if (COCKPIT_MAINTAIN_ASPECT_RATIO < 0)
+        crop_cockpit_rect = FALSE;
 
     if (is_windowed) {
         Debug_Info("Window Setup: Windowed");
@@ -485,8 +489,7 @@ static void __fastcall Set_Space_View_POV1(void* p_space_class) {
         p_view_vars[6] = (WORD)(*p_wc3_x_centre_cockpit / (float)GUI_WIDTH * width);
         p_view_vars[7] = (WORD)(*p_wc3_y_centre_cockpit / (float)GUI_HEIGHT * height);
         is_cockpit_view = TRUE;
-        if (is_cockpit_fullscreen)
-            scale_type = SCALE_TYPE::fill;
+        scale_type = cockpit_scale_type;
         Debug_Info("Set Space View - CockPit");
         Debug_Info("centre_x=%d, centre_y=%d, new_centre_x=%d, new_centre_y=%d", *p_wc3_x_centre_cockpit, *p_wc3_y_centre_cockpit, p_view_vars[6], p_view_vars[7]);
         break;
@@ -568,13 +571,16 @@ static void __fastcall Set_Space_View_POV3(void* p_space_class, DRAW_BUFFER_MAIN
         if (*p_wc3_space_view_type == SPACE_VIEW_TYPE::Cockpit)
             is_cockpit_view = TRUE;
     }
+    else
+        surface_space2D->ScaleToScreen(SCALE_TYPE::fit);// dont alter the scale type when drawing rear view vdu.
+
     p_view_vars[4] = width;
     p_view_vars[5] = height;
 
     p_view_vars[6] = width / 2;
     p_view_vars[7] = height / 2;
 
-    surface_space2D->ScaleToScreen(SCALE_TYPE::fit);
+    
     //Debug_Info("Set_Space_View_POV3 - %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d", p_view_vars[0], p_view_vars[1], p_view_vars[2], p_view_vars[3], p_view_vars[4], p_view_vars[5], p_view_vars[6], p_view_vars[7],
     //    p_view_vars[8], p_view_vars[9], p_view_vars[10], p_view_vars[11], p_view_vars[12], p_view_vars[13], p_view_vars[14], p_view_vars[15]);
 }

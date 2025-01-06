@@ -1079,7 +1079,8 @@ extern GEN_SURFACE* surface_space2D;
 extern GEN_SURFACE* surface_movieXAN;
 
 extern BOOL is_cockpit_view;
-extern BOOL is_cockpit_fullscreen;
+extern BOOL crop_cockpit_rect;
+extern SCALE_TYPE cockpit_scale_type;
 extern BOOL is_nav_view;
 
 void Set_ViewPort(long width, long height);
