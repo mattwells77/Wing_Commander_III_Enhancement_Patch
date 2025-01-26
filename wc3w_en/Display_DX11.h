@@ -64,6 +64,13 @@ __declspec(align(16)) struct PALETTE_BUFF_DATA {
     DirectX::XMFLOAT4 pal_colour;
 };
 
+__declspec(align(16)) struct COLOUR_BUFF_DATA {
+    DirectX::XMFLOAT4 colour_val;
+    DirectX::XMFLOAT4 colour_opt;
+};
+
+
+
 // Shader data
 extern ID3D11VertexShader* pd3dVertexShader_Main;
 extern ID3D11InputLayout* pd3dVS_InputLayout_Main;
@@ -71,6 +78,7 @@ extern ID3D11InputLayout* pd3dVS_InputLayout_Main;
 extern ID3D11PixelShader* pd3d_PS_Basic_Tex_32;
 extern ID3D11PixelShader* pd3d_PS_Basic_Tex_8;
 extern ID3D11PixelShader* pd3d_PS_Basic_Tex_8_masked;
+extern ID3D11PixelShader* pd3d_PS_Greyscale_Tex_32;
 
 extern ID3D11SamplerState* pd3dPS_SamplerState_Point;
 extern ID3D11SamplerState* pd3dPS_SamplerState_Linear;
@@ -1079,6 +1087,8 @@ extern GEN_SURFACE* surface_space2D;
 extern GEN_SURFACE* surface_movieXAN;
 
 extern BOOL is_cockpit_view;
+extern BOOL is_POV3_view;
+
 extern BOOL crop_cockpit_rect;
 extern SCALE_TYPE cockpit_scale_type;
 extern BOOL is_nav_view;
@@ -1099,3 +1109,5 @@ BOOL Display_Dx_Resize(UINT width, UINT height);
 void Display_Dx_Present(PRESENT_TYPE present_type);
 
 BOOL Get_Monitor_Refresh_Rate(HWND hwnd, DXGI_RATIONAL* refreshRate);
+
+void Inflight_Mono_Colour_Setup(DWORD colour, UINT brightness, UINT contrast);

@@ -120,7 +120,7 @@ struct MOVIE_CLASS_INFLIGHT_01 {
     DWORD unk00;
     DWORD flags;//0x04
     DWORD timecode_start_of_file_30fps;//0x08
-    DWORD timecode_length_from_video_start_30fps;//0x0C
+    DWORD timecode_duration_30fps;//0x0C
     DWORD video_frame_offset_15fps_neg;//0x10
     DWORD timecode_start_of_audio_30fps;//0x14
     DWORD unk18;

@@ -272,7 +272,7 @@ private:
 
 class LibVlc_MovieInflight {
 public:
-    LibVlc_MovieInflight(const char* mve_file_name, RECT* p_rc_gui_unscaled, libvlc_time_t in_time_ms_start, libvlc_time_t in_time_ms_end);
+    LibVlc_MovieInflight(const char* file_name, RECT* p_rc_gui_unscaled, DWORD appendix_offset);
 
     ~LibVlc_MovieInflight() {
         Stop();
@@ -286,22 +286,6 @@ public:
     };
 
     bool Play();
-    //needs to be called regularly in loop, necessary to begin and stop playback.
-    libvlc_time_t Check_Play_Time() {
-        initialise_for_play();
-
-        if (play_counter_started) {
-            if (time_ms_end) {
-                LARGE_INTEGER current_time_in_ticks;
-                QueryPerformanceCounter(&current_time_in_ticks);
-                if (current_time_in_ticks.QuadPart >= play_end_time_in_ticks.QuadPart) {
-                    Stop();
-                    hasPlayed = true;
-                }
-            }
-        }
-        return mediaPlayer.time() - time_ms_start;
-    };
     void Pause(bool pause) {
         if (isPlaying) {
             paused = pause;
@@ -339,7 +323,7 @@ public:
         return isPlaying;
     }
     bool IsPlayInitialised() const {
-        return play_counter_started;
+        return play_setup_complete;// play_counter_started;
     }
     bool HasPlayed() const {
         return hasPlayed;
@@ -367,18 +351,11 @@ private:
     bool paused;
     bool play_setup_start;
     bool play_setup_complete;
-    bool play_counter_start;
-    bool play_counter_started;
     bool has_audio;
     float position;
     GEN_SURFACE* surface;
     GEN_SURFACE* surface_bg;
     RECT rc_dest_unscaled;
-
-    libvlc_time_t time_ms_start;
-    libvlc_time_t time_ms_end;
-    libvlc_time_t time_ms_length;
-    LARGE_INTEGER play_end_time_in_ticks;
 
     void initialise_for_play();
 
@@ -414,7 +391,8 @@ private:
     }
     void* lock(void** planes) {
         //set flag to initialise playback timer in "initialise_for_play()".
-        play_counter_start = true;
+        //play_counter_start = true;
+        initialise_for_play();
         //Debug_Info("lock: %s", path.c_str());
         BYTE* pSurface = nullptr;
         LONG pitch = 0;

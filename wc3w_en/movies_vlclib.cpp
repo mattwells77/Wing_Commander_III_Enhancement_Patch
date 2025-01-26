@@ -53,8 +53,11 @@ std::string movie_config_path;
 BOOL are_movie_path_setting_set = FALSE;
 int branch_offset_ms = 0;
 
+BOOL is_inflight_mono_shader_enabled = FALSE;
 BOOL inflight_use_audio_from_file_if_present = 1;
 SCALE_TYPE inflight_display_aspect_type = SCALE_TYPE::fit;
+
+DWORD inflight_cockpit_bg_colour_argb = 0xFF000000;
 
 LibVlc_MovieInflight* pMovie_vlc_Inflight = nullptr;
 
@@ -70,12 +73,42 @@ static BOOL Create_Movie_Path_Inflight(const char* movie_name, std::string* p_re
     p_retPath->append(movie_ext);
 
 
-    Debug_Info("Create_Movie_Path: %s", p_retPath->c_str());
+    Debug_Info("Create_Movie_Path_Inflight: %s", p_retPath->c_str());
     if (GetFileAttributesA(p_retPath->c_str()) == INVALID_FILE_ATTRIBUTES)
         return FALSE;
 
     return TRUE;
 }
+
+
+//___________________________________________________________________________________________________________
+static BOOL Create_Movie_Path_Inflight(const char* movie_name, DWORD appendix_offset, std::string* p_retPath) {
+    if (!p_retPath)
+        return FALSE;
+    if (appendix_offset == -1)
+        return Create_Movie_Path_Inflight(movie_name, p_retPath);
+    if (appendix_offset >= 26) {
+        Debug_Info("Create_Movie_Path_Inflight: appendix greater than 26: appendix:%d", appendix_offset);
+        return FALSE;
+    }
+    char appendix[2] = { 'a'+ (char)appendix_offset , '\0'};
+
+    p_retPath->clear();
+    p_retPath->append(movie_dir);
+    p_retPath->append("inflight\\");
+    p_retPath->append(movie_name);
+    p_retPath->append("_");
+    p_retPath->append(appendix);
+    p_retPath->append(movie_ext);
+
+
+    Debug_Info("Create_Movie_Path_Inflight: %s", p_retPath->c_str());
+    if (GetFileAttributesA(p_retPath->c_str()) == INVALID_FILE_ATTRIBUTES)
+        return FALSE;
+
+    return TRUE;
+}
+
 
 
 //__________________________________________
@@ -154,6 +187,16 @@ static BOOL Set_Movie_Settings() {
         inflight_display_aspect_type = SCALE_TYPE::fill;
     else
         inflight_display_aspect_type = SCALE_TYPE::fit;
+
+    inflight_cockpit_bg_colour_argb = 0xFF000000 | ConfigReadInt("MOVIES", "INFLIGHT_COCKPIT_BG_COLOUR_RGB", CONFIG_MOVIES_INFLIGHT_COCKPIT_BG_COLOUR_RGB);
+
+    if (ConfigReadInt("MOVIES", "INFLIGHT_MONO_SHADER_ENABLE", CONFIG_INFLIGHT_MONO_SHADER_ENABLE)) {
+        is_inflight_mono_shader_enabled = TRUE;
+        DWORD colour = ConfigReadInt("MOVIES", "INFLIGHT_MONO_SHADER_COLOUR", CONFIG_INFLIGHT_MONO_SHADER_COLOUR);
+        UINT brightness = ConfigReadInt("MOVIES", "INFLIGHT_MONO_SHADER_BRIGHTNESS", CONFIG_INFLIGHT_MONO_SHADER_BRIGHTNESS);
+        UINT contrast = ConfigReadInt("MOVIES", "INFLIGHT_MONO_SHADER_CONTRAST", CONFIG_INFLIGHT_MONO_SHADER_CONTRAST);
+        Inflight_Mono_Colour_Setup(colour, brightness, contrast);
+    }
 
     delete[] char_buff;
     return are_movie_path_setting_set = TRUE;
@@ -503,9 +546,8 @@ void LibVlc_Movie::InitialiseForPlay_End() {
 }
 
 
-
-//___________________________________________________________________________________________________________________________________________________________
-LibVlc_MovieInflight::LibVlc_MovieInflight(const char* mve_file_name, RECT* p_rc_dest_unscaled, libvlc_time_t in_time_ms_start, libvlc_time_t in_time_ms_end) {
+//________________________________________________________________________________________________________________
+LibVlc_MovieInflight::LibVlc_MovieInflight(const char* file_name, RECT* p_rc_dest_unscaled, DWORD appendix_offset) {
     //Debug_Info("LibVlc_MovieInflight: Create Start");
     Set_Movie_Settings();
     isPlaying = false;
@@ -517,23 +559,20 @@ LibVlc_MovieInflight::LibVlc_MovieInflight(const char* mve_file_name, RECT* p_rc
     surface_bg = nullptr;
     play_setup_start = false;
     play_setup_complete = false;
-    play_counter_start = false;
-    play_counter_started = false;
+
     position = 0;
     paused = false;
     rc_dest_unscaled = { 0,0,0,0 };
 
-    time_ms_start = in_time_ms_start;
-    time_ms_end = in_time_ms_end;
-    time_ms_length = time_ms_end - time_ms_start;
-    play_end_time_in_ticks.QuadPart = 0;
+    char movie_name[16]{ 0 };
 
-    char movie_name[9]{ 0 };
-
-    strncpy_s(movie_name, _countof(movie_name), mve_file_name, _countof(movie_name) - 1);
+    strncpy_s(movie_name, _countof(movie_name), file_name, _countof(movie_name) - 1);
     char* ext = strrchr(movie_name, '.');
     if (ext) {
         *ext = '\0';
+        //iff files modified to play movies divided into scenes DON'T INCLUDE an extension in their file name. 
+        //if the movie file name has an extension, DON'T ADD a letter appendix by setting "appendix_offset = -1".
+        appendix_offset = -1;
     }
     char* c = movie_name;
     while (*c) {
@@ -541,14 +580,13 @@ LibVlc_MovieInflight::LibVlc_MovieInflight(const char* mve_file_name, RECT* p_rc
         c++;
     }
 
-
     if (p_rc_dest_unscaled) {
         CopyRect(&rc_dest_unscaled, p_rc_dest_unscaled);
         if (!surface_bg && inflight_display_aspect_type == SCALE_TYPE::fit) {
             //Debug_Info("surface_bg: %dx%d", rc_dest_unscaled.right - rc_dest_unscaled.left + 1, rc_dest_unscaled.bottom - rc_dest_unscaled.top + 1);
             surface_bg = new GEN_SURFACE(rc_dest_unscaled.right - rc_dest_unscaled.left + 1, rc_dest_unscaled.bottom - rc_dest_unscaled.top + 1, 32);
             //set backgound to roughly match cockpit monitor colour.
-            surface_bg->Clear_Texture(0xFF202020);
+            surface_bg->Clear_Texture(inflight_cockpit_bg_colour_argb);
 
         }
     }
@@ -557,13 +595,7 @@ LibVlc_MovieInflight::LibVlc_MovieInflight(const char* mve_file_name, RECT* p_rc
         isError = true;
     }
 
-    ///////////////////disable audio playback/////////////////////////////////
-   // if(!inflight_use_audio_from_file_if_present)
-       // mediaPlayer.setAudioTrack(-1);
-    //Debug_Info("LibVlc_MovieInflight: volume level: %d", mediaPlayer.volume());
-
     using namespace std::placeholders; // for `_1`
-
 
     mediaPlayer.eventManager().onPlaying(std::bind(&LibVlc_MovieInflight::on_play, this));
     mediaPlayer.eventManager().onStopped(std::bind(&LibVlc_MovieInflight::on_stopped, this));
@@ -580,7 +612,7 @@ LibVlc_MovieInflight::LibVlc_MovieInflight(const char* mve_file_name, RECT* p_rc
 
     path.clear();
 
-    if (!Create_Movie_Path_Inflight(movie_name, &path)) {
+    if (!Create_Movie_Path_Inflight(movie_name, appendix_offset, &path)) {
         Debug_Info("LibVlc_MovieInflight: Create Movie Path FAILED: %s , %s", movie_name, path.c_str());
         isError = true;
     }
@@ -605,18 +637,12 @@ void LibVlc_MovieInflight::initialise_for_play() {
             has_audio = true;
         }
         //set the movie start time
-        mediaPlayer.setTime(time_ms_start);
+        //mediaPlayer.setTime(time_ms_start);
         play_setup_complete = true;
     }
-    // starting counter after first lock to reduces syncing issues with hd video and wc3 audio playback.
-    if (play_counter_start && !play_counter_started) {
-        if (time_ms_end) {
-            QueryPerformanceCounter(&play_end_time_in_ticks);
-            play_end_time_in_ticks.QuadPart += time_ms_end * p_wc3_frequency->QuadPart / 1000LL; ;
-        }
-        play_counter_started = true;
-    }
+
 }
+
 
 //_______________________________
 bool LibVlc_MovieInflight::Play() {
@@ -723,10 +749,14 @@ void LibVlc_MovieInflight::Update_Display_Dimensions(RECT* p_rc_gui_unscaled) {
 
 //__________________________________
 void LibVlc_MovieInflight::Display() {
-    if (!play_counter_started)
+    if (!play_setup_complete)//play_counter_started)
         return;
     if (surface_bg && *p_wc3_space_view_type == SPACE_VIEW_TYPE::Cockpit)
         surface_bg->Display();
-    if (surface)
-        surface->Display();
+    if (surface) {
+        if (is_inflight_mono_shader_enabled)
+            surface->Display(pd3d_PS_Greyscale_Tex_32);
+        else
+            surface->Display();
+    }
 }

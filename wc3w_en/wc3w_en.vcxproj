@@ -183,6 +183,7 @@
     <ClInclude Include="shaders\compiled_h\PS_Basic_Tex_32.h" />
     <ClInclude Include="shaders\compiled_h\PS_Basic_Tex_8.h" />
     <ClInclude Include="shaders\compiled_h\PS_Basic_Tex_8_masked.h" />
+    <ClInclude Include="shaders\compiled_h\PS_Greyscale_Tex_32.h" />
     <ClInclude Include="shaders\compiled_h\VS_Basic.h" />
     <ClInclude Include="version.h" />
     <ClInclude Include="wc3w.h" />
@@ -219,6 +220,10 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
     </FxCompile>
     <FxCompile Include="shaders\PS_Basic_Tex_8_masked.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="shaders\PS_Greyscale_Tex_32.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
     </FxCompile>

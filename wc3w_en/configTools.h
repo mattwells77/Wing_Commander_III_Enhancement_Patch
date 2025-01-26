@@ -38,6 +38,14 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //0 = fill, 1 = fit
 #define CONFIG_MOVIES_INFLIGHT_DISPLAY_ASPECT_TYPE				1
 
+#define CONFIG_MOVIES_INFLIGHT_COCKPIT_BG_COLOUR_RGB			0x00202020
+
+#define CONFIG_INFLIGHT_MONO_SHADER_ENABLE						0
+#define CONFIG_INFLIGHT_MONO_SHADER_COLOUR						0x34FF4E
+#define CONFIG_INFLIGHT_MONO_SHADER_BRIGHTNESS					100
+#define CONFIG_INFLIGHT_MONO_SHADER_CONTRAST					100
+
+
 
 UINT ConfigReadInt(const char* lpAppName, const char* lpKeyName, int nDefault);
 BOOL ConfigWriteInt(const char* lpAppName, const char* lpKeyName, int intVal);
