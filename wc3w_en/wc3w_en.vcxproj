@@ -71,12 +71,12 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <IncludePath>D:\Programming\SDKs\vlc\vlc-3.0.20\include;D:\Programming\SDKs\vlc\libvlcpp;$(IncludePath)</IncludePath>
-    <LibraryPath>D:\Programming\SDKs\vlc\vlc-3.0.20\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>D:\Programming\SDKs\vlc\vlc-3.0.21\include;D:\Programming\SDKs\vlc\libvlcpp;$(IncludePath)</IncludePath>
+    <LibraryPath>D:\Programming\SDKs\vlc\vlc-3.0.21\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>D:\Programming\SDKs\vlc\vlc-3.0.20\include;D:\Programming\SDKs\vlc\libvlcpp;$(IncludePath)</IncludePath>
-    <LibraryPath>D:\Programming\SDKs\vlc\vlc-3.0.20\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>D:\Programming\SDKs\vlc\vlc-3.0.21\include;D:\Programming\SDKs\vlc\libvlcpp;$(IncludePath)</IncludePath>
+    <LibraryPath>D:\Programming\SDKs\vlc\vlc-3.0.21\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
