@@ -1929,6 +1929,62 @@ static void __declspec(naked) inflight_movie_audio_check(void) {
 }
 
 
+//________________________________________________________
+static void Fix_Space_Mouse_Movement(LONG* p_x, LONG* p_y) {
+    //fix mouse movement range between -16 and 16.
+    LONG range = *p_wc3_mouse_centre_y;
+    if (*p_wc3_mouse_centre_y > *p_wc3_mouse_centre_x)
+        range = *p_wc3_mouse_centre_x;
+    //keep mouse movement range less than 640/2 to maintain similar experience as original resolution 640x480.
+    if (range > 320)
+        range = 320;
+
+    LONG range_block = range / 16;
+
+    *p_x /= range_block;
+    *p_y /= range_block;
+
+    if (*p_x > 16)
+        *p_x = 16;
+    else if (*p_x < -16)
+        *p_x = -16;
+
+    if (*p_y > 16)
+        *p_y = 16;
+    else if (*p_y < -16)
+        *p_y = -16;
+}
+
+
+//__________________________________________________________
+static void __declspec(naked) fix_space_mouse_movement(void) {
+
+    __asm {
+        push esi
+        push ebp
+
+        push edi //y
+        push ecx //x
+
+        //set pointers to x and y vals on the stack
+        lea eax, dword ptr ss : [esp] //*p_x
+        lea edi, dword ptr ss : [esp + 0x4]//*p_y
+        push edi
+        push eax
+        call Fix_Space_Mouse_Movement
+        add esp, 0x8
+
+        pop ecx //x
+        pop edx //y
+
+        pop ebp
+        pop esi
+        ret
+
+    }
+}
+
+
 //___________________________
 void Modifications_Display() {
 
@@ -2194,6 +2250,15 @@ void Modifications_Display() {
     MemWrite16(0x433731, 0x3D80, 0xE890);
     FuncWrite32(0x433733, 0x4A3338, (DWORD)&inflight_movie_audio_check);
     MemWrite8(0x433737, 0x00, 0x90);
+
+
+    //"MOV EAX, ECX" to "JMP SHORT 00429E79"
+    MemWrite16(0x429E5D, 0xC18B, 0x1AEB);
+    //"MOV EAX, EDI" to "JMP SHORT 00429EA0"
+    MemWrite16(0x429E88, 0xC78B, 0x16EB);
+
+    MemWrite8(0x429EA0, 0x99, 0xE8);
+    FuncWrite32(0x429EA1, 0xD08BFBF7, (DWORD)&fix_space_mouse_movement);
 
 }
 
