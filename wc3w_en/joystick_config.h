@@ -1,6 +1,6 @@
 /*
 The MIT License (MIT)
-Copyright © 2024 Matt Wells
+Copyright © 2025 Matt Wells
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this
 software and associated documentation files (the “Software”), to deal in the
@@ -22,44 +22,15 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #pragma once
 
-#define WINVER       _WIN32_WINNT_VISTA
-#define _WIN32_WINNT _WIN32_WINNT_VISTA
-
-#include "targetver.h"
-
-#define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers
-
-#define ISOLATION_AWARE_ENABLED 1
-
-#pragma comment(linker,"\"/manifestdependency:type='win32' \
-name='Microsoft.Windows.Common-Controls' version='6.0.0.0' \
-processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
-
-
-//Windows Header Files
-#include <windows.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <windowsx.h>
-
-#include <process.h>
-
-
-#include <stdarg.h>
-#include <fstream>
-#include <iostream>
-#include <sstream>
-
-#include <thread>
-#include <cstring>
-
-#include <Shlwapi.h>
-#include <commctrl.h>
-
-// Link library dependencies
+#pragma comment(lib, "Comctl32.lib")
 #pragma comment(lib, "Shlwapi.lib")
 
-#pragma comment(lib, "libvlc.lib")
-#pragma comment(lib, "libvlccore.lib")
+#include "joystick.h"
 
-extern HINSTANCE phinstDLL;
+
+BOOL JoyConfig_Main();
+
+void JoyConfig_Refresh_JoyList();
+BOOL JoyConfig_Refresh_CurrentAction(WC3_ACTIONS action, BOOL activate);
+
+extern HWND hWin_JoyConfig;

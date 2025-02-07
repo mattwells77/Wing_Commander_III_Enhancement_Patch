@@ -66,6 +66,18 @@
     <ClInclude Include="shaders\compiled_h\PS_Greyscale_Tex_32.h">
       <Filter>Shaders\compiled_h</Filter>
     </ClInclude>
+    <ClInclude Include="joystick.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="joystick_config.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="targetver.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
@@ -104,9 +116,18 @@
     <ClCompile Include="wc3w.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="joystick.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="joystick_config.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="version.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+    <ResourceCompile Include="joystick_config.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
   </ItemGroup>
@@ -134,5 +155,17 @@
     <None Include="shaders\shaderVertex_Main.hlsli">
       <Filter>Shaders</Filter>
     </None>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="axis_h.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="axis_hv.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="axis_v.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
 </Project>

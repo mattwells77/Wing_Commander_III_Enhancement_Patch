@@ -24,3 +24,7 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 void Modifications_GeneralFixes();
 void Modifications_Display();
+void Modifications_Joystick();
+
+
+void Set_WindowActive_State(BOOL isActive);

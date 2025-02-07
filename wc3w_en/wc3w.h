@@ -205,6 +205,19 @@ extern WORD* p_wc3_mouse_y_space;
 extern LONG* p_wc3_mouse_centre_x;
 extern LONG* p_wc3_mouse_centre_y;
 
+extern LONG* p_wc3_joy_dead_zone;
+
+extern DWORD* p_wc3_joy_buttons;
+extern DWORD* p_wc3_joy_pov;
+
+extern LONG* p_wc3_joy_move_x;
+extern LONG* p_wc3_joy_move_y;
+extern LONG* p_wc3_joy_move_r;
+
+extern LONG* p_wc3_joy_x;
+extern LONG* p_wc3_joy_y;
+
+extern LONG* p_wc3_joy_throttle_pos;
 
 
 extern CRITICAL_SECTION* p_wc3_movie_criticalsection;
@@ -267,6 +280,8 @@ extern BOOL(__thiscall* wc3_sig_movie_play_sequence)(void*, DWORD);
 extern void(*wc3_movie_update_joystick_double_click_exit)();
 extern BOOL(*wc3_movie_exit)();
 
+extern bool (*wc3_message_check_node_add)(bool(*)(HWND, UINT, WPARAM, LPARAM));
+extern bool (*wc3_message_check_node_remove)(bool(*)(HWND, UINT, WPARAM, LPARAM));
 
 extern BOOL(__thiscall* wc3_load_file_handle)(void*, BOOL print_error_flag, BOOL unknown_flag);
 extern LONG(*wc3_find_file_in_tre)(char* pfile_name);

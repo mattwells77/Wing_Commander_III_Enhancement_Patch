@@ -30,14 +30,15 @@ HINSTANCE phinstDLL;
 
 //______________________
 static void Initialize() {
+    Modifications_Joystick();
     Modifications_Display();
     Modifications_GeneralFixes();
     WC3W_Setup();
 
 }
 
-//__________________________________________________________________________________
-BOOL APIENTRY DllMain(HMODULE hModule, DWORD  ul_reason_for_call, LPVOID lpReserved) {
+//_________________________________________________________________________________________
+static BOOL APIENTRY DllMain(HMODULE hModule, DWORD  ul_reason_for_call, LPVOID lpReserved) {
 
     phinstDLL = hModule;
     switch (ul_reason_for_call) {

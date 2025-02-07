@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="..\packages\Microsoft.Windows.CppWinRT.2.0.240405.15\build\native\Microsoft.Windows.CppWinRT.props" Condition="Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.240405.15\build\native\Microsoft.Windows.CppWinRT.props')" />
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
@@ -86,6 +87,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -115,6 +117,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -176,15 +179,19 @@
     <ClInclude Include="Display_DX11.h" />
     <ClInclude Include="errors.h" />
     <ClInclude Include="framework.h" />
+    <ClInclude Include="joystick.h" />
+    <ClInclude Include="joystick_config.h" />
     <ClInclude Include="memwrite.h" />
     <ClInclude Include="modifications.h" />
     <ClInclude Include="movies_vlclib.h" />
     <ClInclude Include="pch.h" />
+    <ClInclude Include="resource.h" />
     <ClInclude Include="shaders\compiled_h\PS_Basic_Tex_32.h" />
     <ClInclude Include="shaders\compiled_h\PS_Basic_Tex_8.h" />
     <ClInclude Include="shaders\compiled_h\PS_Basic_Tex_8_masked.h" />
     <ClInclude Include="shaders\compiled_h\PS_Greyscale_Tex_32.h" />
     <ClInclude Include="shaders\compiled_h\VS_Basic.h" />
+    <ClInclude Include="targetver.h" />
     <ClInclude Include="version.h" />
     <ClInclude Include="wc3w.h" />
   </ItemGroup>
@@ -195,6 +202,8 @@
     <ClCompile Include="Display_DX11_Functions.cpp" />
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="errors.cpp" />
+    <ClCompile Include="joystick.cpp" />
+    <ClCompile Include="joystick_config.cpp" />
     <ClCompile Include="memwrite.cpp" />
     <ClCompile Include="Mod_Display.cpp" />
     <ClCompile Include="Mod_GeneralFixes.cpp" />
@@ -208,6 +217,7 @@
     <ClCompile Include="wc3w.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ResourceCompile Include="joystick_config.rc" />
     <ResourceCompile Include="version.rc" />
   </ItemGroup>
   <ItemGroup>
@@ -233,10 +243,24 @@
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
+    <None Include="packages.config" />
     <None Include="shaders\shaderPixel_Main.hlsli" />
     <None Include="shaders\shaderVertex_Main.hlsli" />
   </ItemGroup>
+  <ItemGroup>
+    <Image Include="axis_h.ico" />
+    <Image Include="axis_hv.ico" />
+    <Image Include="axis_v.ico" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="..\packages\Microsoft.Windows.CppWinRT.2.0.240405.15\build\native\Microsoft.Windows.CppWinRT.targets" Condition="Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.240405.15\build\native\Microsoft.Windows.CppWinRT.targets')" />
   </ImportGroup>
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.240405.15\build\native\Microsoft.Windows.CppWinRT.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Windows.CppWinRT.2.0.240405.15\build\native\Microsoft.Windows.CppWinRT.props'))" />
+    <Error Condition="!Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.240405.15\build\native\Microsoft.Windows.CppWinRT.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Windows.CppWinRT.2.0.240405.15\build\native\Microsoft.Windows.CppWinRT.targets'))" />
+  </Target>
 </Project>

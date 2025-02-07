@@ -28,6 +28,7 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "configTools.h"
 #include "movies_vlclib.h"
 #include "wc3w.h"
+#include "joystick_config.h"
 
 #define WIN_MODE_STYLE  WS_CAPTION | WS_SYSMENU | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX
 
@@ -1041,8 +1042,8 @@ static void SetWindowActivation(BOOL isActive) {
 }
 
 
-//_______________________________________________
-static void Set_WindowActive_State(BOOL isActive) {
+//________________________________________
+void Set_WindowActive_State(BOOL isActive) {
     SetWindowActivation(isActive);
 }
 
@@ -1151,7 +1152,8 @@ static bool WinProc_Main(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam) 
             return 0;
             break;
         case 40004:
-            wc3_unknown_func01();
+            //Debug_Info("40004 Calibrate Joystick");
+            //wc3_unknown_func01();
             return 0;
             break;
         default:
@@ -1197,6 +1199,8 @@ static bool WinProc_Main(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam) 
             is_cursor_clipped = false;
             //Debug_Info("WM_SETCURSOR Mouse Cursor Un-Clipped");
         }
+        if (hWin_JoyConfig)
+            break;//dont alter the cursor visibility when joy config window open.
         WORD ht = LOWORD(lParam);
         if (HTCLIENT == ht) {
 
@@ -1931,6 +1935,9 @@ static void __declspec(naked) inflight_movie_audio_check(void) {
 
 //________________________________________________________
 static void Fix_Space_Mouse_Movement(LONG* p_x, LONG* p_y) {
+    // Maximum turn speed was being defined by the screen resolution formally 640x480.
+    // Higher resolutions were allowing for a greater mouse range and thus a higher turning speed than what was otherwise defined in game.
+    
     //fix mouse movement range between -16 and 16.
     LONG range = *p_wc3_mouse_centre_y;
     if (*p_wc3_mouse_centre_y > *p_wc3_mouse_centre_x)
@@ -2251,7 +2258,7 @@ void Modifications_Display() {
     FuncWrite32(0x433733, 0x4A3338, (DWORD)&inflight_movie_audio_check);
     MemWrite8(0x433737, 0x00, 0x90);
 
-
+    // Mouse turn speed fix--------------------------
     //"MOV EAX, ECX" to "JMP SHORT 00429E79"
     MemWrite16(0x429E5D, 0xC18B, 0x1AEB);
     //"MOV EAX, EDI" to "JMP SHORT 00429EA0"
@@ -2259,7 +2266,7 @@ void Modifications_Display() {
 
     MemWrite8(0x429EA0, 0x99, 0xE8);
     FuncWrite32(0x429EA1, 0xD08BFBF7, (DWORD)&fix_space_mouse_movement);
-
+    //----------------------------------------------
 }
 
 

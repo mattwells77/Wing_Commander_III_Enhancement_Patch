@@ -69,6 +69,20 @@ LARGE_INTEGER* p_wc3_space_time_min = nullptr;
 LARGE_INTEGER* p_wc3_space_time_current = nullptr;
 LARGE_INTEGER* p_wc3_space_time4 = nullptr;
 
+LONG* p_wc3_joy_dead_zone = nullptr;
+
+DWORD* p_wc3_joy_buttons = nullptr;
+DWORD* p_wc3_joy_pov = nullptr;
+
+LONG* p_wc3_joy_move_x = nullptr;
+LONG* p_wc3_joy_move_y = nullptr;
+LONG* p_wc3_joy_move_r = nullptr;
+
+
+LONG* p_wc3_joy_x = nullptr;
+LONG* p_wc3_joy_y = nullptr;
+
+LONG* p_wc3_joy_throttle_pos = nullptr;
 
 LONG* p_wc3_ambient_music_volume = nullptr;
 
@@ -170,6 +184,7 @@ void WC3W_Setup() {
 
     p_wc3_szAppName = (char*)0x4A5A80;
 
+    pp_hinstWC3W = (HINSTANCE*)0x4A7E64;
 
     p_wc3_main_surface_pitch = (LONG*)0x4A32AC;
 
@@ -203,6 +218,20 @@ void WC3W_Setup() {
 
     p_wc3_mouse_centre_x = (LONG*)0x4A9B78;
     p_wc3_mouse_centre_y = (LONG*)0x4A9B98;
+
+    p_wc3_joy_dead_zone = (LONG*)0x4A7E40;
+
+    p_wc3_joy_buttons = (DWORD*)0x4B2334;
+
+    p_wc3_joy_move_x = (LONG*)0x4B24D0;
+    p_wc3_joy_move_y = (LONG*)0x4B2330;
+    p_wc3_joy_move_r = (LONG*)0x4A7E38;
+
+    p_wc3_joy_x = (LONG*)0x4B231C;
+    p_wc3_joy_y = (LONG*)0x4B232C;
+
+    p_wc3_joy_throttle_pos = (LONG*)0x4A7E3C;
+    p_wc3_joy_pov = (DWORD*)0x4A7E34;
 
     pp_wc3_music_thread_class = (void**)0x4A3A74;
     wc3_music_thread_class_destructor = (void(__thiscall*)(void*))0x444B30;
