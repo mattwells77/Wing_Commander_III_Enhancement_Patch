@@ -1046,6 +1046,8 @@ static void JoyConfig_JoyList_Refresh(HWND hwndDlg) {
 	if (joyList_Updated <= 0)
 		return;
 
+	current_JoySelected = -1;
+
 	HWND hwnd_joy = GetDlgItem(hwndDlg, IDC_COMBO_JOY_SELECT);
 	if (!hwnd_joy)
 		return;
