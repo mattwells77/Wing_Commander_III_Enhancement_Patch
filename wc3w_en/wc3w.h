@@ -251,7 +251,9 @@ extern DRAW_BUFFER* p_wc3_inflight_draw_buff;
 //return address when playing HR movies to skip over regular movie playback.
 extern void* p_wc3_play_inflight_hr_movie_return_address;
 
-
+extern const char* p_save_game_text_eng;
+extern const char* p_save_game_text_ger;
+extern const char* p_save_game_text_fre;
 
 extern void(__thiscall* wc3_draw_hud_targeting_elements)(void*);
 extern void(__thiscall* wc3_draw_hud_view_text)(void*);

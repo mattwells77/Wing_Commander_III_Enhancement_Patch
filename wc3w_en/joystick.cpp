@@ -119,21 +119,21 @@ WORD WC3_ACTIONS_KEYS[][2]{
 bool Get_Joystick_Config_Path(wstring *p_ret_string) {
 	if (!p_ret_string)
 		return false;
-	bool success = true;
-	DWORD pathLength = GetCurrentDirectory(0, nullptr) + _countof(JOYSTICK_CONFIG_PATH);//get the path length
-	wchar_t* path = new wchar_t[pathLength];
-	GetCurrentDirectory(pathLength, path);
-	wcsncat_s(path, pathLength, JOYSTICK_CONFIG_PATH, _countof(JOYSTICK_CONFIG_PATH));
 
-	if (GetFileAttributes(path) == INVALID_FILE_ATTRIBUTES) {
-		if (!CreateDirectory(path, nullptr)) {
-			path[0] = L'\0';
-			success =  false;
+	p_ret_string->assign(GetAppDataPath());
+	if (!p_ret_string->empty())
+		p_ret_string->append(L"\\");
+	p_ret_string->append(JOYSTICK_CONFIG_PATH);
+	
+	Debug_Info("Get_Joystick_Config_Path: %S", p_ret_string->c_str());
+
+	if (GetFileAttributes(p_ret_string->c_str()) == INVALID_FILE_ATTRIBUTES) {
+		if (!CreateDirectory(p_ret_string->c_str(), nullptr)) {
+			p_ret_string->clear();
+			return false;
 		}
 	}
-	p_ret_string->assign(path);
-	delete[] path;
-	return success;
+	return true;
 }
 
 
@@ -763,7 +763,7 @@ BOOL JOYSTICK::Profile_Load() {
 	swprintf_s(file_name + 10 + 32, 5, L".joy");
 
 	path.append(file_name);
-
+	Debug_Info("Profile_Load path: %S", path.c_str());
 	return Profile_Load(path.c_str());
 };
 
@@ -886,7 +886,7 @@ BOOL JOYSTICK::Profile_Save() {
 void JOYSTICKS::Setup() {
 	if (setup)
 		return;
-	Set_Deadzone_Level(ConfigReadInt("MAIN", "DEAD_ZONE", CONFIG_MAIN_DEAD_ZONE));
+	Set_Deadzone_Level(ConfigReadInt(L"MAIN", L"DEAD_ZONE", CONFIG_MAIN_DEAD_ZONE));
 
 	winrt::init_apartment();
 	//Debug_Info("JOYSTICKS setup");
@@ -1015,7 +1015,7 @@ BOOL JOYSTICKS::Save() {
 			all_good = FALSE;
 	}
 
-	ConfigWriteInt("MAIN", "DEAD_ZONE", deadzone);
+	ConfigWriteInt(L"MAIN", L"DEAD_ZONE", deadzone);
 
 	return all_good;
 }
@@ -1031,7 +1031,7 @@ BOOL JOYSTICKS::Load() {
 			all_good = FALSE;
 	}
 
-	Set_Deadzone_Level(ConfigReadInt("MAIN", "DEAD_ZONE", CONFIG_MAIN_DEAD_ZONE));
+	Set_Deadzone_Level(ConfigReadInt(L"MAIN", L"DEAD_ZONE", CONFIG_MAIN_DEAD_ZONE));
 	return all_good;
 }
 

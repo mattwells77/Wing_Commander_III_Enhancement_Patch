@@ -25,6 +25,7 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //defaults
 #define CONFIG_MAIN_WINDOWED	0
 #define CONFIG_MAIN_WIN_DATA	0
+#define CONFIG_MAIN_UAC_AWARE	1
 
 #define CONFIG_MAIN_DEAD_ZONE	1
 
@@ -32,8 +33,8 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #define CONFIG_SPACE_SPACE_REFRESH_RATE_HZ			24
 #define CONFIG_SPACE_NAV_SCREEN_KEY_RESPONCE_HZ		24
 
-#define CONFIG_MOVIES_PATH				"movies\\"
-#define CONFIG_MOVIES_EXT				"mp4"
+#define CONFIG_MOVIES_PATH				L"movies\\"
+#define CONFIG_MOVIES_EXT				L"mp4"
 #define CONFIG_MOVIES_BRANCH_OFFSET_MS	-210
 
 #define CONFIG_MOVIES_INFLIGHT_USE_AUDIO_FROM_FILE_IF_PRESENT	1
@@ -49,18 +50,22 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 
-UINT ConfigReadInt(const char* lpAppName, const char* lpKeyName, int nDefault);
-BOOL ConfigWriteInt(const char* lpAppName, const char* lpKeyName, int intVal);
+UINT ConfigReadInt(const wchar_t* lpAppName, const wchar_t* lpKeyName, int nDefault);
+BOOL ConfigWriteInt(const wchar_t* lpAppName, const wchar_t* lpKeyName, int intVal);
 
-DWORD ConfigReadString(const char* lpAppName, const char* lpKeyName, const char* lpDefault, char* lpReturnedString, DWORD nSize);
-BOOL ConfigWriteString(const char* lpAppName, const char* lpKeyName, const char* lpString);
+DWORD ConfigReadString(const wchar_t* lpAppName, const wchar_t* lpKeyName, const wchar_t* lpDefault, wchar_t* lpReturnedString, DWORD nSize);
+BOOL ConfigWriteString(const wchar_t* lpAppName, const wchar_t* lpKeyName, const wchar_t* lpString);
 
-BOOL ConfigReadWinData(const char* lpAppName, const char* lpKeyName, WINDOWPLACEMENT* pWinData);
-BOOL ConfigWriteWinData(const char* lpAppName, const char* lpKeyName, WINDOWPLACEMENT* pWinData);
+BOOL ConfigReadWinData(const wchar_t* lpAppName, const wchar_t* lpKeyName, WINDOWPLACEMENT* pWinData);
+BOOL ConfigWriteWinData(const wchar_t* lpAppName, const wchar_t* lpKeyName, WINDOWPLACEMENT* pWinData);
 
-BOOL ConfigReadStruct(const char* lpszSection, const char* lpszKey, LPVOID lpStruct, UINT uSizeStruct);
-BOOL ConfigWriteStruct(const char* lpszSection, const char* lpszKey, LPVOID lpStruct, UINT uSizeStruct);
+BOOL ConfigReadStruct(const wchar_t* lpszSection, const wchar_t* lpszKey, LPVOID lpStruct, UINT uSizeStruct);
+BOOL ConfigWriteStruct(const wchar_t* lpszSection, const wchar_t* lpszKey, LPVOID lpStruct, UINT uSizeStruct);
 
 void ConfigRefreshCache();
-char* ConfigGetPath();
-bool ConfigDestroy();
+
+
+//BOOL GetAppDataPath(std::wstring* p_ret_path);
+
+const wchar_t* GetAppPath();
+const wchar_t* GetAppDataPath();

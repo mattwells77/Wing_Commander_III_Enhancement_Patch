@@ -983,25 +983,15 @@ static bool JoyConfig_Refresh_Presets(HWND hwndDlg) {
 	JOYSTICK* p_joy_selected = Joysticks.GetJoy(joy_selected);
 	if (!p_joy_selected)
 		return false;
-
-	DWORD pathLength = GetCurrentDirectory(0, nullptr) + _countof(JOYSTICK_CONFIG_PATH);//get the path length
-	wchar_t* path = new wchar_t[pathLength];
-	GetCurrentDirectory(pathLength, path);
-	std::wstring search_path = path;
-	delete[] path;
-
-	search_path.append(JOYSTICK_CONFIG_PATH);
-
-	if (GetFileAttributes(search_path.c_str()) == INVALID_FILE_ATTRIBUTES) {
-		if (!CreateDirectory(search_path.c_str(), nullptr)) 
-			return false;
-	}
+	
+	std::wstring search_path;
+	if(!Get_Joystick_Config_Path(&search_path))
+		return false;
 
 	search_path.append(L"\\presets");
-	if (GetFileAttributes(search_path.c_str()) == INVALID_FILE_ATTRIBUTES) {
-		//if (!CreateDirectory(search_path.c_str(), nullptr))
+	if (GetFileAttributes(search_path.c_str()) == INVALID_FILE_ATTRIBUTES)
 			return false;
-	}
+	
 	search_path.append(L"\\");
 
 	wchar_t vid_pid_name[10]{ 0 };
@@ -1055,7 +1045,7 @@ static void JoyConfig_JoyList_Refresh(HWND hwndDlg) {
 		return;
 	if (joyList_Updated <= 0)
 		return;
-	
+
 	HWND hwnd_joy = GetDlgItem(hwndDlg, IDC_COMBO_JOY_SELECT);
 	if (!hwnd_joy)
 		return;
@@ -1103,7 +1093,6 @@ static void Update_Controller_State_Focus(HWND hwndDlg) {
 	JOYSTICK* p_joy_selected = Joysticks.GetJoy(joy_selected);
 	if (!p_joy_selected)
 		return;
-
 	bool* buttons = nullptr;
 	double* axes = nullptr;
 	GameControllerSwitchPosition* switches = nullptr;

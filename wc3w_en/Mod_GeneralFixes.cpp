@@ -23,6 +23,7 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "pch.h"
 #include "modifications.h"
 #include "memwrite.h"
+#include "configTools.h"
 #include "wc3w.h"
 
 BOOL thread_not_active = FALSE;
@@ -156,6 +157,196 @@ static void __declspec(naked) virtualprotect_fix(void) {
 }
 
 
+//_____________________________________________________________
+//Check if an alterable file exists in either the Application folder or UAC data folder. 
+static DWORD __stdcall GetFileAttributes_UAC(LPCSTR lpFileName) {
+    const char* pos = strstr(lpFileName, ".WSG");//check if saved game file.
+    if(!pos)
+        pos = strstr(lpFileName, "SFOSAVED.DAT");//check if settings file.
+    if (pos) {
+        //Debug_Info("GetFileAttributes_UAC: %s", lpFileName);
+        std::wstring path = GetAppDataPath();
+        if (!path.empty()) {
+            path.append(L"\\");
+            DWORD attributes = INVALID_FILE_ATTRIBUTES;
+            size_t num_bytes = 0;
+            wchar_t* wchar_buff = new wchar_t[13] {0};
+            if (mbstowcs_s(&num_bytes, wchar_buff, 13, lpFileName, 13) == 0) {
+                path.append(wchar_buff);
+                attributes = GetFileAttributes(path.c_str());
+                //Copy the "WSG_NDX.WSG" saved game names file to the UAC data folder if it does not exist.
+                if (attributes == INVALID_FILE_ATTRIBUTES && wcsstr(wchar_buff, L"WSG_NDX.WSG")) {
+                    if (CopyFile(wchar_buff, path.c_str(), TRUE))
+                        attributes = GetFileAttributes(path.c_str());
+                }
+            }
+            delete[] wchar_buff;
+            if (attributes != INVALID_FILE_ATTRIBUTES)
+                return attributes;
+        }
+    }
+    return GetFileAttributesA(lpFileName);
+}
+void* p_get_file_attributes_uac = &GetFileAttributes_UAC;
+
+
+//____________________________________________________________________________________________________________________________________________________________________________________________________________________________
+//Create\Open an alterable file for editing, from the UAC data folder first if present or depending on the DesiredAccess.
+static HANDLE __stdcall CreateFile_UAC(LPCSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile) {
+
+    const char* pos = strstr(lpFileName, ".WSG");//check if saved game file.
+    if (!pos)
+        pos = strstr(lpFileName, "SFOSAVED.DAT");//check if settings file.
+    if (pos) {
+        //Debug_Info("CreateFile_UAC: %s, acc:%X", lpFileName, dwDesiredAccess);
+        std::wstring path = GetAppDataPath();
+        if (!path.empty()) {
+            path.append(L"\\");
+            HANDLE handle = INVALID_HANDLE_VALUE;
+            size_t num_bytes = 0;
+            wchar_t* wchar_buff = new wchar_t[13] {0};
+            if (mbstowcs_s(&num_bytes, wchar_buff, 13, lpFileName, 13) == 0) {
+                path.append(wchar_buff);
+                handle = CreateFile(path.c_str(), dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
+            }
+            delete[] wchar_buff;
+            if (handle != INVALID_HANDLE_VALUE)
+                return handle;
+        }
+    }
+    return CreateFileA(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
+}
+void* p_create_file_uac = &CreateFile_UAC;
+
+
+//_____________________________________________________
+//This function is only called for deleting the temp file "00000102.WSG". Which only exists during missions.
+static BOOL __stdcall DeleteFile_UAC(LPCSTR lpFileName) {
+    const char* pos = strstr(lpFileName, "00000102.wsg");
+    if (pos) {
+        //Debug_Info("DeleteFile_UAC: %s", lpFileName);
+        std::wstring path = GetAppDataPath();
+        if (!path.empty()) {
+            path.append(L"\\");
+            BOOL retVal = FALSE;
+            size_t num_bytes = 0;
+            wchar_t* wchar_buff = new wchar_t[13] {0};
+            if (mbstowcs_s(&num_bytes, wchar_buff, 13, lpFileName, 13) == 0) {
+                path.append(wchar_buff);
+                retVal = DeleteFile(path.c_str());
+            }
+            delete[] wchar_buff;
+            if (retVal)
+                return retVal;
+        }
+    }
+    return DeleteFileA(lpFileName);
+}
+void* p_delete_file_uac = &DeleteFile_UAC;
+
+
+//________________________________
+//Rebuilds the save game name list file if it does not exist. Adding detected saved games from UAC appdata and the Application folder.
+static BOOL Build_SaveNames_File() {
+
+    bool isUAC = false;
+
+    std::wstring path = GetAppDataPath();
+    if (!path.empty()) {
+        path.append(L"\\");
+        isUAC = true;
+    }
+    size_t path_length = path.length();
+
+    path.append(L"WSG_NDX.WSG");
+    HANDLE h_name_file = CreateFile(path.c_str(), GENERIC_READ | GENERIC_WRITE, 0, nullptr, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, nullptr);
+
+    if (h_name_file == INVALID_HANDLE_VALUE)
+        return FALSE;
+    DWORD num_bytes_written = 0;
+    DWORD dw_dat = 0x4D524F46;//FORM text
+    WriteFile(h_name_file, &dw_dat, 4, &num_bytes_written, nullptr);
+    dw_dat = _byteswap_ulong(0x0BE6);//form size (switch endianness)
+    WriteFile(h_name_file, &dw_dat, 4, &num_bytes_written, nullptr);
+    dw_dat = 0x45564153;//SAVE text
+    WriteFile(h_name_file, &dw_dat, 4, &num_bytes_written, nullptr);
+    dw_dat = 0x4F464E49;//INFO text
+    WriteFile(h_name_file, &dw_dat, 4, &num_bytes_written, nullptr);
+    dw_dat = _byteswap_ulong(0x04);//info size (switch endianness)
+    WriteFile(h_name_file, &dw_dat, 4, &num_bytes_written, nullptr);
+    dw_dat = 0x06;//info data
+    WriteFile(h_name_file, &dw_dat, 4, &num_bytes_written, nullptr);
+
+    //create saved game names using chosen language. english format "SAVE GAME %d."
+    const char* save_game_text = p_save_game_text_eng;
+    if (*p_wc3_language_ref == 1)
+        save_game_text = p_save_game_text_ger;
+    if (*p_wc3_language_ref == 2)
+        save_game_text = p_save_game_text_fre;
+
+    char game_title[22]{ 0 };
+    wchar_t w_game_file_name[16]{ 0 };
+
+    path.resize(path_length);
+    path.append(L"00000000.WSG");
+    
+    //search for previously saved games.
+    for (DWORD i = 0; i <= 100; i++) { //valid save names go from 0 to 100.
+        dw_dat = i;
+        WriteFile(h_name_file, &dw_dat, 4, &num_bytes_written, nullptr);
+        dw_dat = _byteswap_ulong(21);// max save game title length, minus the ending null char. (switch endianness)
+        WriteFile(h_name_file, &dw_dat, 4, &num_bytes_written, nullptr);
+
+        memset(game_title, '\0', 22);
+
+        swprintf_s(w_game_file_name, L"%08d.WSG", i);
+
+
+        path.replace(path_length, 12, w_game_file_name);
+
+        //check the app data path for this save, and if not found and UCA enabled also check the app Application dir.
+        if (GetFileAttributes(path.c_str()) != INVALID_FILE_ATTRIBUTES)
+            sprintf_s(game_title, save_game_text, i);
+        else if (isUAC) {
+            if (GetFileAttributes(w_game_file_name) != INVALID_FILE_ATTRIBUTES)
+                sprintf_s(game_title, save_game_text, i);
+        }
+
+        WriteFile(h_name_file, game_title, 22, &num_bytes_written, nullptr);
+    }
+
+    CloseHandle(h_name_file);
+    h_name_file = INVALID_HANDLE_VALUE;
+    return TRUE;
+}
+
+
+//_______________________________________________________
+static void __declspec(naked) build_save_names_file(void) {
+
+    __asm {
+
+        push ebx
+        push edx
+        push ecx
+        push esi
+        push edi
+        push ebp
+
+        call Build_SaveNames_File
+
+        pop ebp
+        pop edi
+        pop esi
+        pop ecx
+        pop edx
+        pop ebx
+
+        ret
+    }
+}
+
+
 //_______________________________
 void Modifications_GeneralFixes() {
 
@@ -176,4 +367,18 @@ void Modifications_GeneralFixes() {
 
     //Fixed a code error on a call to the "VirtualProtect" function, where the "lpflOldProtect" parameter was set to NULL when it should point to a place to store the previous access protection value.
     FuncReplace32(0x404FF1, 0x060B, (DWORD)&virtualprotect_fix);
+
+
+
+    //-----------------------UAC-Patch---------------------------
+    //Alter the save location of files to the RoamingAppData folder. To allow the game to work without admin privileges when installed under ProgramFiles and to seperate game data between different Windows users.
+    MemWrite32(0x485198, 0x4B53BC, (DWORD)&p_get_file_attributes_uac);
+
+    MemWrite32(0x485254, 0x4B53B4, (DWORD)&p_create_file_uac);
+
+    MemWrite32(0x49AC57, 0x4B5370, (DWORD)&p_delete_file_uac);
+
+    MemWrite16(0x4098A0, 0xEC81, 0xE990);
+    FuncWrite32(0x4098A2, 0x02B4, (DWORD)&build_save_names_file);
+    //------------------------------------------------------------
 }

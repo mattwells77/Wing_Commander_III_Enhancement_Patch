@@ -30,19 +30,19 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #define STRINGIZE2(s) #s
 #define STRINGIZE(s) STRINGIZE2(s)
 
-#define VER_FILE_DESCRIPTION_STR    "Wing Commander III Enhancement Patch"
+#define VER_FILE_DESCRIPTION_STR    L"Wing Commander III Enhancement Patch"
 #define VER_FILE_VERSION            VERSION_MAJOR, VERSION_MINOR, VERSION_REVISION, VERSION_BUILD
 #define VER_FILE_VERSION_STR        STRINGIZE(VERSION_MAJOR)        \
                                     "." STRINGIZE(VERSION_MINOR)    \
                                     "." STRINGIZE(VERSION_REVISION) \
                                     "." STRINGIZE(VERSION_BUILD)    \
 
-#define VER_PRODUCTNAME_STR         "wc3w_en"
+#define VER_PRODUCTNAME_STR         L"wc3w_en"
 #define VER_PRODUCT_VERSION         VER_FILE_VERSION
 #define VER_PRODUCT_VERSION_STR     VER_FILE_VERSION_STR
-#define VER_ORIGINAL_FILENAME_STR   VER_PRODUCTNAME_STR ".dll"
+#define VER_ORIGINAL_FILENAME_STR   VER_PRODUCTNAME_STR L".dll"
 #define VER_INTERNAL_NAME_STR       VER_ORIGINAL_FILENAME_STR
-#define VER_COPYRIGHT_STR           "Copyright © 2024, Matt Wells"
+#define VER_COPYRIGHT_STR           L"Copyright © 2024, Matt Wells"
 
 #ifdef _DEBUG
 #define VER_VER_DEBUG             VS_FF_DEBUG

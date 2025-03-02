@@ -105,6 +105,9 @@ DRAW_BUFFER* p_wc3_inflight_draw_buff = nullptr;
 //return address when playing HR movies to skip over regular movie playback.
 void* p_wc3_play_inflight_hr_movie_return_address = nullptr;
 
+const char* p_save_game_text_eng = nullptr;
+const char* p_save_game_text_ger = nullptr;
+const char* p_save_game_text_fre = nullptr;
 
 void** pp_wc3_music_thread_class = nullptr;
 void(__thiscall* wc3_music_thread_class_destructor)(void*) = nullptr;
@@ -327,4 +330,8 @@ void WC3W_Setup() {
 
     wc3_allocate_mem_main = (void* (*)(DWORD))0x480B0B;
     wc3_deallocate_mem_main = (void(*)(void*))0x480C92;
+
+    p_save_game_text_eng = (char*)0x49FF60;
+    p_save_game_text_ger = (char*)0x49FF40;
+    p_save_game_text_fre = (char*)0x49FF50;
 }

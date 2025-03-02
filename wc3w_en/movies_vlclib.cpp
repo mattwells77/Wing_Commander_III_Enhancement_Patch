@@ -147,9 +147,15 @@ static BOOL Set_Movie_Settings() {
     
     char* char_buff = new char[MAX_PATH];
     char* char_ptr = char_buff;
-  
+    
+    wchar_t* wchar_buff = new wchar_t[MAX_PATH];
+    size_t num_bytes = 0;
+
     //set the hd movie directory.
-    ConfigReadString("MOVIES", "PATH", CONFIG_MOVIES_PATH, char_buff, MAX_PATH);
+    ConfigReadString(L"MOVIES", L"PATH", CONFIG_MOVIES_PATH, wchar_buff, MAX_PATH);
+    //convert wstring to string
+    wcstombs_s(&num_bytes, char_buff, MAX_PATH, wchar_buff, _TRUNCATE);
+
     //skip over any space chars
     while (*char_ptr == ' ')
         char_ptr++;
@@ -164,7 +170,10 @@ static BOOL Set_Movie_Settings() {
     Debug_Info("movie_config_path: %s", movie_config_path.c_str());
 
     //get the hd movie extension.
-    ConfigReadString("MOVIES", "EXT", CONFIG_MOVIES_EXT, char_buff, MAX_PATH);
+    ConfigReadString(L"MOVIES", L"EXT", CONFIG_MOVIES_EXT, wchar_buff, MAX_PATH);
+    //convert wstring to string
+    wcstombs_s(&num_bytes, char_buff, MAX_PATH, wchar_buff, _TRUNCATE);
+
     //skip over any space chars
     char_ptr = char_buff;
     while (*char_ptr == ' ')
@@ -178,27 +187,28 @@ static BOOL Set_Movie_Settings() {
     Debug_Info("movie extension: %s", movie_ext.c_str());
 
     //get the offset between movie branches in milliseconds.
-    branch_offset_ms = ConfigReadInt("MOVIES", "BRANCH_OFFSET_MS", CONFIG_MOVIES_BRANCH_OFFSET_MS);
+    branch_offset_ms = ConfigReadInt(L"MOVIES", L"BRANCH_OFFSET_MS", CONFIG_MOVIES_BRANCH_OFFSET_MS);
     Debug_Info("movie branch offset: %d ms", branch_offset_ms);
 
 
-    inflight_use_audio_from_file_if_present = ConfigReadInt("MOVIES", "INFLIGHT_USE_AUDIO_FROM_FILE_IF_PRESENT", CONFIG_MOVIES_INFLIGHT_USE_AUDIO_FROM_FILE_IF_PRESENT);
-    if(ConfigReadInt("MOVIES", "INFLIGHT_DISPLAY_ASPECT_TYPE", CONFIG_MOVIES_INFLIGHT_DISPLAY_ASPECT_TYPE) == 0)
+    inflight_use_audio_from_file_if_present = ConfigReadInt(L"MOVIES", L"INFLIGHT_USE_AUDIO_FROM_FILE_IF_PRESENT", CONFIG_MOVIES_INFLIGHT_USE_AUDIO_FROM_FILE_IF_PRESENT);
+    if(ConfigReadInt(L"MOVIES", L"INFLIGHT_DISPLAY_ASPECT_TYPE", CONFIG_MOVIES_INFLIGHT_DISPLAY_ASPECT_TYPE) == 0)
         inflight_display_aspect_type = SCALE_TYPE::fill;
     else
         inflight_display_aspect_type = SCALE_TYPE::fit;
 
-    inflight_cockpit_bg_colour_argb = 0xFF000000 | ConfigReadInt("MOVIES", "INFLIGHT_COCKPIT_BG_COLOUR_RGB", CONFIG_MOVIES_INFLIGHT_COCKPIT_BG_COLOUR_RGB);
+    inflight_cockpit_bg_colour_argb = 0xFF000000 | ConfigReadInt(L"MOVIES", L"INFLIGHT_COCKPIT_BG_COLOUR_RGB", CONFIG_MOVIES_INFLIGHT_COCKPIT_BG_COLOUR_RGB);
 
-    if (ConfigReadInt("MOVIES", "INFLIGHT_MONO_SHADER_ENABLE", CONFIG_INFLIGHT_MONO_SHADER_ENABLE)) {
+    if (ConfigReadInt(L"MOVIES", L"INFLIGHT_MONO_SHADER_ENABLE", CONFIG_INFLIGHT_MONO_SHADER_ENABLE)) {
         is_inflight_mono_shader_enabled = TRUE;
-        DWORD colour = ConfigReadInt("MOVIES", "INFLIGHT_MONO_SHADER_COLOUR", CONFIG_INFLIGHT_MONO_SHADER_COLOUR);
-        UINT brightness = ConfigReadInt("MOVIES", "INFLIGHT_MONO_SHADER_BRIGHTNESS", CONFIG_INFLIGHT_MONO_SHADER_BRIGHTNESS);
-        UINT contrast = ConfigReadInt("MOVIES", "INFLIGHT_MONO_SHADER_CONTRAST", CONFIG_INFLIGHT_MONO_SHADER_CONTRAST);
+        DWORD colour = ConfigReadInt(L"MOVIES", L"INFLIGHT_MONO_SHADER_COLOUR", CONFIG_INFLIGHT_MONO_SHADER_COLOUR);
+        UINT brightness = ConfigReadInt(L"MOVIES", L"INFLIGHT_MONO_SHADER_BRIGHTNESS", CONFIG_INFLIGHT_MONO_SHADER_BRIGHTNESS);
+        UINT contrast = ConfigReadInt(L"MOVIES", L"INFLIGHT_MONO_SHADER_CONTRAST", CONFIG_INFLIGHT_MONO_SHADER_CONTRAST);
         Inflight_Mono_Colour_Setup(colour, brightness, contrast);
     }
 
     delete[] char_buff;
+    delete[] wchar_buff;
     return are_movie_path_setting_set = TRUE;
 }
 

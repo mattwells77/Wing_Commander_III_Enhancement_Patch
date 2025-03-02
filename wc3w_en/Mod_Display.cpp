@@ -203,7 +203,7 @@ static bool Display_Exit() {
 //___________________________________________________
 static BOOL Window_Setup(HWND hwnd, bool is_windowed) {
     
-    int COCKPIT_MAINTAIN_ASPECT_RATIO = ConfigReadInt("SPACE", "COCKPIT_MAINTAIN_ASPECT_RATIO", CONFIG_SPACE_COCKPIT_MAINTAIN_ASPECT_RATIO);
+    int COCKPIT_MAINTAIN_ASPECT_RATIO = ConfigReadInt(L"SPACE", L"COCKPIT_MAINTAIN_ASPECT_RATIO", CONFIG_SPACE_COCKPIT_MAINTAIN_ASPECT_RATIO);
     if (COCKPIT_MAINTAIN_ASPECT_RATIO == 0)
         cockpit_scale_type = SCALE_TYPE::fill;
     else if (COCKPIT_MAINTAIN_ASPECT_RATIO < 0)
@@ -217,7 +217,7 @@ static BOOL Window_Setup(HWND hwnd, bool is_windowed) {
         SetWindowLongPtr(hwnd, GWL_STYLE, WIN_MODE_STYLE);
         //Debug_Info("is_windowed set style");
 
-        if (ConfigReadWinData("MAIN", "WIN_DATA", &winPlace)) {
+        if (ConfigReadWinData(L"MAIN", L"WIN_DATA", &winPlace)) {
             if (winPlace.showCmd != SW_MAXIMIZE)
                 winPlace.showCmd = SW_SHOWNORMAL;
         }
@@ -256,11 +256,11 @@ static BOOL Window_Setup(HWND hwnd, bool is_windowed) {
     //Set the movement update time for Navigation screen, which was unregulated and way to fast on modern computers.
     DXGI_RATIONAL refreshRate{};
     refreshRate.Denominator = 1;
-    refreshRate.Numerator = ConfigReadInt("SPACE", "NAV_SCREEN_KEY_RESPONCE_HZ", CONFIG_SPACE_NAV_SCREEN_KEY_RESPONCE_HZ);
+    refreshRate.Numerator = ConfigReadInt(L"SPACE", L"NAV_SCREEN_KEY_RESPONCE_HZ", CONFIG_SPACE_NAV_SCREEN_KEY_RESPONCE_HZ);
     nav_update_time.QuadPart = p_wc3_frequency->QuadPart / refreshRate.Numerator;
 
     //Set the max refresh rate in space, original 24 FPS. Set to zero to use screen refresh rate, a negative value will use the original value.  
-    refreshRate.Numerator = ConfigReadInt("SPACE", "SPACE_REFRESH_RATE_HZ", CONFIG_SPACE_SPACE_REFRESH_RATE_HZ);
+    refreshRate.Numerator = ConfigReadInt(L"SPACE", L"SPACE_REFRESH_RATE_HZ", CONFIG_SPACE_SPACE_REFRESH_RATE_HZ);
     if ((int)refreshRate.Numerator < 0)
         refreshRate.Numerator = 24;
     else if (refreshRate.Numerator == 0)
@@ -301,7 +301,7 @@ static void Window_Resized() {
         WINDOWPLACEMENT winPlace{ 0 };
         winPlace.length = sizeof(WINDOWPLACEMENT);
         GetWindowPlacement(*p_wc3_hWinMain, &winPlace);
-        ConfigWriteWinData("MAIN", "WIN_DATA", &winPlace);
+        ConfigWriteWinData(L"MAIN", L"WIN_DATA", &winPlace);
     }
 }
 
@@ -1143,7 +1143,7 @@ static bool WinProc_Main(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam) 
         case 40002:
             //Debug_Info("dx message");
             if (!*p_wc3_is_windowed) {
-                if (ConfigReadInt("MAIN", "WINDOWED", CONFIG_MAIN_WINDOWED))
+                if (ConfigReadInt(L"MAIN", L"WINDOWED", CONFIG_MAIN_WINDOWED))
                     *p_wc3_is_windowed = true;
             }
             Window_Setup(hwnd, *p_wc3_is_windowed);

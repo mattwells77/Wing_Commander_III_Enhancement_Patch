@@ -23,6 +23,8 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "pch.h"
 #include "errors.h"
 #include "memwrite.h"
+#include "configTools.h"
+#include "version.h"
 
 using namespace std;
 
@@ -35,13 +37,19 @@ char msg_buff[260];
 
 #ifdef CHECK_ERRORS
 
-ofstream errors_stream;
+wofstream errors_stream;
 
 
 //____________________________
 static bool Is_Errors_Stream() {
-    if (!errors_stream.is_open())
-        errors_stream.open("wc3w_en.log");
+    if (!errors_stream.is_open()) {
+        wstring path = GetAppDataPath();
+        if(!path.empty())
+            path.append(L"\\");
+        path.append(VER_PRODUCTNAME_STR);
+        path.append(L".log");
+        errors_stream.open(path.c_str());
+    }
     if (errors_stream.is_open())
         return true;
     return false;
@@ -65,16 +73,16 @@ void Debug_Info(const char* format, ...) {
 //_________________________________________________________________________________________________________________________________________________________________
 void Error_RecordMemMisMatch(const char* file, int line, DWORD inOffset, const unsigned char* in_expectedData, const unsigned char* in_found_data, size_t inLength) {
 
-    ostringstream  outString;
-    outString << "offset:  0x" << uppercase << hex << inOffset << endl;
-    outString << "Expected:";
+    wostringstream  outString;
+    outString << L"offset:  0x" << uppercase << hex << inOffset << endl;
+    outString << L"Expected:";
     for (unsigned int e = 0; e < inLength; e++) {
         outString.width(2);
         outString.fill('0');
         outString << hex << (int)in_expectedData[e] << " ";
     }
     outString << endl;
-    outString << "Found:   ";
+    outString << L"Found:   ";
     for (unsigned int e = 0; e < inLength; e++) {
         outString.width(2);
         outString.fill('0');

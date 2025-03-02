@@ -22,108 +22,115 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #include "pch.h"
 #include "configTools.h"
+#include "version.h"
 
-char* pConfigPath = nullptr;
+using namespace std;
 
 
-// _________________________________________________
-static DWORD GetConfigPath_NonUAC(char* pReturnPath) {
-    DWORD buffSize = GetCurrentDirectoryA(0, nullptr);
-    buffSize += 13;
-    if (!pReturnPath)
-        return buffSize;
+//_______________________________
+static BOOL IsAppInProgramFiles() {
 
-    if (GetCurrentDirectoryA(buffSize, pReturnPath))
-        strncat_s(pReturnPath, buffSize, "\\wc3w_en.ini", 13);
+    static BOOL is_app_in_programfiles = FALSE;
+    static bool app_in_programfiles_run_once = false;
+    if(app_in_programfiles_run_once)
+        return is_app_in_programfiles;
 
-    return buffSize;
+    wstring current_path = GetAppPath();
+
+    wchar_t* p_program_files_path = nullptr;
+    SHGetKnownFolderPath(FOLDERID_ProgramFiles, SHGFP_TYPE_CURRENT, nullptr, &p_program_files_path);
+
+    size_t loc = current_path.find(p_program_files_path);
+    CoTaskMemFree(p_program_files_path);
+    
+    if (loc == string::npos)
+        is_app_in_programfiles = FALSE;
+    else
+        is_app_in_programfiles = TRUE;
+
+    app_in_programfiles_run_once = true;
+    return is_app_in_programfiles;
 }
 
-/*
-//____________________________________________
-DWORD UAC_GetAppDataPath(char* appDataPath) {
 
-    char* pRoamingAppData = nullptr;
-    SHGetKnownFolderPath(FOLDERID_RoamingAppData, SHGFP_TYPE_CURRENT, nullptr, &pRoamingAppData);
+//_________________________
+const wchar_t* GetAppPath() {
+    static wstring wAppPath;
+    static bool app_path_set = false;
 
-    DWORD appDatPathSize = 0;
-    DWORD appPathSize = 0;
-
-    while (pRoamingAppData[appPathSize] != '\0')
-        appPathSize++;
-
-    DWORD currentDirSize = GetCurrentDirectory(0, nullptr);//get the path size
-    char* dirCurrent = new char[currentDirSize];
-    GetCurrentDirectory(currentDirSize, dirCurrent);
-
-
-    BYTE bHash[16];//convert the game path to hash data
-    HashData((BYTE*)dirCurrent, currentDirSize, bHash, 16);
-    char bHashString[33];
-
-    for (int i = 0; i < 16; ++i)//convert the hash data to a string, this will be a unique folder name to store the config data in.
-        swprintf_s(&bHashString[i * 2], 33 - i * 2, L"%02x", bHash[i]);
-
-    appDatPathSize = 4 + appPathSize + 9 + 1 + 33;
-    if (!appDataPath) {
-        CoTaskMemFree(pRoamingAppData);
-        return appDatPathSize;
+    if (!app_path_set) {
+        DWORD currentDirSize = GetCurrentDirectory(0, nullptr);//get the path size
+        wchar_t* dirCurrent = new wchar_t[currentDirSize];
+        GetCurrentDirectory(currentDirSize, dirCurrent);
+        wAppPath.assign(L"\\\\?\\");
+        wAppPath.append(dirCurrent);
+        delete[] dirCurrent;
+        app_path_set = true;
     }
+    return wAppPath.c_str();
+}
 
-    ZeroMemory(appDataPath, appDatPathSize);
-    strncat_s(appDataPath, appDatPathSize, "\\\\?\\", appPathSize);//uniPrependSize // to allow for strings longer than MAX_PATH
-    strncat_s(appDataPath, appDatPathSize, pRoamingAppData, appPathSize);//appDatPathSize
-    CoTaskMemFree(pRoamingAppData);
-    strncat_s(appDataPath, appDatPathSize, "\\Fallout2", 9);
 
-    if (GetFileAttributes(appDataPath) == INVALID_FILE_ATTRIBUTES) {
-        if (!CreateDirectory(appDataPath, nullptr)) {
-            appDataPath[0] = L'\0';
-            return 0;
+//_____________________________
+const wchar_t* GetAppDataPath() {
+    static wstring wAppDataPath;
+    static bool app_data_path_set = false;
+
+    if (!app_data_path_set) {
+        //This setting is only valid in the wc3w_en.ini file located in the wc3 app folder.
+        wstring local_ini = GetAppPath();
+        local_ini.append(L"\\");
+        local_ini.append(VER_PRODUCTNAME_STR);
+        local_ini.append(L".ini");
+        LONG UAC_AWARE = GetPrivateProfileInt(L"MAIN", L"UAC_AWARE", CONFIG_MAIN_UAC_AWARE, local_ini.c_str());
+
+        if (UAC_AWARE == 2 || (UAC_AWARE == 1 && IsAppInProgramFiles())) {
+            wchar_t* pRoamingAppData = nullptr;
+            SHGetKnownFolderPath(FOLDERID_RoamingAppData, SHGFP_TYPE_CURRENT, nullptr, &pRoamingAppData);
+            wAppDataPath.assign(L"\\\\?\\");// to allow for strings longer than MAX_PATH
+
+            wAppDataPath.append(pRoamingAppData);
+            CoTaskMemFree(pRoamingAppData);
+
+            wAppDataPath.append(L"\\");
+            wAppDataPath.append(VER_PRODUCTNAME_STR);
+
+            if (GetFileAttributes(wAppDataPath.c_str()) == INVALID_FILE_ATTRIBUTES) {
+                if (!CreateDirectory(wAppDataPath.c_str(), nullptr)) {
+                    wAppDataPath.clear();
+                    Debug_Info("AppDataPath: folder creation FAILED!: %S", wAppDataPath.c_str());
+                }
+            }
         }
+        else
+            wAppDataPath.clear();
+        app_data_path_set = true;
+        Debug_Info("AppDataPath: %S", wAppDataPath.c_str());
     }
 
-    strncat_s(appDataPath, appDatPathSize, "\\", 1);//BackSlashSize
-    strncat_s(appDataPath, appDatPathSize, bHashString, 33);//hexFolderSize
-    delete[] dirCurrent;
-    if (GetFileAttributes(appDataPath) == INVALID_FILE_ATTRIBUTES)
-        CreateDirectory(appDataPath, nullptr);
-
-    return appDatPathSize;
+    return wAppDataPath.c_str();
 }
-*/
-
-//________________________
-static void ConfigCreate() {
-
-    //To-Do - Lets ditch the UAC stuff for now, not sure anyone was using it anyway.
-
-    /*LONG UAC_AWARE = ConfigReadInt(L"MAIN", L"UAC_AWARE", 1);
-
-    if (UAC_AWARE && IsWindowsVistaOrGreater()) {
-        DWORD buffSize = GetCurrentDirectory(0, nullptr);
-        char* pGameFolderPath = new char[buffSize];
-        GetCurrentDirectory(buffSize, pGameFolderPath);
-        //insert current path for visual identification.
-        WritePrivateProfileString(L"LOCATION", L"path", pGameFolderPath, pConfigPath);
-        delete[] pGameFolderPath;
-        pGameFolderPath = nullptr;
-
-    }*/
 
 
-    ConfigWriteInt("MAIN", "WINDOWED", CONFIG_MAIN_WINDOWED);
-    ConfigWriteInt("MAIN", "WIN_DATA", CONFIG_MAIN_WIN_DATA);
+//___________________________________________
+static void ConfigCreate( bool is_app_folder) {
+    
+    //This setting is only valid in the wc3 app folder.
+    if(is_app_folder)
+        ConfigWriteInt(L"MAIN", L"UAC_AWARE", CONFIG_MAIN_UAC_AWARE);
 
-    ConfigWriteInt("MAIN", "DEAD_ZONE", CONFIG_MAIN_DEAD_ZONE);
+    ConfigWriteInt(L"MAIN", L"WINDOWED", CONFIG_MAIN_WINDOWED);
+    ConfigWriteInt(L"MAIN", L"WIN_DATA", CONFIG_MAIN_WIN_DATA);
 
-    ConfigWriteInt("SPACE", "COCKPIT_MAINTAIN_ASPECT_RATIO", CONFIG_SPACE_COCKPIT_MAINTAIN_ASPECT_RATIO);
-    ConfigWriteInt("SPACE", "SPACE_REFRESH_RATE_HZ", CONFIG_SPACE_SPACE_REFRESH_RATE_HZ);
-    ConfigWriteInt("SPACE", "NAV_SCREEN_KEY_RESPONCE_HZ", CONFIG_SPACE_NAV_SCREEN_KEY_RESPONCE_HZ);
+    ConfigWriteInt(L"MAIN", L"DEAD_ZONE", CONFIG_MAIN_DEAD_ZONE);
 
-    ConfigWriteString("MOVIES", "PATH", CONFIG_MOVIES_PATH);
-    ConfigWriteString("MOVIES", "EXT", CONFIG_MOVIES_EXT);
-    ConfigWriteInt("MOVIES", "BRANCH_OFFSET_MS", CONFIG_MOVIES_BRANCH_OFFSET_MS);
+    ConfigWriteInt(L"SPACE", L"COCKPIT_MAINTAIN_ASPECT_RATIO", CONFIG_SPACE_COCKPIT_MAINTAIN_ASPECT_RATIO);
+    ConfigWriteInt(L"SPACE", L"SPACE_REFRESH_RATE_HZ", CONFIG_SPACE_SPACE_REFRESH_RATE_HZ);
+    ConfigWriteInt(L"SPACE", L"NAV_SCREEN_KEY_RESPONCE_HZ", CONFIG_SPACE_NAV_SCREEN_KEY_RESPONCE_HZ);
+
+    ConfigWriteString(L"MOVIES", L"PATH", CONFIG_MOVIES_PATH);
+    ConfigWriteString(L"MOVIES", L"EXT", CONFIG_MOVIES_EXT);
+    ConfigWriteInt(L"MOVIES", L"BRANCH_OFFSET_MS", CONFIG_MOVIES_BRANCH_OFFSET_MS);
 
     //ConfigWriteInt("MOVIES", "INFLIGHT_USE_AUDIO_FROM_FILE_IF_PRESENT", CONFIG_MOVIES_INFLIGHT_USE_AUDIO_FROM_FILE_IF_PRESENT);
     //ConfigWriteInt("MOVIES", "INFLIGHT_DISPLAY_ASPECT_TYPE", CONFIG_MOVIES_INFLIGHT_DISPLAY_ASPECT_TYPE);
@@ -132,142 +139,90 @@ static void ConfigCreate() {
     //ConfigWriteInt("MOVIES", "INFLIGHT_MONO_SHADER_COLOUR", CONFIG_INFLIGHT_MONO_SHADER_COLOUR);
     //ConfigWriteInt("MOVIES", "INFLIGHT_MONO_SHADER_BRIGHTNESS", CONFIG_INFLIGHT_MONO_SHADER_BRIGHTNESS);
     //ConfigWriteInt("MOVIES", "INFLIGHT_MONO_SHADER_CONTRAST", CONFIG_INFLIGHT_MONO_SHADER_CONTRAST);
-
-    
-
 }
 
 
-//___________________________
-static void ConfigPathSetup() {
-    if (pConfigPath)
-        return;
+//____________________________________
+static const wchar_t* Get_ConfigPath() {
+    
+    static bool config_path_set = false;
+    static wstring wConfigPath;
+    if (!config_path_set) {
+        config_path_set = true;
 
-    DWORD pathSize = 0;
-
-    pathSize = GetConfigPath_NonUAC(nullptr);
-    if (pathSize) {
-        pConfigPath = new char[pathSize];
-        GetConfigPath_NonUAC(pConfigPath);
-    }
-
-    //To-Do - Lets ditch the UAC stuff for now, not sure anyone was using it anyway.
-
-    /*LONG UAC_AWARE = ConfigReadInt(L"MAIN", L"UAC_AWARE", 1);
-
-    if (UAC_AWARE && IsWindowsVistaOrGreater()) {
-        delete[] pConfigPath;
-        pConfigPath = nullptr;
-        DWORD appDatPathSize = UAC_GetAppDataPath(nullptr);
-        char* pAppDatPath = nullptr;
-        if (appDatPathSize) {
-            pAppDatPath = new char[appDatPathSize];
-            appDatPathSize = UAC_GetAppDataPath(pAppDatPath);
+        wConfigPath.assign(GetAppDataPath());
+        bool is_app_folder = false;
+        if (wConfigPath.empty()) {
+            is_app_folder = true;
+            wConfigPath.assign(GetAppPath());
         }
 
-        pathSize = appDatPathSize + 12;
-        pConfigPath = new char[pathSize];
-        ZeroMemory(pConfigPath, pathSize);
-        if (pAppDatPath)
-            strncat_s(pConfigPath, pathSize, pAppDatPath, appDatPathSize);//appDatPathSize
-        delete[] pAppDatPath;
-        pAppDatPath = nullptr;
-        strncat_s(pConfigPath, pathSize, "\\wc3w_en.ini", 13);
-    }*/
+        wConfigPath.append(L"\\");
+        wConfigPath.append(VER_PRODUCTNAME_STR);
+        wConfigPath.append(L".ini");
 
-    //create config file if not found.
-    if (pConfigPath && GetFileAttributesA(pConfigPath) == INVALID_FILE_ATTRIBUTES)
-        ConfigCreate();
+        if (GetFileAttributes(wConfigPath.c_str()) == INVALID_FILE_ATTRIBUTES)
+            ConfigCreate(is_app_folder);
+
+        Debug_Info("ConfigPath: %S", wConfigPath.c_str());
+    }
+
+    return wConfigPath.c_str();
 }
 
 
 //_______________________
 void ConfigRefreshCache() {
-    ConfigPathSetup();
-    WritePrivateProfileStringA(nullptr, nullptr, nullptr, pConfigPath);
+    WritePrivateProfileString(nullptr, nullptr, nullptr, Get_ConfigPath());
 }
 
 
-//______________________________________________________________________________________________________________________________
-DWORD ConfigReadString(const char* lpAppName, const char* lpKeyName, const char* lpDefault, char* lpReturnedString, DWORD nSize) {
-    ConfigPathSetup();
-    return GetPrivateProfileStringA(lpAppName, lpKeyName, lpDefault, lpReturnedString, nSize, pConfigPath);
+//__________________________________________________________________________________________________________________________________________
+DWORD ConfigReadString(const wchar_t* lpAppName, const wchar_t* lpKeyName, const wchar_t* lpDefault, wchar_t* lpReturnedString, DWORD nSize) {
+    return GetPrivateProfileString(lpAppName, lpKeyName, lpDefault, lpReturnedString, nSize, Get_ConfigPath());
 }
 
 
-//________________________________________________________________________________________
-BOOL ConfigWriteString(const char* lpAppName, const char* lpKeyName, const char* lpString) {
-    ConfigPathSetup();
-    return WritePrivateProfileStringA(lpAppName, lpKeyName, lpString, pConfigPath);
+//_________________________________________________________________________________________________
+BOOL ConfigWriteString(const wchar_t* lpAppName, const wchar_t* lpKeyName, const wchar_t* lpString) {
+    return WritePrivateProfileString(lpAppName, lpKeyName, lpString, Get_ConfigPath());
 }
 
 
-//____________________________________________________________________________
-UINT ConfigReadInt(const char* lpAppName, const char* lpKeyName, int nDefault) {
-    ConfigPathSetup();
-    return GetPrivateProfileIntA(lpAppName, lpKeyName, nDefault, pConfigPath);
+//__________________________________________________________________________________
+UINT ConfigReadInt(const wchar_t* lpAppName, const wchar_t* lpKeyName, int nDefault) {
+    return GetPrivateProfileInt(lpAppName, lpKeyName, nDefault, Get_ConfigPath());
 }
 
 
-//___________________________________________________________________________
-BOOL ConfigWriteInt(const char* lpAppName, const char* lpKeyName, int intVal) {
-    ConfigPathSetup();
-    char lpString[64];
-    sprintf_s(lpString, 64, "%d", intVal);
-    return WritePrivateProfileStringA(lpAppName, lpKeyName, lpString, pConfigPath);
+//_________________________________________________________________________________
+BOOL ConfigWriteInt(const wchar_t* lpAppName, const wchar_t* lpKeyName, int intVal) {
+    wchar_t lpString[64]{0};
+    swprintf_s(lpString, 64, L"%d", intVal);
+    return WritePrivateProfileString(lpAppName, lpKeyName, lpString, Get_ConfigPath());
 }
 
 
-//_____________________________________________________________________________________________
-BOOL ConfigReadWinData(const char* lpAppName, const char* lpKeyName, WINDOWPLACEMENT* pWinData) {
-    ConfigPathSetup();
+//___________________________________________________________________________________________________
+BOOL ConfigReadWinData(const wchar_t* lpAppName, const wchar_t* lpKeyName, WINDOWPLACEMENT* pWinData) {
     pWinData->length = sizeof(WINDOWPLACEMENT);
-    return GetPrivateProfileStructA(lpAppName, lpKeyName, pWinData, sizeof(WINDOWPLACEMENT), pConfigPath);
-}
-
-
-//______________________________________________________________________________________________
-BOOL ConfigWriteWinData(const char* lpAppName, const char* lpKeyName, WINDOWPLACEMENT* pWinData) {
-    ConfigPathSetup();
-    return WritePrivateProfileStructA(lpAppName, lpKeyName, pWinData, sizeof(WINDOWPLACEMENT), pConfigPath);
+    return GetPrivateProfileStruct(lpAppName, lpKeyName, pWinData, sizeof(WINDOWPLACEMENT), Get_ConfigPath());
 }
 
 
 //____________________________________________________________________________________________________
-BOOL ConfigReadStruct(const char* lpszSection, const char* lpszKey, LPVOID lpStruct, UINT uSizeStruct) {
-    ConfigPathSetup();
-    return GetPrivateProfileStructA(lpszSection, lpszKey, lpStruct, uSizeStruct, pConfigPath);
+BOOL ConfigWriteWinData(const wchar_t* lpAppName, const wchar_t* lpKeyName, WINDOWPLACEMENT* pWinData) {
+    return WritePrivateProfileStruct(lpAppName, lpKeyName, pWinData, sizeof(WINDOWPLACEMENT), Get_ConfigPath());
 }
 
 
-//_____________________________________________________________________________________________________
-BOOL ConfigWriteStruct(const char* lpszSection, const char* lpszKey, LPVOID lpStruct, UINT uSizeStruct) {
-    ConfigPathSetup();
-    return WritePrivateProfileStructA(lpszSection, lpszKey, lpStruct, uSizeStruct, pConfigPath);
+//__________________________________________________________________________________________________________
+BOOL ConfigReadStruct(const wchar_t* lpszSection, const wchar_t* lpszKey, LPVOID lpStruct, UINT uSizeStruct) {
+    return GetPrivateProfileStruct(lpszSection, lpszKey, lpStruct, uSizeStruct, Get_ConfigPath());
 }
 
 
-//___________________
-char* ConfigGetPath() {
-    ConfigPathSetup();
-   return pConfigPath;
-}
-
-
-//__________________
-bool ConfigDestroy() {
-    ConfigPathSetup();
-    if (pConfigPath) {
-        if (DeleteFileA(pConfigPath)) {//delete ini file
-            char* pFileName = strstr(pConfigPath, "\\wc3w_en.ini");
-            if (pFileName) {
-                *pFileName ='\0';//remove file name from path
-                RemoveDirectoryA(pConfigPath);// delete config folder if empty
-            }
-            delete[] pConfigPath;
-            pConfigPath = nullptr;
-            return true;
-        }
-    }
-    return false;
+//___________________________________________________________________________________________________________
+BOOL ConfigWriteStruct(const wchar_t* lpszSection, const wchar_t* lpszKey, LPVOID lpStruct, UINT uSizeStruct) {
+    return WritePrivateProfileStruct(lpszSection, lpszKey, lpStruct, uSizeStruct, Get_ConfigPath());
 }

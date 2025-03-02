@@ -27,7 +27,7 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 #define JOYSTICK_PROFILE_VERSION	1
-#define JOYSTICK_CONFIG_PATH			L"\\controllers"
+#define JOYSTICK_CONFIG_PATH			L"controllers"
 
 
 enum class WC3_ACTIONS {
