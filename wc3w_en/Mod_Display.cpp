@@ -505,6 +505,10 @@ static void __fastcall Set_Space_View_POV1(void* p_space_class) {
         p_view_vars[7] = (WORD)(*p_wc3_y_centre_rear / (float)GUI_HEIGHT * height);
         Debug_Info("Set Space View - Rear");
         Debug_Info("centre_x=%d, centre_y=%d, new_centre_x=%d, new_centre_y=%d", *p_wc3_x_centre_rear, *p_wc3_y_centre_rear, p_view_vars[6], p_view_vars[7]);
+        if (p_cockpit_class[1]) {//the pointer stored here seems to be related to a background image, enable cockpit view if present to fill black area beyond background.
+            is_cockpit_view = TRUE;
+            scale_type = cockpit_scale_type;
+        }
         break;
     case 3:
         Debug_Info("Set Space View - Right");
@@ -519,7 +523,14 @@ static void __fastcall Set_Space_View_POV1(void* p_space_class) {
         Debug_Info("Set Space View - Unknown? num:%d", cockpit_view_type);
         break;
     }
-
+    //Debug_Info("Set_Space_View_POV1 - %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d", p_cockpit_class[0], p_cockpit_class[1], p_cockpit_class[2], p_cockpit_class[3], p_cockpit_class[4], p_cockpit_class[5], p_cockpit_class[6], p_cockpit_class[7],
+    //    p_cockpit_class[8], p_cockpit_class[9], p_cockpit_class[10], p_cockpit_class[11], p_cockpit_class[12], p_cockpit_class[13], p_cockpit_class[14], p_cockpit_class[15]);
+    //if (p_cockpit_class[1]) {
+    //    DWORD* p_cockpit_class2 = ((DWORD**)p_cockpit_class)[1];
+    //     Debug_Info("Set_Space_View_POV1 p_cockpit_class2- %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d", p_cockpit_class2[0], p_cockpit_class2[1], p_cockpit_class2[2], p_cockpit_class2[3], p_cockpit_class2[4], p_cockpit_class2[5], p_cockpit_class2[6], p_cockpit_class2[7],
+    //        p_cockpit_class2[8], p_cockpit_class2[9], p_cockpit_class2[10], p_cockpit_class2[11], p_cockpit_class2[12], p_cockpit_class2[13], p_cockpit_class2[14], p_cockpit_class2[15]);
+    //}
+    
     surface_space2D->ScaleToScreen(scale_type);
 }
 
