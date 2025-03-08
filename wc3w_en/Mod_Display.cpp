@@ -1723,45 +1723,75 @@ static LONG Get_Num_Frames_Between_Timecodes_30fps(DWORD timecode_start, DWORD t
 }
 
 
+// The below function makes use of data that has it's origin in inflight profile iff files. These are located on the path "\DATA\PROFILE\" within the games ".tre" files.
+// Internally they contain an inflight profile form labelled "PROF" and within that a form labelled "RADI" which contains the communication data.
+// The relevant sections are:
+//
+// "FMV " section.
+// format structure for eace listed mve file:
+// BYTE     ref;                //number reference within the MSGx sections
+// BYTE     flag;               //?
+// DWORD    tc_start_of_file;   //SMPTE time-code 30fps for the start of file.
+// char     file_name[13];      //mve movie file name
+//
+// "MSGS", "MSGG" and "MSGF" sections for each language.
+// format structure for each listed scene:
+// BYTE     sond_ref;           //reference to the played audio in the "SOND" section.
+// BYTE     fmv_ref;            //reference to a movie in the FMV " section.
+// DWORD    tc_start_30fps;     //SMPTE time-code 30fps for the start of scene.
+// DWORD    tc_length_30fps;    //SMPTE time-code 30fps for the duration of scene.
+// DWORD    neg_offset_15fps;   //subtracted from the video position offset, 15fps.
+// char     text[variable];     //subtitle for the particular language.
+//
 //___________________________________________________________
 static BOOL Play_Inflight_Movie(HUD_CLASS_01* p_hud_class_01) {
-    //Original inflight movie function allowed for setting start and end times within each movie file.
-    //This has been simplified for hd playback, where each movie file is expected to be a single scene.
+
     if (*pp_movie_class_inflight_01) {
         static LARGE_INTEGER inflight_audio_play_start_time{ 0 };
         static LARGE_INTEGER inflight_audio_play_start_offset{ 0 };
 
         if (!(*p_wc3_inflight_draw_buff).buff && !pMovie_vlc_Inflight) {
-            Debug_Info("Play_Inflight_Movie: timecodes: tc_start_of_file:%d, tc_start_of_scene:%d, tc_duration/apendix:%d, scene_video_neg_frame_offset:%d", (*pp_movie_class_inflight_01)->timecode_start_of_file_30fps, (*pp_movie_class_inflight_01)->timecode_start_of_audio_30fps, (*pp_movie_class_inflight_01)->timecode_duration_30fps, (*pp_movie_class_inflight_01)->video_frame_offset_15fps_neg);
+            Debug_Info("Play_Inflight_Movie: timecodes: tc_start_of_file:%d, tc_start_of_scene:%d, tc_duration/appendix:%d, scene_video_neg_frame_offset:%d", (*pp_movie_class_inflight_01)->timecode_start_of_file_30fps, (*pp_movie_class_inflight_01)->timecode_start_of_scene_30fps, (*pp_movie_class_inflight_01)->timecode_duration_30fps, (*pp_movie_class_inflight_01)->video_frame_offset_15fps_neg);
 
-            LONG sound_start_frame = 0;
+            //Get the offset with in video file by subtracting the start_of_scene from the start_of_file, value returned is frames at 30fps.
+            //This is on occasion used by pilot heads to jump to different scenes but more often then not they reuse the same footage with at different durations to match the audio. 
+            LONG video_start_frame = Get_Num_Frames_Between_Timecodes_30fps((*pp_movie_class_inflight_01)->timecode_start_of_file_30fps, (*pp_movie_class_inflight_01)->timecode_start_of_scene_30fps);
+            Debug_Info("Play_Inflight_Movie: Video start offset frames:%d", video_start_frame);
+            if (video_start_frame < 0)
+                video_start_frame = 0;
 
-            //iff files modified to play movies divided into scenes DON'T INCLUDE an extension in their file name. 
-            //if the movie file name has an extension, DON'T ADD a letter appendix by setting "appendix_offset = -1".
-            char* ext = strrchr((*pp_movie_class_inflight_01)->file_name, '.');
+            //Supposed to be subtracted from video_start_frame. Makes more sense to me to add it to audio offset. A value of 3 is used by many Pilot Heads, otherwise this is usually zero.
+            LONG audio_start_frame = (*pp_movie_class_inflight_01)->video_frame_offset_15fps_neg * 2;
 
-            //apendix offsets for individual scene files are stored in "timecode_duration_30fps" 0-26 for letter code.
-            DWORD appendix_offset = (*pp_movie_class_inflight_01)->timecode_duration_30fps;
-            if (ext)
-                appendix_offset = -1;
+            //inflight_audio_play_start_offset.QuadPart = 0;
+            //If the start frame offset is small, delay audio start instead of moving the video position, as libvlc doesn't shift position well.
+            //Two of Rollins Victory communications have a small offset like this, Others Victory communications start a zero.
+            if (video_start_frame <= 10) {
+                audio_start_frame += video_start_frame;
+                video_start_frame = 0;
+                Debug_Info("Play_Inflight_Movie: Fixed Video start offset frames:%d", video_start_frame);
+                Debug_Info("Play_Inflight_Movie: Fixed Audio start offset frames:%d", audio_start_frame);
+            }
 
-
-            //Delays start of audio too sync with video. Used by some movies where lips are visible. Rollins Victory.
-            sound_start_frame = Get_Num_Frames_Between_Timecodes_30fps((*pp_movie_class_inflight_01)->timecode_start_of_file_30fps, (*pp_movie_class_inflight_01)->timecode_start_of_audio_30fps);
-            Debug_Info("Play_Inflight_Movie: Audio start offset frames:%d", sound_start_frame);
-            if (sound_start_frame < 0)
-                sound_start_frame = 0;
-
-            //Supposed to be subtracted from movie frame offset. Makes more sense to me to add it to audio offset. Used by many Pilot Heads.
-            //sound_start_frame += (*pp_movie_class_inflight_01)->video_frame_offset_15fps_neg * 2;
-
-            inflight_audio_play_start_offset.QuadPart = static_cast<long long>(sound_start_frame) * p_wc3_frequency->QuadPart / 30;
-            //inflight_audio_play_start_offset.QuadPart += (long long)250 * p_wc3_frequency->QuadPart / 1000;
-
+            inflight_audio_play_start_offset.QuadPart =  static_cast<long long>(audio_start_frame)* p_wc3_frequency->QuadPart / 30;
 
             RECT rc_dest{ p_hud_class_01->hud_x + p_hud_class_01->comm_x, p_hud_class_01->hud_y + p_hud_class_01->comm_y,  p_hud_class_01->hud_x + p_hud_class_01->comm_x + (LONG)p_movie_class_inflight_02->width - 1, p_hud_class_01->hud_y + p_hud_class_01->comm_y + (LONG)p_movie_class_inflight_02->height - 1 };
             //Debug_Info("size:%d,%d,%d,%d", rc_dest.left, rc_dest.top, rc_dest.right, rc_dest.bottom);
-            pMovie_vlc_Inflight = new LibVlc_MovieInflight((*pp_movie_class_inflight_01)->file_name, &rc_dest, appendix_offset);
+            
+            //iff files modified to play movies divided into scenes DON'T INCLUDE an extension in their file name. 
+            //if the movie file name has an extension, DON'T ADD a letter appendix by setting "appendix_offset = -1".
+            char* ext = strrchr((*pp_movie_class_inflight_01)->file_name, '.');
+            
+            if (ext) {
+                DWORD length_frames = Get_Num_Frames_Between_Timecodes_30fps(0, (*pp_movie_class_inflight_01)->timecode_duration_30fps);
+                pMovie_vlc_Inflight = new LibVlc_MovieInflight((*pp_movie_class_inflight_01)->file_name, &rc_dest, video_start_frame, length_frames);
+            }
+            else {
+                //appendix offsets for individual scene files are stored in "timecode_duration_30fps" 0-26 for letter code.
+                DWORD appendix = (*pp_movie_class_inflight_01)->timecode_duration_30fps;
+                pMovie_vlc_Inflight = new LibVlc_MovieInflight((*pp_movie_class_inflight_01)->file_name, &rc_dest, appendix);
+            }
+
             if (!pMovie_vlc_Inflight->Play()) {
                 delete pMovie_vlc_Inflight;
                 pMovie_vlc_Inflight = nullptr;
@@ -1785,8 +1815,8 @@ static BOOL Play_Inflight_Movie(HUD_CLASS_01* p_hud_class_01) {
             }
 
             inflight_audio_play_start_time.QuadPart = 0;
-            //setting timecode_start_of_audio_30fps = 1 in order allow the audio delay as timecode_start_of_audio_30fps is used as a flag to start the audio when == 0;
-            //(*pp_movie_class_inflight_01)->timecode_start_of_audio_30fps = 1;
+            //setting timecode_start_of_scene_30fps = 1 in order allow the audio delay as timecode_start_of_scene_30fps is used as a flag to start the audio when == 0;
+            (*pp_movie_class_inflight_01)->timecode_start_of_scene_30fps = 1;
         }
 
         if (!pMovie_vlc_Inflight) {
@@ -1794,20 +1824,18 @@ static BOOL Play_Inflight_Movie(HUD_CLASS_01* p_hud_class_01) {
             return FALSE;
         }
 
-        if (!pMovie_vlc_Inflight->IsPlayInitialised()) {
-            //Debug_Info("Play_Inflight_Movie: waiting for movie initialisation");
+        if (!pMovie_vlc_Inflight->Check_Play_Time())
             return TRUE;
-        }
 
-        // timecode_start_of_audio_30fps is used as a flag to initiate audio playback.
+        // timecode_start_of_scene_30fps is used as a flag to initiate audio playback.
         // setting this here once playback is initialised and audio start time reached.
-        if ((*pp_movie_class_inflight_01)->timecode_start_of_audio_30fps != 0) {
+        if ((*pp_movie_class_inflight_01)->timecode_start_of_scene_30fps != 0) {
             LARGE_INTEGER inflight_video_play_time{};
             QueryPerformanceCounter(&inflight_video_play_time);
             if (inflight_audio_play_start_time.QuadPart == 0)
                 inflight_audio_play_start_time.QuadPart = inflight_video_play_time.QuadPart + inflight_audio_play_start_offset.QuadPart;
             if (inflight_audio_play_start_time.QuadPart < inflight_video_play_time.QuadPart)
-                (*pp_movie_class_inflight_01)->timecode_start_of_audio_30fps = 0;
+                (*pp_movie_class_inflight_01)->timecode_start_of_scene_30fps = 0;
         }
 
         //check if video display dimensions have changed and update if necessary.

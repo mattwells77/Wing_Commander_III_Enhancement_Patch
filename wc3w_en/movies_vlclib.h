@@ -272,8 +272,11 @@ private:
 
 class LibVlc_MovieInflight {
 public:
-    LibVlc_MovieInflight(const char* file_name, RECT* p_rc_gui_unscaled, DWORD appendix_offset);
-
+    LibVlc_MovieInflight(const char* file_name, RECT* p_rc_gui_unscaled, DWORD start_frame_30, DWORD length_frames_30);
+    // For In-flight IFF files modified to use an alphabetical letter value to differentiate each scene. These letters relate to those appended to the name of each individual scene movie file.
+    // The file name specified in these IFF's "PROF\RADI\FMV " section, should have no file extension. Each scene is numbered correlating with letters in the alphabet starting with 0=a.
+    // These values are stored in place of the time-code duration value found in unmodified IFF's "PROF\RADI\MSGS" section.
+    LibVlc_MovieInflight(const char* file_name, RECT* p_rc_gui_unscaled, DWORD appendix);
     ~LibVlc_MovieInflight() {
         Stop();
         if (surface)
@@ -284,7 +287,18 @@ public:
         surface_bg = nullptr;
         Debug_Info("LibVlc_MovieInflight: destroy: %s", path.c_str());
     };
-
+    bool Check_Play_Time() {
+        //Debug_Info("LibVlc_MovieInflight: Check_Play_Time: %d - %d", (int)mediaPlayer.time(), (int)time_ms_length);
+        if (play_setup_complete && time_ms_length) {
+            LARGE_INTEGER current_time_in_ticks;
+            QueryPerformanceCounter(&current_time_in_ticks);
+            if (current_time_in_ticks.QuadPart >= play_end_time_in_ticks.QuadPart) {
+                Stop();
+                hasPlayed = true;
+            }
+        }
+        return play_setup_complete;
+    };
     bool Play();
     void Pause(bool pause) {
         if (isPlaying) {
@@ -322,9 +336,9 @@ public:
     bool IsPlaying() const {
         return isPlaying;
     }
-    bool IsPlayInitialised() const {
-        return play_setup_complete;// play_counter_started;
-    }
+    //bool IsPlayInitialised() const {
+   //     return play_setup_complete;// play_counter_started;
+   // }
     bool HasPlayed() const {
         return hasPlayed;
     }
@@ -356,6 +370,12 @@ private:
     GEN_SURFACE* surface;
     GEN_SURFACE* surface_bg;
     RECT rc_dest_unscaled;
+
+    libvlc_time_t time_ms_length;
+    libvlc_time_t time_ms_start;
+    LARGE_INTEGER play_end_time_in_ticks;
+
+    void libvlc_movieinflight_initialise();
 
     void initialise_for_play();
 
