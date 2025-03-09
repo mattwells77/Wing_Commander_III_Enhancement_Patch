@@ -125,7 +125,7 @@ bool Get_Joystick_Config_Path(wstring *p_ret_string) {
 		p_ret_string->append(L"\\");
 	p_ret_string->append(JOYSTICK_CONFIG_PATH);
 	
-	Debug_Info("Get_Joystick_Config_Path: %S", p_ret_string->c_str());
+	Debug_Info_Joy("Get_Joystick_Config_Path: %S", p_ret_string->c_str());
 
 	if (GetFileAttributes(p_ret_string->c_str()) == INVALID_FILE_ATTRIBUTES) {
 		if (!CreateDirectory(p_ret_string->c_str(), nullptr)) {
@@ -173,7 +173,7 @@ static void Simulate_Key_Pressed(WORD key_mod, WORD key) {
 
 	UINT uSent = SendInput(num_inputs, p_input, sizeof(INPUT));
 	if (uSent != num_inputs)
-		Debug_Info("Simulate_Key_Press - SendInput failed: 0x%x\n", HRESULT_FROM_WIN32(GetLastError()));
+		Debug_Info_Error("Simulate_Key_Press - SendInput failed: 0x%x\n", HRESULT_FROM_WIN32(GetLastError()));
 }
 
 
@@ -264,7 +264,7 @@ static void Simulate_Key_Press(WC3_ACTIONS action) {
 
 	UINT uSent = SendInput(num_inputs, p_input, sizeof(INPUT));
 	if (uSent != num_inputs)
-		Debug_Info("Simulate_Key_Press - SendInput failed: 0x%x\n", HRESULT_FROM_WIN32(GetLastError()));
+		Debug_Info_Error("Simulate_Key_Press - SendInput failed: 0x%x\n", HRESULT_FROM_WIN32(GetLastError()));
 }
 
 
@@ -354,7 +354,7 @@ static void Simulate_Key_Release(WC3_ACTIONS action) {
 
 	UINT uSent = SendInput(num_inputs, p_input, sizeof(INPUT));
 	if (uSent != num_inputs)
-		Debug_Info("Simulate_Key_Release - SendInput failed: 0x%x\n", HRESULT_FROM_WIN32(GetLastError()));
+		Debug_Info_Error("Simulate_Key_Release - SendInput failed: 0x%x\n", HRESULT_FROM_WIN32(GetLastError()));
 }
 
 
@@ -596,7 +596,7 @@ bool JOYSTICK::Connect(winrt::Windows::Gaming::Input::RawGameController const& i
 	if (!connected) {
 		if (pid == in_rawGameController.HardwareProductId() && vid == in_rawGameController.HardwareVendorId() && NonRoamableId == rawGameController.NonRoamableId()) {
 			rawGameController = in_rawGameController;
-			//Debug_Info("%S re-connected", rawGameController.DisplayName().c_str());
+			Debug_Info_Joy("%S reconnected", rawGameController.DisplayName().c_str());
 			//Debug_Info("%S prev NonRoamableId", NonRoamableId.c_str());
 			//NonRoamableId = rawGameController.NonRoamableId();
 			//Debug_Info("%S new NonRoamableId", NonRoamableId.c_str());
@@ -614,7 +614,7 @@ bool JOYSTICK::DisConnect(winrt::Windows::Gaming::Input::RawGameController const
 
 	if (rawGameController == in_rawGameController) {
 		connected = false;
-		//Debug_Info("%S disconnected", rawGameController.DisplayName().c_str());
+		Debug_Info_Joy("%S disconnected", rawGameController.DisplayName().c_str());
 		return true;
 	}
 	return false;
@@ -643,7 +643,7 @@ BOOL JOYSTICK::Profile_Load(const wchar_t* file_path) {
 		*/
 		if (version != JOYSTICK_PROFILE_VERSION) {
 			fclose(fileCache);
-			Debug_Info("JOYSTICK::Profile_Load(), version mismatch, version:%d", version);
+			Debug_Info_Error("JOYSTICK::Profile_Load(), version mismatch, version:%d", version);
 			return FALSE;
 		}
 		fread(&d_data, sizeof(DWORD), 1, fileCache);
@@ -655,7 +655,7 @@ BOOL JOYSTICK::Profile_Load(const wchar_t* file_path) {
 		fread(&i_data, sizeof(i_data), 1, fileCache);
 		if (i_data != num_axes) {
 			fclose(fileCache);
-			Debug_Info("JOYSTICK::Profile_Load(), num_axes don't match:%d", version);
+			Debug_Info_Error("JOYSTICK::Profile_Load(), num_axes don't match:%d", version);
 			return FALSE;
 		}
 
@@ -666,7 +666,7 @@ BOOL JOYSTICK::Profile_Load(const wchar_t* file_path) {
 		for (int i = 0; i < num_axes; i++) {
 			p_axis = Get_Action_Axis(i);
 			if (!p_axis) {
-				Debug_Info("JOYSTICK::Profile_Load() FAILED!: p_axis %d = null", i);
+				Debug_Info_Error("JOYSTICK::Profile_Load() FAILED!: p_axis %d = null", i);
 				fclose(fileCache);
 				return FALSE;
 			}
@@ -697,13 +697,13 @@ BOOL JOYSTICK::Profile_Load(const wchar_t* file_path) {
 		fread(&i_data, sizeof(i_data), 1, fileCache);
 		if (i_data != num_buttons) {
 			fclose(fileCache);
-			Debug_Info("JOYSTICK::Profile_Load(), num_buttons don't match:%d", num_buttons);
+			Debug_Info_Error("JOYSTICK::Profile_Load(), num_buttons don't match:%d", num_buttons);
 			return FALSE;
 		}
 		for (int i = 0; i < num_buttons; i++) {
 			p_key = Get_Action_Button(i);
 			if (!p_key) {
-				Debug_Info("JOYSTICK::Profile_Load() FAILED!: p_key %d = null", i);
+				Debug_Info_Error("JOYSTICK::Profile_Load() FAILED!: p_key %d = null", i);
 				fclose(fileCache);
 				return FALSE;
 			}
@@ -714,13 +714,13 @@ BOOL JOYSTICK::Profile_Load(const wchar_t* file_path) {
 		fread(&i_data, sizeof(i_data), 1, fileCache);
 		if (i_data != num_switches) {
 			fclose(fileCache);
-			Debug_Info("JOYSTICK::Profile_Load(), num_switches don't match:%d", num_buttons);
+			Debug_Info_Error("JOYSTICK::Profile_Load(), num_switches don't match:%d", num_buttons);
 			return FALSE;
 		}
 		for (int i = 0; i < num_switches; i++) {
 			p_switch = Get_Action_Switch(i);
 			if (!p_switch) {
-				Debug_Info("JOYSTICK::Profile_Load() FAILED!: p_switch %d = null", i);
+				Debug_Info_Error("JOYSTICK::Profile_Load() FAILED!: p_switch %d = null", i);
 				fclose(fileCache);
 				return FALSE;
 			}
@@ -736,7 +736,7 @@ BOOL JOYSTICK::Profile_Load(const wchar_t* file_path) {
 		fclose(fileCache);
 	}
 	else {
-		Debug_Info("JOYSTICK::Profile_Load(), _wfopen_s failed: %S", file_path);
+		Debug_Info_Error("JOYSTICK::Profile_Load(), _wfopen_s failed: %S", file_path);
 		return FALSE;
 	}
 	return TRUE;
@@ -763,7 +763,7 @@ BOOL JOYSTICK::Profile_Load() {
 	swprintf_s(file_name + 10 + 32, 5, L".joy");
 
 	path.append(file_name);
-	Debug_Info("Profile_Load path: %S", path.c_str());
+	Debug_Info_Joy("Profile_Load path: %S", path.c_str());
 	return Profile_Load(path.c_str());
 };
 
@@ -795,7 +795,7 @@ BOOL JOYSTICK::Profile_Save(const wchar_t* file_path) {
 		for (int i = 0; i < num_axes; i++) {
 			p_axis = Get_Action_Axis(i);
 			if (!p_axis) {
-				Debug_Info("JOYSTICK::Profile_Save() FAILED!: p_axis %d = null", i);
+				Debug_Info_Error("JOYSTICK::Profile_Save() FAILED!: p_axis %d = null", i);
 				fclose(fileCache);
 				return FALSE;
 			}
@@ -833,7 +833,7 @@ BOOL JOYSTICK::Profile_Save(const wchar_t* file_path) {
 		for (int i = 0; i < num_switches; i++) {
 			p_switch = Get_Action_Switch(i);
 			if (!p_switch) {
-				Debug_Info("JOYSTICK::Profile_Save() FAILED!: p_switch %d = null", i);
+				Debug_Info_Error("JOYSTICK::Profile_Save() FAILED!: p_switch %d = null", i);
 				fclose(fileCache);
 				return FALSE;
 			}
@@ -847,7 +847,7 @@ BOOL JOYSTICK::Profile_Save(const wchar_t* file_path) {
 		fclose(fileCache);
 	}
 	else {
-		Debug_Info("JOYSTICK::Profile_Save(), _wfopen_s failed: %S", file_path);
+		Debug_Info_Error("JOYSTICK::Profile_Save(), _wfopen_s failed: %S", file_path);
 		return FALSE;
 	}
 	return TRUE;
@@ -875,7 +875,7 @@ BOOL JOYSTICK::Profile_Save() {
 
 	path.append(file_name);
 
-	//Debug_Info("Profile_Save path: %S", path.c_str());
+	Debug_Info_Joy("Profile_Save path: %S", path.c_str());
 	return Profile_Save(path.c_str());
 };
 
@@ -896,14 +896,14 @@ void JOYSTICKS::Setup() {
 			concurrency::critical_section::scoped_lock s1{ controllerListLock };
 			for (auto& joystick : joysticks) {
 				if (joystick->Connect(addedController)) {
-					Debug_Info("RawGameControllerAdded: controller reconnected");
+					Debug_Info_Joy("RawGameControllerAdded: controller reconnected");
 					JoyConfig_Refresh_JoyList();
 					return;
 				}
 			}
 			JOYSTICK* joy = new JOYSTICK(addedController);
 			joysticks.push_back(joy);
-			Debug_Info("RawGameControllerAdded: done");
+			Debug_Info_Joy("RawGameControllerAdded: done");
 			JoyConfig_Refresh_JoyList();
 		});
 
@@ -912,12 +912,12 @@ void JOYSTICKS::Setup() {
 			concurrency::critical_section::scoped_lock s2{ controllerListLock };
 			for (auto& joystick : joysticks) {
 				if (joystick->DisConnect(removedController)) {
-					Debug_Info("RawGameControllerRemoved: Disconnected");
+					Debug_Info_Joy("RawGameControllerRemoved: Disconnected");
 					JoyConfig_Refresh_JoyList();
 					return;
 				}
 			}
-			Debug_Info("RawGameControllerRemoved: controller was not found in list!!!");
+			Debug_Info_Error("RawGameControllerRemoved: controller was not found in list!!!");
 		});
 
 	setup = true;

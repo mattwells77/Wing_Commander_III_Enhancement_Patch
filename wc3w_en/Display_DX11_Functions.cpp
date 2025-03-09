@@ -348,10 +348,10 @@ void Display_Dx_Present(PRESENT_TYPE present_type) {
     if (FAILED(hr)) {
         if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET) {
             //To-Do HandleDeviceLost();
-            Debug_Info("Present - DeviceLost.");
+            Debug_Info_Error("Present - DeviceLost.");
         }
         else
-            Debug_Info("Present Failed.");
+            Debug_Info_Error("Present Failed.");
     }
 }
 
@@ -391,7 +391,7 @@ HRESULT SaveTextureToFile(ID3D11Texture2D* pTex_Source, const char* pfile_path, 
     HRESULT result;
     result = pD3DDevContext->Map(pTex_Dest, 0, D3D11_MAP_READ, 0, &mappedResource);
     if (FAILED(result)) {
-        Debug_Info("SaveTextureToFile - Failed to Map screenshot texture.");
+        Debug_Info_Error("SaveTextureToFile - Failed to Map screenshot texture.");
         return hresult;
     }
 
@@ -444,7 +444,7 @@ HRESULT HandleScreenshot(ID3D11Texture2D* pTex_Source) {
     HRESULT result;
     result = pD3DDevContext->Map(pTex_Dest, 0, D3D11_MAP_READ, 0, &mappedResource);
     if (FAILED(result)) {
-        Debug_Info("HandleScreenshot - Failed to Map screenshot texture.");
+        Debug_Info_Error("HandleScreenshot - Failed to Map screenshot texture.");
         return hresult;
     }
 
@@ -518,7 +518,7 @@ bool Shader_Main_Setup() {
     if (!pd3dVertexShader_Main) {
         hr = g_d3dDevice->CreateVertexShader(pVS_Basic_mem, sizeof(pVS_Basic_mem), nullptr, &pd3dVertexShader_Main);
         if (FAILED(hr)) {
-            Debug_Info("CreateVertexShader Failed.");
+            Debug_Info_Error("CreateVertexShader Failed.");
             return false;
         }
     }
@@ -532,7 +532,7 @@ bool Shader_Main_Setup() {
 
         hr = g_d3dDevice->CreateInputLayout(vertexLayoutDesc, _countof(vertexLayoutDesc), pVS_Basic_mem, sizeof(pVS_Basic_mem), &pd3dVS_InputLayout_Main);
         if (FAILED(hr)) {
-            Debug_Info("CreateInputLayout Failed.");
+            Debug_Info_Error("CreateInputLayout Failed.");
             return false;
         }
     }
@@ -600,22 +600,22 @@ bool Shader_Main_Setup() {
     if (!pd3d_PS_Basic_Tex_32) {
         hr = g_d3dDevice->CreatePixelShader(pPS_Basic_Tex_32_mem, sizeof(pPS_Basic_Tex_32_mem), nullptr, &pd3d_PS_Basic_Tex_32);
         if (FAILED(hr))
-            Debug_Info("CreatePixelShader Failed - pd3d_PS_Basic_Tex_32.");
+            Debug_Info_Error("CreatePixelShader Failed - pd3d_PS_Basic_Tex_32.");
     }
     if (!pd3d_PS_Basic_Tex_8) {
         hr = g_d3dDevice->CreatePixelShader(pPS_Basic_Tex_8_mem, sizeof(pPS_Basic_Tex_8_mem), nullptr, &pd3d_PS_Basic_Tex_8);
         if (FAILED(hr))
-            Debug_Info("CreatePixelShader Failed - pd3d_PS_Basic_Tex_8.");
+            Debug_Info_Error("CreatePixelShader Failed - pd3d_PS_Basic_Tex_8.");
     }
     if (!pd3d_PS_Basic_Tex_8_masked) {
         hr = g_d3dDevice->CreatePixelShader(pPS_Basic_Tex_8_masked_mem, sizeof(pPS_Basic_Tex_8_masked_mem), nullptr, &pd3d_PS_Basic_Tex_8_masked);
         if (FAILED(hr))
-            Debug_Info("CreatePixelShader Failed - pd3d_PS_Basic_Tex_8_masked.");
+            Debug_Info_Error("CreatePixelShader Failed - pd3d_PS_Basic_Tex_8_masked.");
     }
     if (!pd3d_PS_Greyscale_Tex_32) {
         hr = g_d3dDevice->CreatePixelShader(pPS_Greyscale_Tex_32_mem, sizeof(pPS_Greyscale_Tex_32_mem), nullptr, &pd3d_PS_Greyscale_Tex_32);
         if (FAILED(hr))
-            Debug_Info("CreatePixelShader Failed - pd3d_PS_Greyscale.");
+            Debug_Info_Error("CreatePixelShader Failed - pd3d_PS_Greyscale.");
     }
 
     //Create sampler states for texture sampling in the pixel shader.
@@ -640,9 +640,7 @@ bool Shader_Main_Setup() {
         if (!pd3dPS_SamplerState_Point) {
             hr = g_d3dDevice->CreateSamplerState(&samplerDesc, &pd3dPS_SamplerState_Point);
             if (FAILED(hr)) {
-                char msg[256];
-                sprintf_s(msg, 256, "%X", hr);
-                Debug_Info("CreateSamplerState Point");
+                Debug_Info_Error("CreateSamplerState Point Failed: %X", hr);
                 return false;
             }
         }
@@ -650,9 +648,7 @@ bool Shader_Main_Setup() {
             samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
             hr = g_d3dDevice->CreateSamplerState(&samplerDesc, &pd3dPS_SamplerState_Linear);
             if (FAILED(hr)) {
-                char msg[256];
-                sprintf_s(msg, 256, "%X", hr);
-                Debug_Info("CreateSamplerState Linear");
+                Debug_Info_Error("CreateSamplerState Linear Failed: %X", hr);
                 return false;
             }
         }
@@ -935,7 +931,7 @@ BOOL Display_Dx_Setup(HWND hwnd, UINT width, UINT height) {
     //ZeroMemory(&monInfo, sizeof(MONITORINFO));
    // monInfo.cbSize = sizeof(MONITORINFO);
     //if (!GetMonitorInfoA(hmon, &monInfo))
-    //    Debug_Info("DxSetup - Failed to GetMonitorInfoA.");
+    //    Debug_Info_Error("DxSetup - Failed to GetMonitorInfoA.");
    //UINT scrWidth = monInfo.rcMonitor.right - monInfo.rcMonitor.left;
     //UINT scrHeight = monInfo.rcMonitor.bottom - monInfo.rcMonitor.top;
 
@@ -972,7 +968,7 @@ BOOL Display_Dx_Setup(HWND hwnd, UINT width, UINT height) {
         &g_d3dDeviceContext //The created device context.
     );
     if (FAILED(hr)) {
-        Debug_Info("DxSetup - Failed D3D11CreateDevice.");
+        Debug_Info_Error("DxSetup - Failed D3D11CreateDevice.");
         return 0;
     }
 
@@ -1007,7 +1003,7 @@ BOOL Display_Dx_Setup(HWND hwnd, UINT width, UINT height) {
     }
 
     if (FAILED(hr)) {
-        Debug_Info("DxSetup - Failed Obtain DXGI factory.");
+        Debug_Info_Error("DxSetup - Failed Obtain DXGI factory.");
         Display_Dx_Destroy();
         return 0;
     }
@@ -1063,7 +1059,7 @@ BOOL Display_Dx_Setup(HWND hwnd, UINT width, UINT height) {
     dxgiFactory->Release();
 
     if (FAILED(hr)) {
-        Debug_Info("DxSetup - Failed CreateSwapChainForHwnd.");
+        Debug_Info_Error("DxSetup - Failed CreateSwapChainForHwnd.");
         Display_Dx_Destroy();
         return 0;
     }
@@ -1082,7 +1078,7 @@ BOOL Display_Dx_Setup(HWND hwnd, UINT width, UINT height) {
     ID3D11Texture2D* backBuffer = nullptr;
     hr = g_d3dSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&backBuffer);
     if (FAILED(hr)) {
-        Debug_Info("DxSetup - Failed GetBuffer.");
+        Debug_Info_Error("DxSetup - Failed GetBuffer.");
         Display_Dx_Destroy();
         return 0;
     }
@@ -1092,7 +1088,7 @@ BOOL Display_Dx_Setup(HWND hwnd, UINT width, UINT height) {
         backBuffer->Release();
     backBuffer = nullptr;
     if (FAILED(hr)) {
-        Debug_Info("DxSetup - Failed CreateRenderTargetView.");
+        Debug_Info_Error("DxSetup - Failed CreateRenderTargetView.");
         Display_Dx_Destroy();
         return 0;
     }
@@ -1164,7 +1160,7 @@ BOOL Display_Dx_Setup(HWND hwnd, UINT width, UINT height) {
     ID3D11RasterizerState* pRState = nullptr;
     hr = g_d3dDevice->CreateRasterizerState(&RSDesc, &pRState);
     if (FAILED(hr)) {
-        Debug_Info("DxSetup - Failed CreateRasterizerState.");
+        Debug_Info_Error("DxSetup - Failed CreateRasterizerState.");
         Display_Dx_Destroy();
         return 0;
     }
@@ -1175,7 +1171,7 @@ BOOL Display_Dx_Setup(HWND hwnd, UINT width, UINT height) {
     SetScreenProjectionMatrix_XM(width, height);
 
     if (!Shader_Main_Setup()) {
-        Debug_Info("DxSetup - Shader_Main_Setup Failed.");
+        Debug_Info_Error("DxSetup - Shader_Main_Setup Failed.");
         Display_Dx_Destroy();
         return 0;
     }
@@ -1197,7 +1193,7 @@ BOOL Display_Dx_Resize(UINT width, UINT height) {
     }
 
     if (!g_d3dSwapChain) {
-        Debug_Info("Display_Dx_Resize - no g_d3dSwapChain");
+        Debug_Info_Error("Display_Dx_Resize - no g_d3dSwapChain");
         return FALSE;
     }
 
@@ -1210,20 +1206,20 @@ BOOL Display_Dx_Resize(UINT width, UINT height) {
     //Use the client windows width and height.
     hr = g_d3dSwapChain->ResizeBuffers(0, 0, 0, DXGI_FORMAT_UNKNOWN, 0);
     if (hr != S_OK)
-        Debug_Info("Display_Dx_Resize - Failed ResizeBuffers");
+        Debug_Info_Error("Display_Dx_Resize - Failed ResizeBuffers");
 
     //Get buffer and create a render-target-view.
     ID3D11Texture2D* pBuffer = nullptr;
     hr = g_d3dSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&pBuffer);
     if (hr != S_OK)
-        Debug_Info("Display_Dx_Resize - Failed GetBuffer");
+        Debug_Info_Error("Display_Dx_Resize - Failed GetBuffer");
 
     if (pBuffer != nullptr)
         hr = g_d3dDevice->CreateRenderTargetView(pBuffer, nullptr, &g_d3dRenderTargetView);
     else
-        Debug_Info("Display_Dx_Resize - Failed pBuffer");
+        Debug_Info_Error("Display_Dx_Resize - Failed pBuffer");
     if (hr != S_OK)
-        Debug_Info("Display_Dx_Resize - Failed CreateRenderTargetView");
+        Debug_Info_Error("Display_Dx_Resize - Failed CreateRenderTargetView");
     pBuffer->Release();
 
     //Resize the stencil buffer
@@ -1254,11 +1250,11 @@ BOOL Display_Dx_Resize(UINT width, UINT height) {
 
     hr = g_d3dDevice->CreateTexture2D(&depthStencilBufferDesc, nullptr, &g_d3dDepthStencilBuffer);
     if (FAILED(hr))
-        Debug_Info("Display_Dx_Resize - Create DepthStencilBuffer Failed");
+        Debug_Info_Error("Display_Dx_Resize - Create DepthStencilBuffer Failed");
     if (g_d3dDepthStencilBuffer != nullptr)
         hr = g_d3dDevice->CreateDepthStencilView(g_d3dDepthStencilBuffer, nullptr, &g_d3dDepthStencilView);
     if (FAILED(hr))
-        Debug_Info("Display_Dx_Resize - Create DepthStencilView Failed");
+        Debug_Info_Error("Display_Dx_Resize - Create DepthStencilView Failed");
 
     Set_ViewPort(width, height);
     SetScreenProjectionMatrix_XM(width, height);

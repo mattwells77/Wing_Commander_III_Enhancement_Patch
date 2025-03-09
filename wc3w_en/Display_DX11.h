@@ -171,7 +171,7 @@ public:
             result = pD3DDevContext->Map(lpd3dConstantBuffers[buffer_num], 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
             if (FAILED(result))
             {
-                Debug_Info("BUFFER_DX - Failed to Map Constant buffers.");
+                Debug_Info_Error("BUFFER_DX - Failed to Map Constant buffers.");
                 return;
             }
             memcpy(mappedResource.pData, data, ByteWidth);
@@ -228,7 +228,7 @@ protected:
         for (UINT i = 0; i < in_numConstantBuffers; i++) {
             HRESULT hr = pD3DDev->CreateBuffer(&constantBufferDesc, nullptr, &lpd3dConstantBuffers[i]);
             if (FAILED(hr)) {
-                Debug_Info("BUFFER_DX - Failed to CreateConstantBuffer_MatrixData.");
+                Debug_Info_Error("BUFFER_DX - Failed to CreateConstantBuffer_MatrixData.");
                 return false;
             }
             numConstantBuffers = i + 1;
@@ -754,23 +754,23 @@ public:
         SetBaseDimensions(inSize, 1);
         trans_offset = inSize+1;//set out of range by default;
         if (!Texture_Initialize(DXGI_FORMAT_B8G8R8A8_UNORM, false, true))
-            Debug_Info("PAL_DX - Failed BASE_TEXTURE_DX CreateTexture.");
+            Debug_Info_Error("PAL_DX - Failed BASE_TEXTURE_DX CreateTexture.");
     };
     ~PAL_DX() {
     };
     void SetPalEntries(BYTE* palette, DWORD offset, DWORD dwNumEntries) {
         if (offset < 0) {
-            Debug_Info("SetPalEntries fail: offset < 0");
+            Debug_Info_Error("SetPalEntries fail: offset < 0");
             return;
         }
         if (offset + dwNumEntries > size) {
-            Debug_Info("SetPalEntries fail: offset + dwNumEntries > size offset:%d, dwNumEntries:%d", offset, dwNumEntries);
+            Debug_Info_Error("SetPalEntries fail: offset + dwNumEntries > size offset:%d, dwNumEntries:%d", offset, dwNumEntries);
             return;
         }
         DWORD* paldata = nullptr;
         DWORD colour = 0;
         if (FAILED(Lock(&paldata, D3D11_MAP_WRITE))) {
-            Debug_Info("SetPalEntries fail: Lock");
+            Debug_Info_Error("SetPalEntries fail: Lock");
             return;
         }
         DWORD colourOffset = offset;
@@ -822,7 +822,7 @@ public:
         DWORD* paldata = nullptr;
         DWORD colour = 0;
         if (FAILED(Lock(&paldata, D3D11_MAP_WRITE))) {
-            Debug_Info("SetPalEntries fail: Lock");
+            Debug_Info_Error("SetPalEntries fail: Lock");
             return;
         }
         if (trans_offset >= 0 && trans_offset < size)
@@ -958,9 +958,9 @@ public:
 
         SetBaseDimensions(DDSurfaceDesc->dwWidth, DDSurfaceDesc->dwHeight);
         if (!CreateVerticies())
-            Debug_Info("Failed GEN_SURFACE CreateVerticies.");
+            Debug_Info_Error("Failed GEN_SURFACE CreateVerticies.");
         if (!Texture_Initialize(dxgi_Format, false, true))
-            Debug_Info("Failed GEN_SURFACE CreateTexture.");
+            Debug_Info_Error("Failed GEN_SURFACE CreateTexture.");
         display_w = (float)width;
         display_h = (float)height;
         current_scale_type = SCALE_TYPE::none;
@@ -983,9 +983,9 @@ public:
 
         SetBaseDimensions(in_width, in_height);
         if (!CreateVerticies())
-            Debug_Info("Failed GEN_SURFACE CreateVerticies.");
+            Debug_Info_Error("Failed GEN_SURFACE CreateVerticies.");
         if (!Texture_Initialize(dxgi_Format, false, true))
-            Debug_Info("Failed GEN_SURFACE CreateTexture.");
+            Debug_Info_Error("Failed GEN_SURFACE CreateTexture.");
         //ScaleToScreen();
         display_w = (float)width;
         display_h = (float)height;
@@ -1059,9 +1059,9 @@ public:
         SetBaseDimensions(inWidth, inHeight);
         opaqueness = 1.0f;
         if (!CreateVerticies())
-            Debug_Info("Failed RenderTarget CreateVerticies.");
+            Debug_Info_Error("Failed RenderTarget CreateVerticies.");
         if (!Texture_Initialize(in_dxgiFormat, true, false))
-            Debug_Info("Failed RenderTarget CreateTexture.");
+            Debug_Info_Error("Failed RenderTarget CreateTexture.");
         SetMatrices();
     };
     ~RenderTarget() {

@@ -51,7 +51,7 @@ public:
         surface = nullptr;
         if (next)
             delete next;
-        Debug_Info("LibVlc_Movie: destroy: %s", path.c_str());
+        Debug_Info_Movie("LibVlc_Movie: destroy: %s", path.c_str());
     };
 
     bool Play();
@@ -91,7 +91,7 @@ public:
 #endif
         isPlaying = false;
 
-        Debug_Info("LibVlc_Movie: Stop: %s", path.c_str());
+        Debug_Info_Movie("LibVlc_Movie: Stop: %s", path.c_str());
     };
     bool IsPlaying() const {
         return isPlaying;
@@ -145,7 +145,7 @@ public:
     void SetScale() {
         if (surface) {
             surface->ScaleToScreen(SCALE_TYPE::fit);
-            Debug_Info("LibVlc_Movie: SetScale: %s", path.c_str());
+            Debug_Info_Movie("LibVlc_Movie: SetScale: %s", path.c_str());
         }
         if (next)
             next->SetScale();
@@ -176,19 +176,19 @@ private:
 
     void on_play() {
         Initialise_Subtitles();
-        Debug_Info("LibVlc_Movie: On Play stopped: %s", path.c_str());
+        Debug_Info_Movie("LibVlc_Movie: On Play stopped: %s", path.c_str());
 
     };
     void on_stopped() {
         if (!paused) {
             isPlaying = false;
             //hasPlayed = true;
-            Debug_Info("LibVlc_Movie: OnStop stopped: %s", path.c_str());
+            Debug_Info_Movie("LibVlc_Movie: OnStop stopped: %s", path.c_str());
         }
     };
     void on_encountered_error() {
         isError = true;
-        Debug_Info("LibVlc_Movie: Error Encountered !!!: %s", path.c_str());
+        Debug_Info_Error("LibVlc_Movie: Error Encountered !!!: %s", path.c_str());
     };
     void on_buffering(float percent) {
        // if (percent == 0.0f)
@@ -200,7 +200,7 @@ private:
         //}
     };
     void on_end_reached() {
-        Debug_Info("LibVlc_Movie: end reached: %s", path.c_str());
+        Debug_Info_Movie("LibVlc_Movie: end reached: %s", path.c_str());
         if (next)
             next->Play();
         isPlaying = false;
@@ -210,7 +210,7 @@ private:
     void on_time_changed(libvlc_time_t time_ms);
     void* lock(void** planes) {
         if (!initialised_for_play) {
-            Debug_Info("LibVlc_Movie: initialised_for_play ON FIRST LOCK %s", path.c_str());
+            Debug_Info_Movie("LibVlc_Movie: initialised_for_play ON FIRST LOCK %s", path.c_str());
             InitialiseForPlay_End();
         }
         //Debug_Info("lock: %s", path.c_str());
@@ -218,7 +218,7 @@ private:
         LONG pitch = 0;
 
         if (surface->Lock((VOID**)&pSurface, &pitch) != S_OK) {
-            Debug_Info("LibVlc_Movie: LOCK FAILED %s", path.c_str());
+            Debug_Info_Error("LibVlc_Movie: LOCK FAILED %s", path.c_str());
             return nullptr;
         }
         *planes = (VOID**)pSurface;
@@ -240,13 +240,13 @@ private:
     };
     uint32_t format(char* chroma, uint32_t* width, uint32_t* height, uint32_t* p_pitch, uint32_t* lines) {
         memcpy(chroma, "RV32", 4);
-        Debug_Info("LibVlc_Movie: setVideoFormatCallbacks w:%d, h:%d", *width, *height);
+        Debug_Info_Movie("LibVlc_Movie: setVideoFormatCallbacks w:%d, h:%d", *width, *height);
         if (!surface || *width != surface->GetWidth() || *height < surface->GetHeight() || surface->GetPixelWidth() != 4) {
             if (surface)
                 delete surface;
             surface = new GEN_SURFACE(*width, *height, 32);
             surface->ScaleToScreen(SCALE_TYPE::fit);
-            Debug_Info("LibVlc_Movie: surface created: %s", path.c_str());
+            Debug_Info_Movie("LibVlc_Movie: surface created: %s", path.c_str());
         }
         BYTE* pSurface = nullptr;
         LONG pitch = 0;
@@ -260,7 +260,7 @@ private:
         return 1;
     };
     void cleanup() {
-        Debug_Info("LibVlc_Movie: cleanup: %s", path.c_str());
+        Debug_Info_Movie("LibVlc_Movie: cleanup: %s", path.c_str());
         if (surface)
             delete surface;
         surface = nullptr;
@@ -285,7 +285,7 @@ public:
         if (surface_bg)
             delete surface_bg;
         surface_bg = nullptr;
-        Debug_Info("LibVlc_MovieInflight: destroy: %s", path.c_str());
+        Debug_Info_Movie("LibVlc_MovieInflight: destroy: %s", path.c_str());
     };
     bool Check_Play_Time() {
         //Debug_Info("LibVlc_MovieInflight: Check_Play_Time: %d - %d", (int)mediaPlayer.time(), (int)time_ms_length);
@@ -330,7 +330,7 @@ public:
 #endif
         isPlaying = false;
 
-        Debug_Info("LibVlc_MovieInflight: Stop: %s", path.c_str());
+        Debug_Info_Movie("LibVlc_MovieInflight: Stop: %s", path.c_str());
     };
 
     bool IsPlaying() const {
@@ -383,18 +383,18 @@ private:
         //set flag to initialise video setup in "initialise_for_play()".
         play_setup_start = true;
 
-        Debug_Info("LibVlc_MovieInflight: On Play: %s", path.c_str());
+        Debug_Info_Movie("LibVlc_MovieInflight: On Play: %s", path.c_str());
 
     };
     void on_stopped() {
         if (!paused) {
             isPlaying = false;
-            Debug_Info("LibVlc_MovieInflight: OnStop stopped: %s", path.c_str());
+            Debug_Info_Movie("LibVlc_MovieInflight: OnStop stopped: %s", path.c_str());
         }
     };
     void on_encountered_error() {
         isError = true;
-        Debug_Info("LibVlc_MovieInflight: Error Encountered !!!: %s", path.c_str());
+        Debug_Info_Error("LibVlc_MovieInflight: Error Encountered !!!: %s", path.c_str());
     };
     void on_buffering(float percent) {
          //if (percent == 100.0f && !initialised_for_play) {
@@ -402,7 +402,7 @@ private:
          //}
     };
     void on_end_reached() {
-        Debug_Info("LibVlc_MovieInflight: end reached: %s", path.c_str());
+        Debug_Info_Movie("LibVlc_MovieInflight: end reached: %s", path.c_str());
         isPlaying = false;
         hasPlayed = true;
     };
@@ -418,7 +418,7 @@ private:
         LONG pitch = 0;
 
         if (surface->Lock((VOID**)&pSurface, &pitch) != S_OK) {
-            Debug_Info("LibVlc_MovieInflight: LOCK FAILED %s", path.c_str());
+            Debug_Info_Error("LibVlc_MovieInflight: LOCK FAILED %s", path.c_str());
             return nullptr;
         }
         *planes = (VOID**)pSurface;
@@ -437,13 +437,13 @@ private:
     };
     uint32_t format(char* chroma, uint32_t* width, uint32_t* height, uint32_t* p_pitch, uint32_t* lines) {
         memcpy(chroma, "RV32", 4);
-        Debug_Info("LibVlc_MovieInflight: setVideoFormatCallbacks w:%d, h:%d", *width, *height);
+        Debug_Info_Movie("LibVlc_MovieInflight: setVideoFormatCallbacks w:%d, h:%d", *width, *height);
         if (!surface || *width != surface->GetWidth() || *height < surface->GetHeight() || surface->GetPixelWidth() != 4) {
             if (surface)
                 delete surface;
             surface = new GEN_SURFACE(*width, *height, 32);
             Update_Display_Dimensions(nullptr);
-            Debug_Info("LibVlc_MovieInflight: surface created: %s", path.c_str());
+            Debug_Info_Movie("LibVlc_MovieInflight: surface created: %s", path.c_str());
         }
         BYTE* pSurface = nullptr;
         LONG pitch = 0;
@@ -457,7 +457,7 @@ private:
         return 1;
     };
     void cleanup() {
-        Debug_Info("LibVlc_MovieInflight: cleanup: %s", path.c_str());
+        Debug_Info_Movie("LibVlc_MovieInflight: cleanup: %s", path.c_str());
         if (surface)
             delete surface;
         surface = nullptr;

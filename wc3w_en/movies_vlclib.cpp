@@ -73,7 +73,7 @@ static BOOL Create_Movie_Path_Inflight(const char* movie_name, std::string* p_re
     p_retPath->append(movie_ext);
 
 
-    Debug_Info("Create_Movie_Path_Inflight: %s", p_retPath->c_str());
+    Debug_Info_Movie("Create_Movie_Path_Inflight: %s", p_retPath->c_str());
     if (GetFileAttributesA(p_retPath->c_str()) == INVALID_FILE_ATTRIBUTES)
         return FALSE;
 
@@ -88,7 +88,7 @@ static BOOL Create_Movie_Path_Inflight(const char* movie_name, DWORD appendix_of
     if (appendix_offset == -1)
         return Create_Movie_Path_Inflight(movie_name, p_retPath);
     if (appendix_offset >= 26) {
-        Debug_Info("Create_Movie_Path_Inflight: appendix greater than 26: appendix:%d", appendix_offset);
+        Debug_Info_Error("Create_Movie_Path_Inflight: appendix greater than 26: appendix:%d", appendix_offset);
         return FALSE;
     }
     char appendix[2] = { 'a'+ (char)appendix_offset , '\0'};
@@ -102,7 +102,7 @@ static BOOL Create_Movie_Path_Inflight(const char* movie_name, DWORD appendix_of
     p_retPath->append(movie_ext);
 
 
-    Debug_Info("Create_Movie_Path_Inflight: %s", p_retPath->c_str());
+    Debug_Info_Movie("Create_Movie_Path_Inflight: %s", p_retPath->c_str());
     if (GetFileAttributesA(p_retPath->c_str()) == INVALID_FILE_ATTRIBUTES)
         return FALSE;
 
@@ -164,10 +164,10 @@ static BOOL Set_Movie_Settings() {
     //make sure path ends with a back-slash.
     if (movie_dir.at(movie_dir.length() - 1) != '\\')
         movie_dir.append("\\");
-    Debug_Info("movie directory: %s", movie_dir.c_str());
+    Debug_Info_Movie("movie directory: %s", movie_dir.c_str());
 
     Set_Movie_Config_Path();
-    Debug_Info("movie_config_path: %s", movie_config_path.c_str());
+    Debug_Info_Movie("movie_config_path: %s", movie_config_path.c_str());
 
     //get the hd movie extension.
     ConfigReadString(L"MOVIES", L"EXT", CONFIG_MOVIES_EXT, wchar_buff, MAX_PATH);
@@ -184,11 +184,11 @@ static BOOL Set_Movie_Settings() {
     if (char_ptr[0] != '.')
         movie_ext.append(".");
     movie_ext.append(char_ptr);
-    Debug_Info("movie extension: %s", movie_ext.c_str());
+    Debug_Info_Movie("movie extension: %s", movie_ext.c_str());
 
     //get the offset between movie branches in milliseconds.
     branch_offset_ms = ConfigReadInt(L"MOVIES", L"BRANCH_OFFSET_MS", CONFIG_MOVIES_BRANCH_OFFSET_MS);
-    Debug_Info("movie branch offset: %d ms", branch_offset_ms);
+    Debug_Info_Movie("movie branch offset: %d ms", branch_offset_ms);
 
 
     inflight_use_audio_from_file_if_present = ConfigReadInt(L"MOVIES", L"INFLIGHT_USE_AUDIO_FROM_FILE_IF_PRESENT", CONFIG_MOVIES_INFLIGHT_USE_AUDIO_FROM_FILE_IF_PRESENT);
@@ -237,7 +237,7 @@ BOOL Get_Movie_Name_From_Path(const char* mve_path, std::string* p_retPath) {
             c++;
         }
 
-        Debug_Info("movie name original: %s", movie_name);
+        Debug_Info_Movie("movie name original: %s", movie_name);
         GetPrivateProfileStringA(movie_name, "name", movie_name, movie_name, _countof(movie_name), movie_config_path.c_str());
         //end string if a comment or space char is encountered.
         char* end_char = strchr(movie_name, ';');
@@ -247,10 +247,10 @@ BOOL Get_Movie_Name_From_Path(const char* mve_path, std::string* p_retPath) {
         if (end_char)
             *end_char = '\0';
 
-        Debug_Info("movie name fixed: %s", movie_name);
+        Debug_Info_Movie("movie name fixed: %s", movie_name);
         p_retPath->append(movie_name);
     }
-    Debug_Info("Get_Movie_Name_From_Path: %s", p_retPath->c_str());
+    Debug_Info_Movie("Get_Movie_Name_From_Path: %s", p_retPath->c_str());
 
     return TRUE;
 }
@@ -271,7 +271,7 @@ static BOOL Create_Movie_Path_Name_Branch(const char* movie_name, int branch, st
         c_branch[1] = 'a' + branch;
         c_branch[2] = '\0';
     }
-    Debug_Info("c_branch original: %s", c_branch);
+    Debug_Info_Movie("c_branch original: %s", c_branch);
     GetPrivateProfileStringA(movie_name, c_branch, c_branch, c_branch, _countof(c_branch), movie_config_path.c_str());
     //end string if a comment or space char is encountered.
     char* end_char = strchr(c_branch, ';');
@@ -281,7 +281,7 @@ static BOOL Create_Movie_Path_Name_Branch(const char* movie_name, int branch, st
     if (end_char)
         *end_char = '\0';
 
-    Debug_Info("c_branch fixed: %s", c_branch);
+    Debug_Info_Movie("c_branch fixed: %s", c_branch);
 
     //if c_branch == -1, marks this branch to be skipped
     if (strncmp(c_branch, "-1", 2) == 0)
@@ -342,17 +342,17 @@ LibVlc_Movie::LibVlc_Movie(std::string movie_name, LONG* branch_list, LONG branc
         while (branch_state == -1 && branch >= 0) {//find the first branch not marked to be skipped.
             branch_state = Create_Movie_Path_Name_Branch(movie_name.c_str(), branch, &path);
             if (branch_state == -1) {//branch to be skipped
-                Debug_Info("LibVlc_Movie: skipping branch:%d", branch);
+                Debug_Info_Movie("LibVlc_Movie: skipping branch:%d", branch);
                 list_num++;
                 branch = branch_list[list_num];
             }
         }
         if (branch_state == 0 || branch < 0) {
-            Debug_Info("LibVlc_Movie: Create Movie Branch Path FAILED: %s, branch:%d", movie_name.c_str(), branch);
+            Debug_Info_Error("LibVlc_Movie: Create Movie Branch Path FAILED: %s, branch:%d", movie_name.c_str(), branch);
             isError = true;
         }
         else {
-            Debug_Info("LibVlc_Movie: Created Movie Branch Path: %s", path.c_str());
+            Debug_Info_Movie("LibVlc_Movie: Created Movie Branch Path: %s", path.c_str());
 
             LONG next_list_num = list_num + 1;
             LONG next_branch = branch_list[next_list_num];
@@ -361,7 +361,7 @@ LibVlc_Movie::LibVlc_Movie(std::string movie_name, LONG* branch_list, LONG branc
                 while (branch_state == -1 && next_branch >= 0) {//find the next branch not marked to be skipped.
                     branch_state = Create_Movie_Path_Name_Branch(movie_name.c_str(), next_branch, nullptr);
                     if (branch_state == -1) {//next branch to be skipped
-                        Debug_Info("LibVlc_Movie: skipping next branch:%d", next_branch);
+                        Debug_Info_Movie("LibVlc_Movie: skipping next branch:%d", next_branch);
                         next_list_num++;
                         next_branch = branch_list[next_list_num];
                     }
@@ -372,7 +372,7 @@ LibVlc_Movie::LibVlc_Movie(std::string movie_name, LONG* branch_list, LONG branc
         }
     }
     else
-        Debug_Info("LibVlc_Movie: FAILED Invalid Branch:%d, %s", branch, movie_name.c_str());
+        Debug_Info_Error("LibVlc_Movie: FAILED Invalid Branch:%d, %s", branch, movie_name.c_str());
 
     //Debug_Info("LibVlc_Movie: Create Done: %s", path.c_str());
 }
@@ -383,7 +383,7 @@ bool LibVlc_Movie::Play() {
     if (isError)
         isPlaying = false;
     else if (initialised_for_play) {
-        Debug_Info("LibVlc_Movie: Play: %s", path.c_str());
+        Debug_Info_Movie("LibVlc_Movie: Play: %s", path.c_str());
         mediaPlayer.setPause(false);
         if (next)
             next->InitialiseForPlay_Start();
@@ -408,7 +408,7 @@ bool LibVlc_Movie::Play(LARGE_INTEGER play_end_time_in_ticks) {
     if (isError)
         isPlaying = false;
     else if (initialised_for_play) {
-        Debug_Info("LibVlc_Movie: Play: %s", path.c_str());
+        Debug_Info_Movie("LibVlc_Movie: Play: %s", path.c_str());
         LARGE_INTEGER current_time_in_ticks;
         QueryPerformanceCounter(&current_time_in_ticks);
         if (next)
@@ -445,7 +445,7 @@ void LibVlc_Movie::SetMedia(std::string path) {
 #if LIBVLC_VERSION_INT >= LIBVLC_VERSION(4, 0, 0, 0)
     media = VLC::Media(path, VLC::Media::FromPath);
 #else
-    Debug_Info("LibVlc_Movie: SetMedia: %s", path.c_str());
+    Debug_Info_Movie("LibVlc_Movie: SetMedia: %s", path.c_str());
     media = VLC::Media(vlc_instance, path, VLC::Media::FromPath);
 
 #endif
@@ -460,7 +460,7 @@ void LibVlc_Movie::on_time_changed(libvlc_time_t time_ms) {
     if (next && !next->IsPlaying()) {
         libvlc_time_t mediaLength = mediaPlayer.length();
         if (mediaLength >= 0 && time_ms >= mediaLength - 1000) {
-            Debug_Info("LibVlc_Movie: ON TIME CHANGED time_ms:%d:%d: dist:%d, %s", (LONG)(time_ms), (LONG)(mediaLength), (LONG)(mediaLength - time_ms), path.c_str());
+            Debug_Info_Movie("LibVlc_Movie: ON TIME CHANGED time_ms:%d:%d: dist:%d, %s", (LONG)(time_ms), (LONG)(mediaLength), (LONG)(mediaLength - time_ms), path.c_str());
             //Get the current number of ticks then add the number of tick till the end of the current movie.
             LARGE_INTEGER play_end_time_in_ticks;
             QueryPerformanceCounter(&play_end_time_in_ticks);
@@ -474,7 +474,7 @@ void LibVlc_Movie::on_time_changed(libvlc_time_t time_ms) {
             play_init_end_time.QuadPart -= play_end_time_in_ticks.QuadPart;
             play_init_end_time.QuadPart *= 1000LL;
             play_init_end_time.QuadPart /= p_wc3_frequency->QuadPart;
-            Debug_Info("LibVlc_Movie: ON TIME CHANGED time taken: %d, %s", play_init_end_time.LowPart, path.c_str());
+            Debug_Info_Movie("LibVlc_Movie: ON TIME CHANGED time taken: %d, %s", play_init_end_time.LowPart, path.c_str());
             isPlaying = false;
             hasPlayed = true;
 
@@ -487,12 +487,12 @@ void LibVlc_Movie::on_time_changed(libvlc_time_t time_ms) {
 void LibVlc_Movie::Initialise_Subtitles() {
 
     int subCount = mediaPlayer.spuCount();
-    Debug_Info("LibVlc_Movie: subCount: %d", subCount);
+    Debug_Info_Movie("LibVlc_Movie: subCount: %d", subCount);
 
     if (*p_wc3_subtitles_enabled == 0)
         mediaPlayer.setSpu(-1);
     else {
-        Debug_Info("language ref: %d", *p_wc3_language_ref);
+        Debug_Info_Movie("language ref: %d", *p_wc3_language_ref);
         std::string language;
         switch (*p_wc3_language_ref) {
         case 0:
@@ -508,14 +508,14 @@ void LibVlc_Movie::Initialise_Subtitles() {
             return;
             break;
         }
-        Debug_Info("LibVlc_Movie: language: %s", language.c_str());
+        Debug_Info_Movie("LibVlc_Movie: language: %s", language.c_str());
 
         std::vector <VLC::TrackDescription> trackDescriptions = mediaPlayer.spuDescription();
         for (size_t i = 0; i < trackDescriptions.size(); i++) {
             VLC::TrackDescription description = trackDescriptions[i];
             //find a subtitle track description containing matching language text and set it for display.
             if (description.name().find(language) != std::string::npos) {
-                Debug_Info("LibVlc_Movie: TrackDescription: %d, name: %s", description.id(), description.name().c_str());
+                Debug_Info_Movie("LibVlc_Movie: TrackDescription: %d, name: %s", description.id(), description.name().c_str());
                 mediaPlayer.setSpu(description.id());
             }
         }
@@ -528,11 +528,11 @@ bool LibVlc_Movie::InitialiseForPlay_Start() {
     if (initialised_for_play)
         return true;
     if (isPlaying) {
-        Debug_Info("LibVlc_Movie: InitialiseForPlay_Start, Play still initialising - cut short: %s", path.c_str());
+        Debug_Info_Movie("LibVlc_Movie: InitialiseForPlay_Start, Play still initialising - cut short: %s", path.c_str());
         InitialiseForPlay_End();
         return true;
     }
-    Debug_Info("LibVlc_Movie: InitialiseForPlay_Start initialising...: %s", path.c_str());
+    Debug_Info_Movie("LibVlc_Movie: InitialiseForPlay_Start initialising...: %s", path.c_str());
     SetMedia(path);
     isPlaying = mediaPlayer.play();
     if (!isPlaying)
@@ -549,10 +549,10 @@ bool LibVlc_Movie::InitialiseForPlay_Start() {
 //________________________________________
 void LibVlc_Movie::InitialiseForPlay_End() {
 
-    Debug_Info("LibVlc_Movie: InitialiseForPlay_End: %s", path.c_str());
+    Debug_Info_Movie("LibVlc_Movie: InitialiseForPlay_End: %s", path.c_str());
     if (!initialised_for_play) {
         initialised_for_play = true;
-        Debug_Info("LibVlc_Movie: InitialiseForPlay_End - true: %s", path.c_str());
+        Debug_Info_Movie("LibVlc_Movie: InitialiseForPlay_End - true: %s", path.c_str());
         mediaPlayer.setPause(true);
         isPlaying = false;
     }
@@ -572,7 +572,7 @@ LibVlc_MovieInflight::LibVlc_MovieInflight(const char* file_name, RECT* p_rc_des
 
     char* ext = strrchr(movie_name, '.');
     if (ext) {
-        Debug_Info("LibVlc_MovieInflight: file_name should NOT have an extension: %s", movie_name);
+        Debug_Info_Error("LibVlc_MovieInflight: file_name should NOT have an extension: %s", movie_name);
         isError = true;
     }
 
@@ -593,16 +593,16 @@ LibVlc_MovieInflight::LibVlc_MovieInflight(const char* file_name, RECT* p_rc_des
         }
     }
     else {
-        Debug_Info("LibVlc_MovieInflight: destination Rect not set: %s", movie_name);
+        Debug_Info_Error("LibVlc_MovieInflight: destination Rect not set: %s", movie_name);
         isError = true;
     }
 
     if (!Create_Movie_Path_Inflight(movie_name, appendix, &path)) {
-        Debug_Info("LibVlc_MovieInflight: Create Movie Path FAILED: %s , %s", movie_name, path.c_str());
+        Debug_Info_Movie("LibVlc_MovieInflight: Create Movie Path Not Found: %s , %s", movie_name, path.c_str());
         isError = true;
     }
     else
-        Debug_Info("LibVlc_MovieInflight: Created Movie Path: %s", path.c_str());
+        Debug_Info_Movie("LibVlc_MovieInflight: Created Movie Path: %s", path.c_str());
 
 }
 
@@ -623,7 +623,7 @@ LibVlc_MovieInflight::LibVlc_MovieInflight(const char* file_name, RECT* p_rc_des
     if(ext)
         *ext = '\0';
     else {
-        Debug_Info("LibVlc_MovieInflight: file_name SHOULD have an extension: %s", movie_name);
+        Debug_Info_Error("LibVlc_MovieInflight: file_name SHOULD have an extension: %s", movie_name);
         isError = true;
     }
     char* c = movie_name;
@@ -642,16 +642,16 @@ LibVlc_MovieInflight::LibVlc_MovieInflight(const char* file_name, RECT* p_rc_des
         }
     }
     else {
-        Debug_Info("LibVlc_MovieInflight: destination Rect not set: %s", movie_name);
+        Debug_Info_Error("LibVlc_MovieInflight: destination Rect not set: %s", movie_name);
         isError = true;
     }
 
     if (!Create_Movie_Path_Inflight(movie_name, -1, &path)) {
-        Debug_Info("LibVlc_MovieInflight: Create Movie Path FAILED: %s , %s", movie_name, path.c_str());
+        Debug_Info_Movie("LibVlc_MovieInflight: Create Movie Path Not Found: %s , %s", movie_name, path.c_str());
         isError = true;
     }
     else
-        Debug_Info("LibVlc_MovieInflight: Created Movie Path: %s", path.c_str());
+        Debug_Info_Movie("LibVlc_MovieInflight: Created Movie Path: %s", path.c_str());
 
 }
 
@@ -707,7 +707,7 @@ void LibVlc_MovieInflight::initialise_for_play() {
             mediaPlayer.setAudioTrack(-1);
 
         if (mediaPlayer.audioTrack() != -1) {
-            Debug_Info("initialise_for_play: HD movie HAS AUDIO");
+            Debug_Info_Movie("initialise_for_play: HD movie HAS AUDIO");
             has_audio = true;
         }
         //set the movie start time
@@ -747,7 +747,7 @@ void LibVlc_MovieInflight::SetMedia(std::string path) {
 #if LIBVLC_VERSION_INT >= LIBVLC_VERSION(4, 0, 0, 0)
     media = VLC::Media(path, VLC::Media::FromPath);
 #else
-    Debug_Info("LibVlc_Movie: SetMedia: %s", path.c_str());
+    Debug_Info_Movie("LibVlc_Movie: SetMedia: %s", path.c_str());
     media = VLC::Media(vlc_instance, path, VLC::Media::FromPath);
 
 #endif

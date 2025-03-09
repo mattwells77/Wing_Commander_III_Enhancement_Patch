@@ -98,7 +98,7 @@ const wchar_t* GetAppDataPath() {
             if (GetFileAttributes(wAppDataPath.c_str()) == INVALID_FILE_ATTRIBUTES) {
                 if (!CreateDirectory(wAppDataPath.c_str(), nullptr)) {
                     wAppDataPath.clear();
-                    Debug_Info("AppDataPath: folder creation FAILED!: %S", wAppDataPath.c_str());
+                    Debug_Info_Error("AppDataPath: folder creation FAILED!: %S", wAppDataPath.c_str());
                 }
             }
         }
@@ -139,6 +139,13 @@ static void ConfigCreate( bool is_app_folder) {
     //ConfigWriteInt("MOVIES", "INFLIGHT_MONO_SHADER_COLOUR", CONFIG_INFLIGHT_MONO_SHADER_COLOUR);
     //ConfigWriteInt("MOVIES", "INFLIGHT_MONO_SHADER_BRIGHTNESS", CONFIG_INFLIGHT_MONO_SHADER_BRIGHTNESS);
     //ConfigWriteInt("MOVIES", "INFLIGHT_MONO_SHADER_CONTRAST", CONFIG_INFLIGHT_MONO_SHADER_CONTRAST);
+
+
+    //ConfigWriteInt(L"DEBUG", L"ERRORS", 1);
+    ConfigWriteInt(L"DEBUG", L"GENERAL", 0);
+    ConfigWriteInt(L"DEBUG", L"FLIGHT", 0);
+    ConfigWriteInt(L"DEBUG", L"MOVIE", 0);
+    ConfigWriteInt(L"DEBUG", L"CONTROLLER", 0);
 }
 
 
@@ -164,7 +171,7 @@ static const wchar_t* Get_ConfigPath() {
         if (GetFileAttributes(wConfigPath.c_str()) == INVALID_FILE_ATTRIBUTES)
             ConfigCreate(is_app_folder);
 
-        Debug_Info("ConfigPath: %S", wConfigPath.c_str());
+        //__Debug_Info(0,"ConfigPath: %S", wConfigPath.c_str());
     }
 
     return wConfigPath.c_str();

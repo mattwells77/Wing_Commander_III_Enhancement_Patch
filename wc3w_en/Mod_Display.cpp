@@ -494,33 +494,33 @@ static void __fastcall Set_Space_View_POV1(void* p_space_class) {
         p_view_vars[7] = (WORD)(*p_wc3_y_centre_cockpit / (float)GUI_HEIGHT * height);
         is_cockpit_view = TRUE;
         scale_type = cockpit_scale_type;
-        Debug_Info("Set Space View - CockPit");
-        Debug_Info("centre_x=%d, centre_y=%d, new_centre_x=%d, new_centre_y=%d", *p_wc3_x_centre_cockpit, *p_wc3_y_centre_cockpit, p_view_vars[6], p_view_vars[7]);
+        Debug_Info_Flight("Set Space View - CockPit");
+        Debug_Info_Flight("centre_x=%d, centre_y=%d, new_centre_x=%d, new_centre_y=%d", *p_wc3_x_centre_cockpit, *p_wc3_y_centre_cockpit, p_view_vars[6], p_view_vars[7]);
         break;
     case 1:
-        Debug_Info("Set Space View - Left");
+        Debug_Info_Flight("Set Space View - Left");
         break;
     case 2:
         p_view_vars[6] = (WORD)(*p_wc3_x_centre_rear / (float)GUI_WIDTH * width);
         p_view_vars[7] = (WORD)(*p_wc3_y_centre_rear / (float)GUI_HEIGHT * height);
-        Debug_Info("Set Space View - Rear");
-        Debug_Info("centre_x=%d, centre_y=%d, new_centre_x=%d, new_centre_y=%d", *p_wc3_x_centre_rear, *p_wc3_y_centre_rear, p_view_vars[6], p_view_vars[7]);
+        Debug_Info_Flight("Set Space View - Rear");
+        Debug_Info_Flight("centre_x=%d, centre_y=%d, new_centre_x=%d, new_centre_y=%d", *p_wc3_x_centre_rear, *p_wc3_y_centre_rear, p_view_vars[6], p_view_vars[7]);
         if (p_cockpit_class[1]) {//the pointer stored here seems to be related to a background image, enable cockpit view if present to fill black area beyond background.
             is_cockpit_view = TRUE;
             scale_type = cockpit_scale_type;
         }
         break;
     case 3:
-        Debug_Info("Set Space View - Right");
+        Debug_Info_Flight("Set Space View - Right");
         break;
     case 4:
         p_view_vars[6] = (WORD)(*p_wc3_x_centre_hud / (float)GUI_WIDTH * width);
         p_view_vars[7] = (WORD)(*p_wc3_y_centre_hud / (float)GUI_HEIGHT * height);
-        Debug_Info("Set Space View - HUD");
-        Debug_Info("centre_x=%d, centre_y=%d, new_centre_x=%d, new_centre_y=%d", *p_wc3_x_centre_hud, *p_wc3_y_centre_hud, p_view_vars[6], p_view_vars[7]);
+        Debug_Info_Flight("Set Space View - HUD");
+        Debug_Info_Flight("centre_x=%d, centre_y=%d, new_centre_x=%d, new_centre_y=%d", *p_wc3_x_centre_hud, *p_wc3_y_centre_hud, p_view_vars[6], p_view_vars[7]);
         break;
     default:
-        Debug_Info("Set Space View - Unknown? num:%d", cockpit_view_type);
+        Debug_Info_Flight("Set Space View - Unknown? num:%d", cockpit_view_type);
         break;
     }
     //Debug_Info("Set_Space_View_POV1 - %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d", p_cockpit_class[0], p_cockpit_class[1], p_cockpit_class[2], p_cockpit_class[3], p_cockpit_class[4], p_cockpit_class[5], p_cockpit_class[6], p_cockpit_class[7],
@@ -645,13 +645,13 @@ BYTE* pbuffer_space_3D = nullptr;
 static void Lock_3DSpace_Surface() {
 
     if (pbuffer_space_3D != nullptr) {
-        Debug_Info("Lock_3DSpace_Surface - buffer already locked!!!");
+        Debug_Info_Error("Lock_3DSpace_Surface - buffer already locked!!!");
         return;
     }
     LONG buffer_space_3D_pitch = 0;
 
     if (surface_space3D->Lock((VOID**)&pbuffer_space_3D, &buffer_space_3D_pitch) != S_OK) {
-        Debug_Info("Lock_3DSpace_Surface - lock failed!!!");
+        Debug_Info_Error("Lock_3DSpace_Surface - lock failed!!!");
         return;
     }
 
@@ -747,7 +747,7 @@ static void __declspec(naked) lock_3dspace_surface_pov3(void) {
 static void UnLock_3DSpace_Surface() {
 
     if (!pbuffer_space_3D) {
-        Debug_Info("UnLock_3DSpace_Surface - buffer wasn't locked!!!");
+        Debug_Info_Error("UnLock_3DSpace_Surface - buffer wasn't locked!!!");
         return;
     }
     surface_space3D->Unlock();
@@ -776,12 +776,12 @@ LONG buffer_space_2D_pitch = 0;
 static void Lock_2DSpace_Surface() {
     //Debug_Info("Lock_2DSpace_Surface");
     if (pbuffer_space_2D != nullptr) {
-        Debug_Info("Lock_2DSpace_Surface - buffer already locked!!!");
+        Debug_Info_Error("Lock_2DSpace_Surface - buffer already locked!!!");
         return;
     }
 
     if (surface_space2D->Lock((VOID**)&pbuffer_space_2D, &buffer_space_2D_pitch) != S_OK) {
-        Debug_Info("Lock_2DSpace_Surface - lock failed!!!");
+        Debug_Info_Error("Lock_2DSpace_Surface - lock failed!!!");
         return;
     }
 
@@ -811,7 +811,7 @@ static void Lock_2DSpace_Surface() {
 static void UnLock_2DSpace_Surface() {
     //Debug_Info("UnLock_2DSpace_Surface");
     if (!pbuffer_space_2D) {
-        Debug_Info("UnLock_2DSpace_Surface - buffer wasn't locked!!!");
+        Debug_Info_Error("UnLock_2DSpace_Surface - buffer wasn't locked!!!");
         return;
     }
     surface_space2D->Unlock();
@@ -1598,9 +1598,9 @@ static BOOL Play_Movie_Sequence(void* p_wc3_movie_class, void* p_sig_movie_class
 
     char* mve_path = (char*)((DWORD*)p_wc3_movie_class)[28];
     //Debug_Info("Play_Movie_Loop:  sig_movie_flags:%X", sig_movie_flags);
-    Debug_Info("Play_Movie_Sequence: main_path: %s", mve_path);
-    Debug_Info("Play_Movie_Sequence: current_list_num: %d", *p_wc3_movie_branch_current_list_num);
-    Debug_Info("Play_Movie_Sequence: first branch: %d", *p_wc3_movie_branch_list);
+    Debug_Info_Movie("Play_Movie_Sequence: main_path: %s", mve_path);
+    Debug_Info_Movie("Play_Movie_Sequence: current_list_num: %d", *p_wc3_movie_branch_current_list_num);
+    Debug_Info_Movie("Play_Movie_Sequence: first branch: %d", *p_wc3_movie_branch_list);
     //Debug_Info("max branches:%d", ((LONG*)p_wc3_movie_class)[21]);
 
     MovieRT_Clear();
@@ -1625,14 +1625,14 @@ static BOOL Play_Movie_Sequence(void* p_wc3_movie_class, void* p_sig_movie_class
             if (!pMovie_vlc->IsPlaying(&movie_state)) {
                 *p_wc3_movie_branch_current_list_num = movie_state.list_num;
                 if (!movie_state.hasPlayed) {
-                    Debug_Info("Play_Movie_Sequence: ended BAD, branch:%d, listnum:%d", movie_state.branch, movie_state.list_num);
+                    Debug_Info_Error("Play_Movie_Sequence: ended BAD, branch:%d, listnum:%d", movie_state.branch, movie_state.list_num);
                     //if branch failed to play, shift to the current branch position so the rest of the movie can be played out using the original player.
                     if (wc3_movie_set_position(p_wc3_movie_class, p_wc3_movie_branch_list[movie_state.list_num]) == FALSE)
-                        Debug_Info("Play_Movie_Sequence: wc3_movie_set_position Failed, branch:%d", p_wc3_movie_branch_list[movie_state.list_num]);
+                        Debug_Info_Error("Play_Movie_Sequence: wc3_movie_set_position Failed, branch:%d", p_wc3_movie_branch_list[movie_state.list_num]);
                     play_successfull = FALSE;
                 }
                 else
-                    Debug_Info("Play_Movie_Sequence: ended OK, branch:%d, listnum:%d", movie_state.branch, movie_state.list_num);
+                    Debug_Info_Movie("Play_Movie_Sequence: ended OK, branch:%d, listnum:%d", movie_state.branch, movie_state.list_num);
 
                 exit_flag = TRUE;
             }
@@ -1645,7 +1645,7 @@ static BOOL Play_Movie_Sequence(void* p_wc3_movie_class, void* p_sig_movie_class
     delete pMovie_vlc;
     pMovie_vlc = nullptr;
 
-    Debug_Info("Play_Movie_Sequence: Done");
+    Debug_Info_Movie("Play_Movie_Sequence: Done");
     return play_successfull;
 }
 
@@ -1751,12 +1751,12 @@ static BOOL Play_Inflight_Movie(HUD_CLASS_01* p_hud_class_01) {
         static LARGE_INTEGER inflight_audio_play_start_offset{ 0 };
 
         if (!(*p_wc3_inflight_draw_buff).buff && !pMovie_vlc_Inflight) {
-            Debug_Info("Play_Inflight_Movie: timecodes: tc_start_of_file:%d, tc_start_of_scene:%d, tc_duration/appendix:%d, scene_video_neg_frame_offset:%d", (*pp_movie_class_inflight_01)->timecode_start_of_file_30fps, (*pp_movie_class_inflight_01)->timecode_start_of_scene_30fps, (*pp_movie_class_inflight_01)->timecode_duration_30fps, (*pp_movie_class_inflight_01)->video_frame_offset_15fps_neg);
+            Debug_Info_Movie("Play_Inflight_Movie: timecodes: tc_start_of_file:%d, tc_start_of_scene:%d, tc_duration/appendix:%d, scene_video_neg_frame_offset:%d", (*pp_movie_class_inflight_01)->timecode_start_of_file_30fps, (*pp_movie_class_inflight_01)->timecode_start_of_scene_30fps, (*pp_movie_class_inflight_01)->timecode_duration_30fps, (*pp_movie_class_inflight_01)->video_frame_offset_15fps_neg);
 
             //Get the offset with in video file by subtracting the start_of_scene from the start_of_file, value returned is frames at 30fps.
             //This is on occasion used by pilot heads to jump to different scenes but more often then not they reuse the same footage with at different durations to match the audio. 
             LONG video_start_frame = Get_Num_Frames_Between_Timecodes_30fps((*pp_movie_class_inflight_01)->timecode_start_of_file_30fps, (*pp_movie_class_inflight_01)->timecode_start_of_scene_30fps);
-            Debug_Info("Play_Inflight_Movie: Video start offset frames:%d", video_start_frame);
+            Debug_Info_Movie("Play_Inflight_Movie: Video start offset frames:%d", video_start_frame);
             if (video_start_frame < 0)
                 video_start_frame = 0;
 
@@ -1769,14 +1769,14 @@ static BOOL Play_Inflight_Movie(HUD_CLASS_01* p_hud_class_01) {
             if (video_start_frame <= 10) {
                 audio_start_frame += video_start_frame;
                 video_start_frame = 0;
-                Debug_Info("Play_Inflight_Movie: Fixed Video start offset frames:%d", video_start_frame);
-                Debug_Info("Play_Inflight_Movie: Fixed Audio start offset frames:%d", audio_start_frame);
+                Debug_Info_Movie("Play_Inflight_Movie: Fixed Video start offset frames:%d", video_start_frame);
+                Debug_Info_Movie("Play_Inflight_Movie: Fixed Audio start offset frames:%d", audio_start_frame);
             }
 
             inflight_audio_play_start_offset.QuadPart =  static_cast<long long>(audio_start_frame)* p_wc3_frequency->QuadPart / 30;
 
             RECT rc_dest{ p_hud_class_01->hud_x + p_hud_class_01->comm_x, p_hud_class_01->hud_y + p_hud_class_01->comm_y,  p_hud_class_01->hud_x + p_hud_class_01->comm_x + (LONG)p_movie_class_inflight_02->width - 1, p_hud_class_01->hud_y + p_hud_class_01->comm_y + (LONG)p_movie_class_inflight_02->height - 1 };
-            //Debug_Info("size:%d,%d,%d,%d", rc_dest.left, rc_dest.top, rc_dest.right, rc_dest.bottom);
+            //Debug_Info_Movie("size:%d,%d,%d,%d", rc_dest.left, rc_dest.top, rc_dest.right, rc_dest.bottom);
             
             //iff files modified to play movies divided into scenes DON'T INCLUDE an extension in their file name. 
             //if the movie file name has an extension, DON'T ADD a letter appendix by setting "appendix_offset = -1".
@@ -1795,7 +1795,7 @@ static BOOL Play_Inflight_Movie(HUD_CLASS_01* p_hud_class_01) {
             if (!pMovie_vlc_Inflight->Play()) {
                 delete pMovie_vlc_Inflight;
                 pMovie_vlc_Inflight = nullptr;
-                Debug_Info("LibVlc_MovieInflight new failed");
+                Debug_Info_Movie("LibVlc_MovieInflight play failed");
                 return FALSE;
             }
 
@@ -1845,7 +1845,7 @@ static BOOL Play_Inflight_Movie(HUD_CLASS_01* p_hud_class_01) {
         //set the movie class pointer to null to signal to wc3 that the movie has ended.
         if (pMovie_vlc_Inflight && pMovie_vlc_Inflight->HasPlayed()) {
             *pp_movie_class_inflight_01 = nullptr;
-            Debug_Info("Play_Inflight_Movie: Movie Finished");
+            Debug_Info_Movie("Play_Inflight_Movie: Movie Finished");
             return TRUE;
         }
 
@@ -1897,13 +1897,13 @@ static void Inflight_Movie_Unload() {
     //check if the finished hd movie has audio, and if so return the volume of the background music to normal setting.
     if (pMovie_vlc_Inflight) {
         if (pMovie_vlc_Inflight->HasAudio()) {
-            Debug_Info("Inflight_Movie_Unload HasAudio - volume returned to normal");
+            Debug_Info_Movie("Inflight_Movie_Unload HasAudio - volume returned to normal");
             wc3_set_music_volume(p_wc3_audio_class, *p_wc3_ambient_music_volume);
         }
         
         delete pMovie_vlc_Inflight;
         pMovie_vlc_Inflight = nullptr;
-        Debug_Info("Inflight_Movie_Unload done");
+        Debug_Info_Movie("Inflight_Movie_Unload done");
     }
 }
 
@@ -1929,7 +1929,7 @@ static void __declspec(naked) inflight_movie_unload(void) {
 static LONG Inflight_Movie_Audio_Check() {
     //check if the hd movie has audio, and if so lower the volume of the background music while playing.
     if (*p_wc3_inflight_audio_ref == 0 && pMovie_vlc_Inflight && pMovie_vlc_Inflight->HasAudio()) {
-        Debug_Info("Inflight_Movie_Check_Audio HasAudio - volume lowered");
+        Debug_Info_Movie("Inflight_Movie_Check_Audio HasAudio - volume lowered");
         LONG audio_vol = *p_wc3_ambient_music_volume - 4;
         if (audio_vol < 0)
             audio_vol = 0;

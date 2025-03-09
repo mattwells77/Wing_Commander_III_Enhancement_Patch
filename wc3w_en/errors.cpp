@@ -32,8 +32,6 @@ using namespace std;
 #define PRINT_DEBUG_ERRORS
 #define PRINT_DEBUG_INFO
 
-char msg_buff[260];
-
 
 #ifdef CHECK_ERRORS
 
@@ -56,15 +54,37 @@ static bool Is_Errors_Stream() {
 }
 
 
-//______________________________________
-void Debug_Info(const char* format, ...) {
+//____________________________
+static DWORD Get_Debug_Flags() {
+    static bool debug_flags_read = false;
+    static DWORD debug_info_flags = 0;
+    if (!debug_flags_read) {
+        debug_info_flags = DEBUG_INFO_ERROR;
+        if (!ConfigReadInt(L"DEBUG", L"ERRORS", 1))
+            debug_info_flags = 0;
+        if (ConfigReadInt(L"DEBUG", L"GENERAL", 0))
+            debug_info_flags |= DEBUG_INFO_GENERAL;
+        if (ConfigReadInt(L"DEBUG", L"FLIGHT", 0))
+            debug_info_flags |= DEBUG_INFO_FLIGHT;
+        if (ConfigReadInt(L"DEBUG", L"MOVIE", 0))
+            debug_info_flags |= DEBUG_INFO_MOVIE;
+        if (ConfigReadInt(L"DEBUG", L"CONTROLLER", 0))
+            debug_info_flags |= DEBUG_INFO_JOY;
+    }
+    return debug_info_flags;
+}
+
+
+//_____________________________________________________
+void __Debug_Info(DWORD flags, const char* format, ...) {
 #ifdef PRINT_DEBUG_INFO
+    char msg_buff[260];
     va_list args;
     va_start(args, format);
     vsprintf_s(msg_buff, format, args);
     va_end(args);
 
-    if (Is_Errors_Stream())
+    if (Is_Errors_Stream() && (flags & Get_Debug_Flags()))
         errors_stream << msg_buff << endl;
 #endif // PRINT_DEBUG_INFO
 }
