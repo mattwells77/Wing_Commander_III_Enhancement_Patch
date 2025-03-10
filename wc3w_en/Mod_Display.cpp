@@ -256,7 +256,7 @@ static BOOL Window_Setup(HWND hwnd, bool is_windowed) {
     //Set the movement update time for Navigation screen, which was unregulated and way to fast on modern computers.
     DXGI_RATIONAL refreshRate{};
     refreshRate.Denominator = 1;
-    refreshRate.Numerator = ConfigReadInt(L"SPACE", L"NAV_SCREEN_KEY_RESPONCE_HZ", CONFIG_SPACE_NAV_SCREEN_KEY_RESPONCE_HZ);
+    refreshRate.Numerator = ConfigReadInt(L"SPACE", L"NAV_SCREEN_KEY_RESPONSE_HZ", CONFIG_SPACE_NAV_SCREEN_KEY_RESPONSE_HZ);
     nav_update_time.QuadPart = p_wc3_frequency->QuadPart / refreshRate.Numerator;
 
     //Set the max refresh rate in space, original 24 FPS. Set to zero to use screen refresh rate, a negative value will use the original value.  
