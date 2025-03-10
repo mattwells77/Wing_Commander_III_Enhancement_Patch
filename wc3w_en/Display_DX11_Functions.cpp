@@ -1056,6 +1056,9 @@ BOOL Display_Dx_Setup(HWND hwnd, UINT width, UINT height) {
         hr = dxgiFactory->CreateSwapChain(g_d3dDevice, &sd, &g_d3dSwapChain);
     }
 
+    //prevent DXGI from resizing the window when pressing Alt+Enter.
+    dxgiFactory->MakeWindowAssociation(hwnd, DXGI_MWA_NO_WINDOW_CHANGES | DXGI_MWA_NO_ALT_ENTER);
+
     dxgiFactory->Release();
 
     if (FAILED(hr)) {
