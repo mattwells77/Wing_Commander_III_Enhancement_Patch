@@ -175,7 +175,8 @@ private:
 
 
     void on_play() {
-        Initialise_Subtitles();
+        if(!initialised_for_play)
+            Initialise_Subtitles();
         Debug_Info_Movie("LibVlc_Movie: On Play stopped: %s", path.c_str());
 
     };
