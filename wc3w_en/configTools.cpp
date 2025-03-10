@@ -98,14 +98,14 @@ const wchar_t* GetAppDataPath() {
             if (GetFileAttributes(wAppDataPath.c_str()) == INVALID_FILE_ATTRIBUTES) {
                 if (!CreateDirectory(wAppDataPath.c_str(), nullptr)) {
                     wAppDataPath.clear();
-                    Debug_Info_Error("AppDataPath: folder creation FAILED!: %S", wAppDataPath.c_str());
+                    //Debug_Info_Error("AppDataPath: folder creation FAILED!: %S", wAppDataPath.c_str());
                 }
             }
         }
         else
             wAppDataPath.clear();
         app_data_path_set = true;
-        Debug_Info("AppDataPath: %S", wAppDataPath.c_str());
+        //Debug_Info("AppDataPath: %S", wAppDataPath.c_str());
     }
 
     return wAppDataPath.c_str();
