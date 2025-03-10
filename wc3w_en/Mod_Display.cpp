@@ -1059,6 +1059,42 @@ void Set_WindowActive_State(BOOL isActive) {
 }
 
 
+//______________________________________
+static void Toggle_WindowMode(HWND hwnd) {
+
+    *p_wc3_is_windowed = 1 - *p_wc3_is_windowed;
+    ConfigWriteInt(L"MAIN", L"WINDOWED", *p_wc3_is_windowed);
+
+    if (*p_wc3_is_windowed) {
+        Debug_Info("Toggle_WindowMode: Windowed");
+        WINDOWPLACEMENT winPlace{ 0 };
+        winPlace.length = sizeof(WINDOWPLACEMENT);
+
+        SetWindowLongPtr(hwnd, GWL_STYLE, WIN_MODE_STYLE);
+
+        if (ConfigReadWinData(L"MAIN", L"WIN_DATA", &winPlace)) {
+            if (winPlace.showCmd != SW_MAXIMIZE)
+                winPlace.showCmd = SW_SHOWNORMAL;
+        }
+        else {
+            GetWindowPlacement(hwnd, &winPlace);
+            winPlace.showCmd = SW_SHOWNORMAL;
+            Debug_Info("is_windowed GetWindowPlacement");
+        }
+        if (winPlace.showCmd == SW_SHOWNORMAL) //if the window isn't maximized
+            Check_Window_GUI_Scaling_Limits(hwnd, &winPlace.rcNormalPosition, false);
+
+        SetWindowPlacement(hwnd, &winPlace);
+
+    }
+    else {//Return to fullscreen mode when app regains focus.
+        Debug_Info("Toggle_WindowMode: Fullscreen");
+        SetWindowLongPtr(hwnd, GWL_STYLE, WS_POPUP);
+        //SetWindowPos(hwnd, 0, 0, 0, 0, 0, 0);
+        ShowWindow(hwnd, SW_MAXIMIZE);
+    }
+}
+
 
 //return false to call DefWindowProc
 //_____________________________________________________________________________
@@ -1068,6 +1104,12 @@ static bool WinProc_Main(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam) 
     static bool is_in_sizemove = false;
 
     switch (Message) {
+    case WM_KEYDOWN:
+        if (!(lParam & 0x40000000)) { //The previous key state. The value is 1 if the key is down before the message is sent, or it is zero if the key is up.
+            if (wParam == VK_F11) //Use F11 key to toggle windowed mode.
+                Toggle_WindowMode(hwnd);
+        }
+        break;
     case WM_WINDOWPOSCHANGING: {
         WINDOWPOS* winpos = (WINDOWPOS*)lParam;
         //Debug_Info("WM_WINDOWPOSCHANGING size adjusting");
@@ -1096,9 +1138,9 @@ static bool WinProc_Main(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam) 
                 pMovie_vlc_Inflight->Pause(false);
                 pMovie_vlc_Inflight->Update_Display_Dimensions(nullptr);
             }
-            SetWindowTitle(hwnd, L"");
+            //SetWindowTitle(hwnd, L"");
         }
-        
+        SetWindowTitle(hwnd, L"");
         return true; //this should prevent calling DefWindowProc, and stop WM_SIZE and WM_MOVE messages being sent.
     }
     case WM_ENTERSIZEMOVE:
