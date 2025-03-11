@@ -93,10 +93,12 @@ void* p_wc3_audio_class = nullptr;
 MOVIE_CLASS_INFLIGHT_01** pp_movie_class_inflight_01 = nullptr;
 MOVIE_CLASS_INFLIGHT_02* p_movie_class_inflight_02 = nullptr;
 
-//a reference to the current sound, 
+//a reference to the current sound.
 DWORD* p_wc3_inflight_audio_ref = nullptr;
 //not sure what this does, made use of when inserting "Inflight_Movie_Audio_Check" function.
 BYTE* p_wc3_inflight_audio_unk01 = nullptr;
+//holds a pointer to something relating to the speaking pilot for setting the colour of their targeting rect. 
+void** pp_wc3_inflight_audio_ship_ptr_for_rect_colour = nullptr;
 
 //buffer rect structures used for drawing inflight movie frames, re-purposed to create a transparent rect in the cockpit/hud graphic for displaying HR movie's through.
 DRAW_BUFFER_MAIN* p_wc3_inflight_draw_buff_main = nullptr;
@@ -321,6 +323,7 @@ void WC3W_Setup() {
 
     p_wc3_inflight_audio_ref = (DWORD*)0x4A3354;
     p_wc3_inflight_audio_unk01 = (BYTE*)0x4A3338;
+    pp_wc3_inflight_audio_ship_ptr_for_rect_colour = (void**)0x4A3350;
 
     p_wc3_play_inflight_hr_movie_return_address = (void*)0x423024;
 

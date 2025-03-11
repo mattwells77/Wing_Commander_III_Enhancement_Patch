@@ -73,6 +73,11 @@ public:
             else {
                 mediaPlayer.play();
                 mediaPlayer.setPosition(position);
+                //subtitles must be re-initialised whenever media playback is stopped. subtitles can not be setup until media is actually playing - on_play() function called.
+                while (!is_vlc_playing && !isError)
+                    Sleep(0);
+                Initialise_Subtitles();
+
             }
             //mediaPlayer.setPause(pause);
         }
@@ -167,6 +172,7 @@ private:
     bool paused;
     bool initialised_for_play;
     float position;
+    bool is_vlc_playing;
     GEN_SURFACE* surface;
 
     bool InitialiseForPlay_Start();
@@ -175,15 +181,14 @@ private:
 
 
     void on_play() {
-        if(!initialised_for_play)
-            Initialise_Subtitles();
+        is_vlc_playing = true;
         Debug_Info_Movie("LibVlc_Movie: On Play stopped: %s", path.c_str());
 
     };
     void on_stopped() {
+        is_vlc_playing = false;
         if (!paused) {
             isPlaying = false;
-            //hasPlayed = true;
             Debug_Info_Movie("LibVlc_Movie: OnStop stopped: %s", path.c_str());
         }
     };
@@ -317,6 +322,11 @@ public:
             else {
                 mediaPlayer.play();
                 mediaPlayer.setPosition(position);
+                //subtitles must be re-initialised whenever media playback is stopped. subtitles can not be setup until media is actually playing - on_play() function called.
+                while (!is_vlc_playing && !isError)
+                    Sleep(0);
+                //disable subtitles, we don't want subs overlayed on the inflight video.
+                mediaPlayer.setSpu(-1);
             }
         }
     };
@@ -368,6 +378,7 @@ private:
     bool play_setup_complete;
     bool has_audio;
     float position;
+    bool is_vlc_playing;
     GEN_SURFACE* surface;
     GEN_SURFACE* surface_bg;
     RECT rc_dest_unscaled;
@@ -381,6 +392,7 @@ private:
     void initialise_for_play();
 
     void on_play() {
+        is_vlc_playing = true;
         //set flag to initialise video setup in "initialise_for_play()".
         play_setup_start = true;
 
@@ -388,6 +400,7 @@ private:
 
     };
     void on_stopped() {
+        is_vlc_playing = false;
         if (!paused) {
             isPlaying = false;
             Debug_Info_Movie("LibVlc_MovieInflight: OnStop stopped: %s", path.c_str());

@@ -1106,8 +1106,13 @@ static bool WinProc_Main(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam) 
     switch (Message) {
     case WM_KEYDOWN:
         if (!(lParam & 0x40000000)) { //The previous key state. The value is 1 if the key is down before the message is sent, or it is zero if the key is up.
-            if (wParam == VK_F11) //Use F11 key to toggle windowed mode.
+            if (wParam == VK_F11) { //Use F11 key to toggle windowed mode.
+                if (pMovie_vlc)
+                    pMovie_vlc->Pause(true);
+                if (pMovie_vlc_Inflight)
+                    pMovie_vlc_Inflight->Pause(true);
                 Toggle_WindowMode(hwnd);
+            }
         }
         break;
     case WM_WINDOWPOSCHANGING: {
@@ -1942,10 +1947,11 @@ static void Inflight_Movie_Unload() {
             Debug_Info_Movie("Inflight_Movie_Unload HasAudio - volume returned to normal");
             wc3_set_music_volume(p_wc3_audio_class, *p_wc3_ambient_music_volume);
         }
-        
+        //this needs to be set to null to remove the highlight colour from the talking ships target rect.
+        *pp_wc3_inflight_audio_ship_ptr_for_rect_colour = nullptr;
         delete pMovie_vlc_Inflight;
         pMovie_vlc_Inflight = nullptr;
-        Debug_Info_Movie("Inflight_Movie_Unload done");
+        Debug_Info_Movie("Inflight_Movie_Unload done %d");
     }
 }
 
@@ -1976,6 +1982,7 @@ static LONG Inflight_Movie_Audio_Check() {
         if (audio_vol < 0)
             audio_vol = 0;
         wc3_set_music_volume(p_wc3_audio_class, audio_vol);
+
         return FALSE;
 
     }

@@ -317,6 +317,8 @@ LibVlc_Movie::LibVlc_Movie(std::string movie_name, LONG* branch_list, LONG branc
 
     position = 0;
     paused = false;
+    is_vlc_playing = false;
+
     using namespace std::placeholders; // for `_1`
 
     mediaPlayer.eventManager().onPlaying(std::bind(&LibVlc_Movie::on_play, this));
@@ -539,7 +541,12 @@ bool LibVlc_Movie::InitialiseForPlay_Start() {
         isError = true;
     if (isError)
         return false;
-
+    //subtitles can not be setup until media is actually playing - on_play() function called.
+    while (!is_vlc_playing && !isError) {
+        //Debug_Info_Movie("LibVlc_Movie: InitialiseForPlay_Start WAIT");
+        Sleep(0);
+    }
+    Initialise_Subtitles();
     while (isPlaying)//play untill InitialiseForPlay_End called.
         Sleep(0);
     return true;
@@ -671,6 +678,8 @@ void LibVlc_MovieInflight::libvlc_movieinflight_initialise() {
 
     position = 0;
     paused = false;
+    is_vlc_playing = false;
+
     rc_dest_unscaled = { 0,0,0,0 };
 
     time_ms_start = 0;
@@ -700,19 +709,6 @@ void LibVlc_MovieInflight::libvlc_movieinflight_initialise() {
 void LibVlc_MovieInflight::initialise_for_play() {
     // these need to be set once playback has started
     if (play_setup_start && !play_setup_complete) {
-        //disable subtitles, we don't want subs overlayed on the inflight video.
-        mediaPlayer.setSpu(-1);
-        //setup audio
-        if (!inflight_use_audio_from_file_if_present)
-            mediaPlayer.setAudioTrack(-1);
-
-        if (mediaPlayer.audioTrack() != -1) {
-            Debug_Info_Movie("initialise_for_play: HD movie HAS AUDIO");
-            has_audio = true;
-        }
-        //set the movie start time
-        if(time_ms_start)
-            mediaPlayer.setTime(time_ms_start);
         if (time_ms_length) {
             QueryPerformanceCounter(&play_end_time_in_ticks);
             play_end_time_in_ticks.QuadPart += time_ms_length * p_wc3_frequency->QuadPart / 1000LL;
@@ -734,6 +730,26 @@ bool LibVlc_MovieInflight::Play() {
             isError = true;
         if (isError)
             return false;
+        //subtitles can not be setup until media is actually playing - on_play() function called.
+        while (!is_vlc_playing && !isError) {
+            //Debug_Info_Movie("LibVlc_Movie: InitialiseForPlay_Start WAIT");
+            Sleep(0);
+        }
+        //disable subtitles, we don't want subs overlayed on the inflight video.
+        mediaPlayer.setSpu(-1);
+        //setup audio
+        if (!inflight_use_audio_from_file_if_present)
+            mediaPlayer.setAudioTrack(-1);
+
+        if (mediaPlayer.audioTrack() != -1) {
+            Debug_Info_Movie("initialise_for_play: HD movie HAS AUDIO");
+            has_audio = true;
+        }
+        //set the movie start time
+        if (time_ms_start)
+            mediaPlayer.setTime(time_ms_start);
+
+
     }
     //Debug_Info("LibVlc_MovieInflight: Play END");
     return isPlaying;

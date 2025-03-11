@@ -239,10 +239,13 @@ extern LONG* p_wc3_ambient_music_volume;
 extern BYTE* p_wc3_is_sound_enabled;
 extern void* p_wc3_audio_class;
 
-//a reference to the current sound, 
+//a reference to the current sound.
 extern DWORD* p_wc3_inflight_audio_ref;
 //not sure what this does, made use of when inserting "Inflight_Movie_Audio_Check" function.
 extern BYTE* p_wc3_inflight_audio_unk01;
+//holds a pointer to something relating to the speaking pilot for setting the colour of their targeting rect. 
+extern void** pp_wc3_inflight_audio_ship_ptr_for_rect_colour;
+
 
 //buffer rect structures used for drawing inflight movie frames, re-purposed to create a transparent rect in the cockpit/hud graphic for displaying HR movie's through.
 extern DRAW_BUFFER_MAIN* p_wc3_inflight_draw_buff_main;
