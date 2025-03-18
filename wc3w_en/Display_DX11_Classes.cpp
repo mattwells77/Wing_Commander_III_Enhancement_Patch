@@ -100,6 +100,28 @@ void GEN_SURFACE::ScaleToScreen() {
         scaleX = display_w / width;
         scaleY = display_h / height;
     }
+    else if (current_scale_type == SCALE_TYPE::fit_best) {
+        //Keep the display width and height a multiple of the texture width and height, in order to maintain original pixel alignment.
+        float max_height = (float)(clientHeight / height * height);
+        float max_width = (float)(clientWidth / width * width);
+
+        float rtRO = width / (float)height;
+        float winRO = clientWidth / (float)clientHeight;
+
+        if (rtRO > winRO) {
+            display_w = max_width;
+            display_h = (display_w / rtRO);
+        }
+        else {
+            display_h = max_height;
+            display_w = display_h * rtRO;
+        }
+        x = ((float)clientWidth - display_w) / 2;
+        y = ((float)clientHeight - display_h) / 2;
+
+        scaleX = display_w / width;
+        scaleY = display_h / height;
+    }
     else if (current_scale_type == SCALE_TYPE::fill) {
         x = 0;
         y = 0;

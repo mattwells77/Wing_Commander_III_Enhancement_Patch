@@ -200,16 +200,26 @@ static bool Display_Exit() {
 }
 
 
-//___________________________________________________
-static BOOL Window_Setup(HWND hwnd, bool is_windowed) {
+//_________________________________
+static BOOL Window_Setup(HWND hwnd) {
     
+    if (!*p_wc3_is_windowed) {
+        if (ConfigReadInt(L"MAIN", L"WINDOWED", CONFIG_MAIN_WINDOWED))
+            *p_wc3_is_windowed = true;
+    }
+    
+    if (!*p_wc3_movie_no_interlace) {
+        if (!ConfigReadInt(L"MOVIES", L"SHOW_ORIGINAL_MOVIES_INTERLACED", CONFIG_SHOW_ORIGINAL_MOVIES_INTERLACED))
+            *p_wc3_movie_no_interlace = true;
+    }
+
     int COCKPIT_MAINTAIN_ASPECT_RATIO = ConfigReadInt(L"SPACE", L"COCKPIT_MAINTAIN_ASPECT_RATIO", CONFIG_SPACE_COCKPIT_MAINTAIN_ASPECT_RATIO);
     if (COCKPIT_MAINTAIN_ASPECT_RATIO == 0)
         cockpit_scale_type = SCALE_TYPE::fill;
     else if (COCKPIT_MAINTAIN_ASPECT_RATIO < 0)
         crop_cockpit_rect = FALSE;
 
-    if (is_windowed) {
+    if (*p_wc3_is_windowed) {
         Debug_Info("Window Setup: Windowed");
         WINDOWPLACEMENT winPlace{ 0 };
         winPlace.length = sizeof(WINDOWPLACEMENT);
@@ -434,12 +444,22 @@ static void DXBlt_Movie(BYTE* fBuff, DWORD subY, DWORD subHeight) {
 
 //_____________________________________________________________________________________
 static BOOL DrawVideoFrame(VIDframe* vidFrame, RGBQUAD* tBuff, UINT tWidth, DWORD flag) {
+    
+    DWORD height = vidFrame->height;
+    DWORD width = vidFrame->width;
+    SCALE_TYPE scale_type = SCALE_TYPE::fit;
 
-    if (!surface_movieXAN || vidFrame->width != surface_movieXAN->GetWidth() || vidFrame->height != surface_movieXAN->GetHeight()) {
+    if (!*p_wc3_movie_no_interlace) {
+        height += height;
+        width += width;
+        scale_type = SCALE_TYPE::fit_best;
+    }
+
+    if (!surface_movieXAN || width != surface_movieXAN->GetWidth() || height != surface_movieXAN->GetHeight()) {
         if (surface_movieXAN)
             delete surface_movieXAN;
-        surface_movieXAN = new GEN_SURFACE(vidFrame->width, vidFrame->height, 8);
-        surface_movieXAN->ScaleToScreen(SCALE_TYPE::fit);
+        surface_movieXAN = new GEN_SURFACE(width, height, 8);
+        surface_movieXAN->ScaleToScreen(scale_type);
         Debug_Info("surface_movieXAN created");
     }
     //Debug_Info("%X,%X,%X,%X,%X,%X,%X,%X,%X,%X,%X", vidFrame->unknown00, vidFrame->unknown04, vidFrame->unknown08, vidFrame->width, vidFrame->height, vidFrame->unknown14, vidFrame->bitFlag, vidFrame->unknown1C, vidFrame->unknown20, vidFrame->unknown24);
@@ -452,12 +472,21 @@ static BOOL DrawVideoFrame(VIDframe* vidFrame, RGBQUAD* tBuff, UINT tWidth, DWOR
 
     BYTE* fBuff = vidFrame->buff;
 
-    for (UINT y = 0; y < vidFrame->height; y++) {
-        for (UINT x = 0; x < vidFrame->width; x++)
-            pSurface[x] = fBuff[x];
-
-        pSurface += pitch;
-        fBuff += vidFrame->width;
+    for (UINT y = 0; y < height; y++) {
+        if (*p_wc3_movie_no_interlace || y % 2) {
+            UINT x2 = 0;
+            for (UINT x = 0; x < vidFrame->width; x++) {
+                pSurface[x2] = fBuff[x];
+                if (*p_wc3_movie_no_interlace)
+                    x2++;
+                else {
+                    pSurface[x2+1] = fBuff[x];
+                    x2 += 2;
+                }
+            }
+            fBuff += vidFrame->width;
+        }
+            pSurface += pitch;
     }
 
     surface_movieXAN->Unlock();
@@ -1200,11 +1229,7 @@ static bool WinProc_Main(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam) 
             break;
         case 40002:
             //Debug_Info("dx message");
-            if (!*p_wc3_is_windowed) {
-                if (ConfigReadInt(L"MAIN", L"WINDOWED", CONFIG_MAIN_WINDOWED))
-                    *p_wc3_is_windowed = true;
-            }
-            Window_Setup(hwnd, *p_wc3_is_windowed);
+            Window_Setup(hwnd);
             SetWindowTitle(hwnd, L"");
             ShowWindow(hwnd, SW_SHOW);
             return 0;

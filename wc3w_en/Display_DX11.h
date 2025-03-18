@@ -101,6 +101,7 @@ enum class SCALE_TYPE : LONG {
     none = -1,
     fit = 0,
     fill = 1,
+    fit_best = 2,
 };
 
 enum class PRESENT_TYPE : LONG {

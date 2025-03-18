@@ -239,6 +239,8 @@ extern LONG* p_wc3_ambient_music_volume;
 extern BYTE* p_wc3_is_sound_enabled;
 extern void* p_wc3_audio_class;
 
+extern bool* p_wc3_movie_no_interlace;
+
 //a reference to the current sound.
 extern DWORD* p_wc3_inflight_audio_ref;
 //not sure what this does, made use of when inserting "Inflight_Movie_Audio_Check" function.

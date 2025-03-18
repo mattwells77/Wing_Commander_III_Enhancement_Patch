@@ -89,6 +89,7 @@ LONG* p_wc3_ambient_music_volume = nullptr;
 BYTE* p_wc3_is_sound_enabled = nullptr;
 void* p_wc3_audio_class = nullptr;
 
+bool* p_wc3_movie_no_interlace = nullptr;
 
 MOVIE_CLASS_INFLIGHT_01** pp_movie_class_inflight_01 = nullptr;
 MOVIE_CLASS_INFLIGHT_02* p_movie_class_inflight_02 = nullptr;
@@ -337,4 +338,6 @@ void WC3W_Setup() {
     p_save_game_text_eng = (char*)0x49FF60;
     p_save_game_text_ger = (char*)0x49FF40;
     p_save_game_text_fre = (char*)0x49FF50;
+
+    p_wc3_movie_no_interlace = (bool*)0x49F73C;
 }
