@@ -212,7 +212,7 @@ static BOOL Window_Setup(HWND hwnd) {
     }
     
     if (!*p_wc3_movie_no_interlace) {
-        if (!ConfigReadInt(L"MOVIES", L"SHOW_ORIGINAL_MOVIES_INTERLACED", CONFIG_SHOW_ORIGINAL_MOVIES_INTERLACED))
+        if (!ConfigReadInt(L"MOVIES", L"SHOW_ORIGINAL_MOVIES_INTERLACED", CONFIG_MOVIES_SHOW_ORIGINAL_INTERLACED))
             *p_wc3_movie_no_interlace = true;
     }
 
