@@ -56,6 +56,9 @@ WORD* p_mouse_button_true = &mouse_state_true[0];
 WORD* p_mouse_x_true = &mouse_state_true[1];
 WORD* p_mouse_y_true = &mouse_state_true[2];
 
+LONG mouse_x_current = 0;
+LONG mouse_y_current = 0;
+
 LARGE_INTEGER nav_update_time{ 0 };
 
 
@@ -1448,6 +1451,17 @@ static LRESULT Update_Mouse_State(HWND hwnd, UINT Message, WPARAM wParam, LPARAM
             y = y * GUI_HEIGHT / clientHeight;
         }
 
+        if (x < 0)
+            x = 0;
+        else if (x >= GUI_WIDTH)
+            x = GUI_WIDTH - 1;
+        if (y < 0)
+            y = 0;
+        else if (y >= GUI_HEIGHT)
+            y = GUI_HEIGHT - 1;
+
+        mouse_x_current = x;
+        mouse_y_current = y;
         *p_wc3_mouse_x = (WORD)x;
         *p_wc3_mouse_y = (WORD)y;
 
@@ -1495,14 +1509,17 @@ static BOOL Set_Mouse_Position(LONG x, LONG y) {
             SetCursorPos(ix, iy);
         }
 
-        /*if (x < 0)
+        if (x < 0)
             x = 0;
-        else if (x > GUI_WIDTH)
-            x = GUI_WIDTH;
+        else if (x >= GUI_WIDTH)
+            x = GUI_WIDTH - 1;
         if (y < 0)
             y = 0;
-        else if (y > GUI_HEIGHT)
-            y = GUI_HEIGHT;*/
+        else if (y >= GUI_HEIGHT)
+            y = GUI_HEIGHT - 1;
+
+        mouse_x_current = x;
+        mouse_y_current = y;
         *p_wc3_mouse_x = (WORD)x;
         *p_wc3_mouse_y = (WORD)y;
     }
@@ -1514,6 +1531,10 @@ static BOOL Set_Mouse_Position(LONG x, LONG y) {
 // This function allows the mouse to move freely as well as update it's position when outside the client rect.
 //________________________________________________
 static BOOL Update_Cursor_Position(LONG x, LONG y) {
+
+    //if cursor position is modified by somthing other than the mouse 
+    if (x != mouse_x_current || y != mouse_y_current)
+        return Set_Mouse_Position(x, y);
 
     if (*p_wc3_is_mouse_present) {
         POINT p{ 0,0 };
@@ -1539,15 +1560,18 @@ static BOOL Update_Cursor_Position(LONG x, LONG y) {
                 y = y * GUI_HEIGHT / clientHeight;
             }
         }
-        /*if (x < 0)
+
+        if (x < 0)
             x = 0;
-        else if (x > GUI_WIDTH)
-            x = GUI_WIDTH;
+        else if (x >= GUI_WIDTH)
+            x = GUI_WIDTH - 1;
         if (y < 0)
             y = 0;
-        else if (y > GUI_HEIGHT)
-            y = GUI_HEIGHT;*/
+        else if (y >= GUI_HEIGHT)
+            y = GUI_HEIGHT - 1;
 
+        mouse_x_current = x;
+        mouse_y_current = y;
         *p_wc3_mouse_x = (WORD)x;
         *p_wc3_mouse_y = (WORD)y;
     }
@@ -1976,7 +2000,7 @@ static void Inflight_Movie_Unload() {
         *pp_wc3_inflight_audio_ship_ptr_for_rect_colour = nullptr;
         delete pMovie_vlc_Inflight;
         pMovie_vlc_Inflight = nullptr;
-        Debug_Info_Movie("Inflight_Movie_Unload done %d");
+        Debug_Info_Movie("Inflight_Movie_Unload done");
     }
 }
 
@@ -2101,6 +2125,43 @@ static void __declspec(naked) fix_space_mouse_movement(void) {
         pop esi
         ret
 
+    }
+}
+
+
+//_____________________________________________________
+static void __declspec(naked) update_alt_o_cursor(void) {
+    //Check if the position strored in the structure is valid and adjust if necessary.
+    //Before updating the cursor position.
+    __asm {
+        cmp dword ptr ds : [esi + 0x14], 0
+        jge check_max_x
+        mov dword ptr ds : [esi + 0x14], 0
+        jmp check_min_y
+
+        check_max_x:
+        cmp dword ptr ds : [esi + 0x14] , GUI_WIDTH
+        jl check_min_y
+        mov dword ptr ds : [esi + 0x14] , GUI_WIDTH-1
+        
+        check_min_y:
+        cmp dword ptr ds : [esi + 0x18], 0
+        jge check_max_y
+        mov dword ptr ds : [esi + 0x18], 0
+        jmp check_done
+
+        check_max_y :
+        cmp dword ptr ds : [esi + 0x18], GUI_HEIGHT
+        jl check_done
+        mov dword ptr ds : [esi + 0x18], GUI_HEIGHT - 1
+
+        check_done:
+        push dword ptr ds : [esi + 0x18]
+        push dword ptr ds : [esi + 0x14]
+        call Update_Cursor_Position
+        add esp, 0x8
+
+        ret
     }
 }
 
@@ -2322,8 +2383,8 @@ void Modifications_Display() {
     //Jump over the code that keeps the cursor on screen.
     MemWrite16(0x437A86, 0x7E83, 0x2EEB);
     MemWrite16(0x437A88, 0x0014, 0x9090);
-    //update the cursor position
-    FuncReplace32(0x437AD1, 0x04B87B, (DWORD)&Update_Cursor_Position);
+    //update the cursor position on the  ALT-O screen.
+    FuncReplace32(0x437AD1, 0x04B87B, (DWORD)&update_alt_o_cursor);
     //set pointer to use general mouse pointer data instead of the space flight copy which is set at a different resolution.
     MemWrite32(0x4378BB, 0x4A9B92, (DWORD)0x4A7E5A);//p_wc3_mouse_x
     MemWrite32(0x4378C6, 0x4A9B94, (DWORD)0x4A7E5C);//p_wc3_mouse_y
