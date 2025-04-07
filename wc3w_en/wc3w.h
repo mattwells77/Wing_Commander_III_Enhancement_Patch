@@ -260,6 +260,8 @@ extern const char* p_save_game_text_eng;
 extern const char* p_save_game_text_ger;
 extern const char* p_save_game_text_fre;
 
+extern char** p_wc3_movie_branch_subtitle;
+
 extern void(__thiscall* wc3_draw_hud_targeting_elements)(void*);
 extern void(__thiscall* wc3_draw_hud_view_text)(void*);
 

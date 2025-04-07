@@ -168,6 +168,7 @@ DWORD* p_wc3_key_scancode = nullptr;
 
 bool* p_wc3_movie_halt_flag = nullptr;
 
+char** p_wc3_movie_branch_subtitle;
 
 BOOL(__thiscall* wc3_load_file_handle)(void*, BOOL print_error_flag, BOOL unknown_flag) = nullptr;
 LONG(*wc3_find_file_in_tre)(char* pfile_name) = nullptr;
@@ -340,4 +341,6 @@ void WC3W_Setup() {
     p_save_game_text_fre = (char*)0x49FF50;
 
     p_wc3_movie_no_interlace = (bool*)0x49F73C;
+
+    p_wc3_movie_branch_subtitle = (char**)0x4AAA80;
 }

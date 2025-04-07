@@ -237,7 +237,7 @@ BOOL Get_Movie_Name_From_Path(const char* mve_path, std::string* p_retPath) {
             c++;
         }
 
-        Debug_Info_Movie("movie name original: %s", movie_name);
+        /*Debug_Info_Movie("movie name original: %s", movie_name);
         GetPrivateProfileStringA(movie_name, "name", movie_name, movie_name, _countof(movie_name), movie_config_path.c_str());
         //end string if a comment or space char is encountered.
         char* end_char = strchr(movie_name, ';');
@@ -247,8 +247,8 @@ BOOL Get_Movie_Name_From_Path(const char* mve_path, std::string* p_retPath) {
         if (end_char)
             *end_char = '\0';
 
-        Debug_Info_Movie("movie name fixed: %s", movie_name);
-        p_retPath->append(movie_name);
+        Debug_Info_Movie("movie name fixed: %s", movie_name);*/
+        p_retPath->assign(movie_name);
     }
     Debug_Info_Movie("Get_Movie_Name_From_Path: %s", p_retPath->c_str());
 
@@ -271,10 +271,23 @@ static BOOL Create_Movie_Path_Name_Branch(const char* movie_name, int branch, st
         c_branch[1] = 'a' + branch;
         c_branch[2] = '\0';
     }
+
+    char movie_name_fixed[9]{ 0 };
+    Debug_Info_Movie("movie name original: %s", movie_name);
+    GetPrivateProfileStringA(movie_name, "name", movie_name, movie_name_fixed, _countof(movie_name_fixed), movie_config_path.c_str());
+    //end string if a comment or space char is encountered.
+    char* end_char = strchr(movie_name_fixed, ';');
+    if (end_char)
+        *end_char = '\0';
+    end_char = strchr(movie_name_fixed, ' ');
+    if (end_char)
+        *end_char = '\0';
+    Debug_Info_Movie("movie name fixed: %s", movie_name_fixed);
+
     Debug_Info_Movie("c_branch original: %s", c_branch);
     GetPrivateProfileStringA(movie_name, c_branch, c_branch, c_branch, _countof(c_branch), movie_config_path.c_str());
     //end string if a comment or space char is encountered.
-    char* end_char = strchr(c_branch, ';');
+    end_char = strchr(c_branch, ';');
     if (end_char)
         *end_char = '\0';
     end_char = strchr(c_branch, ' ');
@@ -291,7 +304,7 @@ static BOOL Create_Movie_Path_Name_Branch(const char* movie_name, int branch, st
         return FALSE;
 
     p_retPath->assign(movie_dir);
-    p_retPath->append(movie_name);
+    p_retPath->append(movie_name_fixed);
     p_retPath->append(c_branch);
     p_retPath->append(movie_ext);
 
@@ -393,6 +406,18 @@ bool LibVlc_Movie::Play() {
         isPlaying = true;
         if (hasPlayed)
             isPlaying = false;
+
+        //Display branch subtitle if present. eg. text displayed when jumping to a different solar system. 
+        if (isPlaying && p_wc3_movie_branch_subtitle[list_num]) {
+            char* text = p_wc3_movie_branch_subtitle[list_num] + 1;
+            BYTE text_length = p_wc3_movie_branch_subtitle[list_num][0];
+            Debug_Info_Movie("LibVlc_Movie: Play branch sub: length:%d, %s", text_length, text);
+            mediaPlayer.setMarqueeString(libvlc_marquee_Text, text);
+            mediaPlayer.setMarqueeInt(libvlc_marquee_Position, 8);
+            mediaPlayer.setMarqueeInt(libvlc_marquee_Timeout, 8000);
+            mediaPlayer.setMarqueeInt(libvlc_marquee_Enable, 1);
+        }
+
         return isPlaying;
     }
     else {
