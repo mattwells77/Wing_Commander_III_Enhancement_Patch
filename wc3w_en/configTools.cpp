@@ -169,9 +169,17 @@ static const wchar_t* Get_ConfigPath() {
         wConfigPath.append(VER_PRODUCTNAME_STR);
         wConfigPath.append(L".ini");
 
-        if (GetFileAttributes(wConfigPath.c_str()) == INVALID_FILE_ATTRIBUTES)
+        if (GetFileAttributes(wConfigPath.c_str()) == INVALID_FILE_ATTRIBUTES) {
+            if (!is_app_folder) { //if no ini file exists on the UAC path, first attempt to copy the ini from the local path.
+                wstring local_ini = GetAppPath();
+                local_ini.append(L"\\");
+                local_ini.append(VER_PRODUCTNAME_STR);
+                local_ini.append(L".ini");
+                if (GetFileAttributes(local_ini.c_str()) != INVALID_FILE_ATTRIBUTES && CopyFile(local_ini.c_str(), wConfigPath.c_str(), TRUE))
+                    return wConfigPath.c_str();
+            }
             ConfigCreate(is_app_folder);
-
+        }
         //__Debug_Info(0,"ConfigPath: %S", wConfigPath.c_str());
     }
 
