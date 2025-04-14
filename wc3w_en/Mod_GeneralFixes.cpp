@@ -160,9 +160,9 @@ static void __declspec(naked) virtualprotect_fix(void) {
 //_____________________________________________________________
 //Check if an alterable file exists in either the Application folder or UAC data folder. 
 static DWORD __stdcall GetFileAttributes_UAC(LPCSTR lpFileName) {
-    const char* pos = strstr(lpFileName, ".WSG");//check if saved game file.
+    const char* pos = StrStrIA(lpFileName, ".WSG");//check if saved game file.
     if(!pos)
-        pos = strstr(lpFileName, "SFOSAVED.DAT");//check if settings file.
+        pos = StrStrIA(lpFileName, "SFOSAVED.DAT");//check if settings file.
     if (pos) {
         //Debug_Info("GetFileAttributes_UAC: %s", lpFileName);
         std::wstring path = GetAppDataPath();
@@ -194,9 +194,9 @@ void* p_get_file_attributes_uac = &GetFileAttributes_UAC;
 //Create\Open an alterable file for editing, from the UAC data folder first if present or depending on the DesiredAccess.
 static HANDLE __stdcall CreateFile_UAC(LPCSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile) {
 
-    const char* pos = strstr(lpFileName, ".WSG");//check if saved game file.
+    const char* pos = StrStrIA(lpFileName, ".WSG");//check if saved game file.
     if (!pos)
-        pos = strstr(lpFileName, "SFOSAVED.DAT");//check if settings file.
+        pos = StrStrIA(lpFileName, "SFOSAVED.DAT");//check if settings file.
     if (pos) {
         //Debug_Info("CreateFile_UAC: %s, acc:%X", lpFileName, dwDesiredAccess);
         std::wstring path = GetAppDataPath();
@@ -222,7 +222,7 @@ void* p_create_file_uac = &CreateFile_UAC;
 //_____________________________________________________
 //This function is only called for deleting the temp file "00000102.WSG". Which only exists during missions.
 static BOOL __stdcall DeleteFile_UAC(LPCSTR lpFileName) {
-    const char* pos = strstr(lpFileName, "00000102.wsg");
+    const char* pos = StrStrIA(lpFileName, "00000102.wsg");
     if (pos) {
         //Debug_Info("DeleteFile_UAC: %s", lpFileName);
         std::wstring path = GetAppDataPath();
