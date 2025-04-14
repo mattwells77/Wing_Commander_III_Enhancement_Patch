@@ -14,7 +14,7 @@ HD Movie playback is achieved using [libvlc](https://www.videolan.org/vlc/libvlc
 - Ingame Joystick\Controller configuration utility.
 
 ## Installation:
-- Click on [Releases](https://github.com/mattwells77/Wing_Commander_III_Enhancement_Patch/releases) and download the latest "wc3w_en_x.x.x.zip" where "x" is the version number and "libvlc_min_pack_3.0.20.zip" files. Extract the contents of these files to your Wing Commander 3 Install directory.
+- Click on [Releases](https://github.com/mattwells77/Wing_Commander_III_Enhancement_Patch/releases) and download the latest "wc3w_en_x.x.x.zip" where "x" is the version number and "libvlc_min_pack_3.0.21.zip" files. Extract the contents of these files to your Wing Commander 3 Install directory.
 - For optional HD movie playback: Download the [Wing Commander 3 HD Video Pack](https://www.wcnews.com/wcpedia/Wing_Commander_3_HD_Video_Pack "In-game movies AI up-scaled and remastered") created by ODVS and hosted by the [Wing Commander CIC](https://www.wcnews.com/#). Extract the movies to the "movies" folder in your Wing Commander 3 Install directory.
 - Once Installed, optional settings can be edited in the "wc3w_en.ini" file. Further details can be found within the file.
 
