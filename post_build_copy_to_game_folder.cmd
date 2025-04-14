@@ -1,0 +1,1 @@
+copy %1 "D:\Games\Kilrathi Saga\wc3\ddraw.dll"

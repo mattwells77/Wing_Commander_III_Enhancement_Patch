@@ -72,12 +72,12 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <IncludePath>D:\Programming\SDKs\vlc\vlc-3.0.21\include;D:\Programming\SDKs\vlc\libvlcpp;$(IncludePath)</IncludePath>
-    <LibraryPath>D:\Programming\SDKs\vlc\vlc-3.0.21\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>..\..\vlc-3.0.21\sdk\include;..\..\libvlcpp;$(IncludePath)</IncludePath>
+    <LibraryPath>..\..\vlc-3.0.21\sdk\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>D:\Programming\SDKs\vlc\vlc-3.0.21\include;D:\Programming\SDKs\vlc\libvlcpp;$(IncludePath)</IncludePath>
-    <LibraryPath>D:\Programming\SDKs\vlc\vlc-3.0.21\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>..\..\vlc-3.0.21\sdk\include;..\..\libvlcpp;$(IncludePath)</IncludePath>
+    <LibraryPath>..\..\vlc-3.0.21\sdk\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -96,10 +96,10 @@
       <ModuleDefinitionFile>exports.def</ModuleDefinitionFile>
     </Link>
     <PostBuildEvent>
-      <Command>cmd /c copy "$(OutDir)$(TargetName)$(TargetExt)" "D:\Games\Kilrathi Saga\wc3\ddraw.dll"</Command>
+      <Command>call "$(SolutionDir)post_build_copy_to_game_folder.cmd" "$(OutDir)$(TargetName)$(TargetExt)"</Command>
     </PostBuildEvent>
     <PostBuildEvent>
-      <Message>Copy and rename to "ddraw.dll"</Message>
+      <Message>Copy "ddraw.dll" to WC3 game folder.</Message>
     </PostBuildEvent>
     <FxCompile>
       <EntryPointName>%(Filename)</EntryPointName>
@@ -129,10 +129,10 @@
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
     <PostBuildEvent>
-      <Command>cmd /c copy "$(OutDir)$(TargetName)$(TargetExt)" "D:\Games\Kilrathi Saga\wc3\ddraw.dll"</Command>
+      <Command>call "$(SolutionDir)post_build_copy_to_game_folder.cmd" "$(OutDir)$(TargetName)$(TargetExt)"</Command>
     </PostBuildEvent>
     <PostBuildEvent>
-      <Message>Copy and rename to "ddraw.dll"</Message>
+      <Message>Copy "ddraw.dll" to WC3 game folder.</Message>
     </PostBuildEvent>
     <FxCompile>
       <EntryPointName>%(Filename)</EntryPointName>
