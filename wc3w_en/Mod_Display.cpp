@@ -354,19 +354,10 @@ static void UnlockShowMovieSurface() {
 }
 
 
-//______________________________________________
-static int ColourFill(DWORD ddSurface, int flag) {
-
-    if (surface_gui == nullptr)
-        return 0;
-    /*  VOID* pSurface = nullptr;
-      LONG pitch = 0;
-      if (surface_gui->Lock(&pSurface, &pitch) != S_OK)
-          return 0;
-      memset(pSurface, 0xFF, pitch * GUI_HEIGHT);
-      surface_gui->Unlock();
-  */
-    return 0;
+//_____________________________
+static void Clear_GUI_Surface() {
+    if (surface_gui)
+        surface_gui->Clear_Texture(0);
 }
 
 
@@ -2184,8 +2175,14 @@ void Modifications_Display() {
     MemWrite16(0x404B20, 0x3D80, 0xE990);
     FuncWrite32(0x404B22, 0x49F984, (DWORD)&UnlockShowSurface);
 
-    MemWrite16(0x431390, 0x4C8B, 0xE990);
-    FuncWrite32(0x431392, 0xEC830824, (DWORD)&ColourFill);
+    //disable un-needed colour_fill function.
+    MemWrite16(0x431390, 0x4C8B, 0xC033);//xor eax, eax
+    MemWrite16(0x431392, 0x0824, 0xC390);
+
+    //replace clear_screen function.
+    MemWrite8(0x4057E0, 0x80, 0xE9);
+    FuncWrite32(0x4057E1, 0x49F9843D, (DWORD)&Clear_GUI_Surface);
+    MemWrite16(0x4057E5, 0x0000, 0x9090);
 
     MemWrite16(0x41BB80, 0xEC83, 0x9090);
     MemWrite8(0x41BB82, 0x6C, 0x90);
@@ -2407,19 +2404,19 @@ void Modifications_Display() {
     //fix control reaction speed on the nav screen.
     FuncReplace32(0x44526E, 0xFFFEB1EE, (DWORD)&nav_screen_movement_speed_fix);
 
+    // Mouse turn speed fix--------------------------
+    //"MOV EAX, ECX" to "JMP SHORT 00429E79"
+    MemWrite16(0x429E5D, 0xC18B, 0x1AEB);
+    //"MOV EAX, EDI" to "JMP SHORT 00429EA0"
+    MemWrite16(0x429E88, 0xC78B, 0x16EB);
+
+    MemWrite8(0x429EA0, 0x99, 0xE8);
+    FuncWrite32(0x429EA1, 0xD08BFBF7, (DWORD)&fix_space_mouse_movement);
+    //-----------------------------------------------
+    
+    // HD Movies-----------------------------------------------
     //play alternate hires movies
     FuncReplace32(0x41C59E, 0x03A1FE, (DWORD)&play_movie_sequence);
-
-    //nav map movements
-    //0043049D | .  81AE F8000000 00080000        SUB DWORD PTR DS : [ESI + 0F8] , 800
- //   MemWrite32(0x4304A3, 0x00000800, 32);
-    //004304B0 | .  8186 F8000000 00080000        ADD DWORD PTR DS : [ESI + 0F8] , 800
-//    MemWrite32(0x4304B6, 0x00000800, 32);
-    //004304C3 | .  81AE FC000000 00080000        SUB DWORD PTR DS : [ESI + 0FC] , 800
- //   MemWrite32(0x4304C9, 0x00000800, 32);
-    //004304D6 | .  8186 FC000000 00080000        ADD DWORD PTR DS : [ESI + 0FC] , 800
- //   MemWrite32(0x4304DC, 0x00000800, 32);
-
 
     MemWrite16(0x422EA5, 0x3D83, 0xE890);
     FuncWrite32(0x422EA7, 0x4AB318, (DWORD)&play_inflight_movie);
@@ -2431,16 +2428,7 @@ void Modifications_Display() {
     MemWrite16(0x433731, 0x3D80, 0xE890);
     FuncWrite32(0x433733, 0x4A3338, (DWORD)&inflight_movie_audio_check);
     MemWrite8(0x433737, 0x00, 0x90);
-
-    // Mouse turn speed fix--------------------------
-    //"MOV EAX, ECX" to "JMP SHORT 00429E79"
-    MemWrite16(0x429E5D, 0xC18B, 0x1AEB);
-    //"MOV EAX, EDI" to "JMP SHORT 00429EA0"
-    MemWrite16(0x429E88, 0xC78B, 0x16EB);
-
-    MemWrite8(0x429EA0, 0x99, 0xE8);
-    FuncWrite32(0x429EA1, 0xD08BFBF7, (DWORD)&fix_space_mouse_movement);
-    //----------------------------------------------
+    //---------------------------------------------------------
 }
 
 
