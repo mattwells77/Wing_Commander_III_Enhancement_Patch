@@ -149,7 +149,7 @@ public:
     };
     void SetScale() {
         if (surface) {
-            surface->ScaleToScreen(SCALE_TYPE::fit);
+            surface->ScaleTo((float)clientWidth, (float)clientHeight, SCALE_TYPE::fit);
             Debug_Info_Movie("LibVlc_Movie: SetScale: %s", path.c_str());
         }
         if (next)
@@ -173,7 +173,7 @@ private:
     bool initialised_for_play;
     float position;
     bool is_vlc_playing;
-    GEN_SURFACE* surface;
+    DrawSurface* surface;
 
     bool InitialiseForPlay_Start();
     void InitialiseForPlay_End();
@@ -250,8 +250,8 @@ private:
         if (!surface || *width != surface->GetWidth() || *height < surface->GetHeight() || surface->GetPixelWidth() != 4) {
             if (surface)
                 delete surface;
-            surface = new GEN_SURFACE(*width, *height, 32);
-            surface->ScaleToScreen(SCALE_TYPE::fit);
+            surface = new DrawSurface(0, 0, *width, *height, 32, 0);
+            surface->ScaleTo((float)clientWidth, (float)clientHeight, SCALE_TYPE::fit);
             Debug_Info_Movie("LibVlc_Movie: surface created: %s", path.c_str());
         }
         BYTE* pSurface = nullptr;
@@ -379,8 +379,8 @@ private:
     bool has_audio;
     float position;
     bool is_vlc_playing;
-    GEN_SURFACE* surface;
-    GEN_SURFACE* surface_bg;
+    DrawSurface* surface;
+    DrawSurface8_RT* surface_bg;
     RECT rc_dest_unscaled;
 
     libvlc_time_t time_ms_length;
@@ -455,7 +455,7 @@ private:
         if (!surface || *width != surface->GetWidth() || *height < surface->GetHeight() || surface->GetPixelWidth() != 4) {
             if (surface)
                 delete surface;
-            surface = new GEN_SURFACE(*width, *height, 32);
+            surface = new DrawSurface(0, 0, *width, *height, 32, 0);
             Update_Display_Dimensions(nullptr);
             Debug_Info_Movie("LibVlc_MovieInflight: surface created: %s", path.c_str());
         }

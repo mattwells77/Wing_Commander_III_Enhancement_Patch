@@ -452,8 +452,10 @@ static BOOL DrawVideoFrame(VIDframe* vidFrame, RGBQUAD* tBuff, UINT tWidth, DWOR
     if (!surface_movieXAN || width != surface_movieXAN->GetWidth() || height != surface_movieXAN->GetHeight()) {
         if (surface_movieXAN)
             delete surface_movieXAN;
-        surface_movieXAN = new GEN_SURFACE(width, height, 8);
-        surface_movieXAN->ScaleToScreen(scale_type);
+        surface_movieXAN = new DrawSurface8_RT(0, 0, width, height, 32, 0x00000000, false, 0);
+        surface_movieXAN->ScaleTo((float)clientWidth, (float)clientHeight, scale_type);
+        if (!*p_wc3_movie_no_interlace)
+            surface_movieXAN->Set_Default_SamplerState(pd3dPS_SamplerState_Point);
         Debug_Info("surface_movieXAN created");
     }
     //Debug_Info("%X,%X,%X,%X,%X,%X,%X,%X,%X,%X,%X", vidFrame->unknown00, vidFrame->unknown04, vidFrame->unknown08, vidFrame->width, vidFrame->height, vidFrame->unknown14, vidFrame->bitFlag, vidFrame->unknown1C, vidFrame->unknown20, vidFrame->unknown24);
@@ -554,7 +556,7 @@ static void __fastcall Set_Space_View_POV1(void* p_space_class) {
     //        p_cockpit_class2[8], p_cockpit_class2[9], p_cockpit_class2[10], p_cockpit_class2[11], p_cockpit_class2[12], p_cockpit_class2[13], p_cockpit_class2[14], p_cockpit_class2[15]);
     //}
     
-    surface_space2D->ScaleToScreen(scale_type);
+    surface_space2D->ScaleTo((float)clientWidth, (float)clientHeight, scale_type);
 }
 
 
@@ -610,7 +612,8 @@ static void __fastcall Set_Space_View_POV3(void* p_space_class, DRAW_BUFFER_MAIN
             is_cockpit_view = TRUE;
     }
     else
-        surface_space2D->ScaleToScreen(SCALE_TYPE::fit);// dont alter the scale type when drawing rear view vdu.
+        surface_space2D->ScaleTo((float)clientWidth, (float)clientHeight, SCALE_TYPE::fit);// dont alter the scale type when drawing rear view vdu.
+
 
     p_view_vars[4] = width;
     p_view_vars[5] = height;
@@ -1434,8 +1437,8 @@ static LRESULT Update_Mouse_State(HWND hwnd, UINT Message, WPARAM wParam, LPARAM
             float fx = 0;
             float fy = 0;
             surface_gui->GetPosition(&fx, &fy);
-            x = (LONG)((x - fx) * GUI_WIDTH / surface_gui->GetDisplayWidth());
-            y = (LONG)((y - fy) * GUI_HEIGHT / surface_gui->GetDisplayHeight());
+            x = (LONG)((x - fx) * GUI_WIDTH / surface_gui->GetScaledWidth());
+            y = (LONG)((y - fy) * GUI_HEIGHT / surface_gui->GetScaledHeight());
         }
         else {
             x = x * GUI_WIDTH / clientWidth;
@@ -1479,8 +1482,8 @@ static BOOL Set_Mouse_Position(LONG x, LONG y) {
             float fheight = (float)clientHeight;
             if (surface_gui) {
                 surface_gui->GetPosition(&fx, &fy);
-                fwidth = surface_gui->GetDisplayWidth();
-                fheight = surface_gui->GetDisplayHeight();
+                fwidth = surface_gui->GetScaledWidth();
+                fheight = surface_gui->GetScaledHeight();
             }
 
             fx += x * fwidth / GUI_WIDTH;
@@ -1543,8 +1546,8 @@ static BOOL Update_Cursor_Position(LONG x, LONG y) {
                 float fx = 0;
                 float fy = 0;
                 surface_gui->GetPosition(&fx, &fy);
-                x = (LONG)((x - fx) * GUI_WIDTH / surface_gui->GetDisplayWidth());
-                y = (LONG)((y - fy) * GUI_HEIGHT / surface_gui->GetDisplayHeight());
+                x = (LONG)((x - fx) * GUI_WIDTH / surface_gui->GetScaledWidth());
+                y = (LONG)((y - fy) * GUI_HEIGHT / surface_gui->GetScaledHeight());
             }
             else {
                 x = x * GUI_WIDTH / clientWidth;

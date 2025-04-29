@@ -112,13 +112,20 @@ COLOUR_BUFF_DATA inflight_colour_options_buff;
 
 
 PAL_DX* main_pal = nullptr;
-GEN_SURFACE* surface_gui = nullptr;
-GEN_SURFACE* surface_space3D = nullptr;
-GEN_SURFACE* surface_space2D = nullptr;
-GEN_SURFACE* surface_movieXAN = nullptr;
+DrawSurface8_RT* surface_gui = nullptr;
+DrawSurface* surface_space3D = nullptr;
+DrawSurface8_RT* surface_space2D = nullptr;
+DrawSurface8_RT* surface_movieXAN = nullptr;
 
 RenderTarget* rt_display = nullptr;
 RenderTarget* rt_Movie = nullptr;
+
+
+//___________________________________________
+void Shader_SetPaletteData(XMFLOAT4 pal_data) {
+    if (palette_buff_data)
+        palette_buff_data->UpdateData(g_d3dDeviceContext, 0, &pal_data);
+}
 
 
 //___________________________________________________________________________
@@ -187,16 +194,19 @@ void Palette_Update(BYTE* p_pal_buff, WORD offset, DWORD num_entries) {
 static void Surfaces_Setup(UINT width, UINT height) {
 
     if (surface_gui == nullptr) {
-        surface_gui = new GEN_SURFACE(GUI_WIDTH, GUI_HEIGHT, 8);
-        surface_gui->ScaleToScreen(SCALE_TYPE::fit);
+        surface_gui = new DrawSurface8_RT(0, 0, GUI_WIDTH, GUI_HEIGHT, 32, 0x00000000, true, 0);
+        surface_gui->ScaleTo((float)width, (float)height, SCALE_TYPE::fit);
+        if (!ConfigReadInt(L"MAIN", L"ENABLE_LINEAR_UPSCALING_GUI", CONFIG_MAIN_ENABLE_LINEAR_UPSCALING_GUI))
+            surface_gui->Set_Default_SamplerState(pd3dPS_SamplerState_Point);
     }
     if (surface_space2D == nullptr) {
-        surface_space2D = new GEN_SURFACE(GUI_WIDTH, GUI_HEIGHT, 8);
-        surface_space2D->ScaleToScreen(SCALE_TYPE::fill);
+        surface_space2D = new DrawSurface8_RT(0, 0, GUI_WIDTH, GUI_HEIGHT, 32, 0x00000000, true, 255);
+        surface_space2D->ScaleTo((float)width, (float)height, SCALE_TYPE::fill);
+        if (!ConfigReadInt(L"MAIN", L"ENABLE_LINEAR_UPSCALING_COCKPIT_HUD", CONFIG_MAIN_ENABLE_LINEAR_UPSCALING_COCKPIT_HUD))
+            surface_space2D->Set_Default_SamplerState(pd3dPS_SamplerState_Point);
     }
     if (surface_space3D == nullptr) {
-        surface_space3D = new GEN_SURFACE(width, height, 8);
-        surface_space3D->ScaleToScreen(SCALE_TYPE::none);
+        surface_space3D = new DrawSurface(0, 0, width, height, 8, 0x00000000);
     }
     Debug_Info("Surfaces_Setup Done");
 }
@@ -206,18 +216,17 @@ static void Surfaces_Setup(UINT width, UINT height) {
 static void Surfaces_Resize(UINT width, UINT height) {
 
     if (surface_gui)
-        surface_gui->ScaleToScreen();
+        surface_gui->ScaleTo((float)width, (float)height);
 
     if (surface_movieXAN)
-        surface_movieXAN->ScaleToScreen();
+        surface_movieXAN->ScaleTo((float)width, (float)height);
 
     if (surface_space2D)
-        surface_space2D->ScaleToScreen();
+        surface_space2D->ScaleTo((float)width, (float)height);
 
     if (surface_space3D)
         delete surface_space3D;
-    surface_space3D = new GEN_SURFACE(width, height, 8);
-    surface_space3D->ScaleToScreen(SCALE_TYPE::none);
+    surface_space3D = new DrawSurface(0, 0, width, height, 8, 0x00000000);
 
     Debug_Info("Surfaces_Resize Done - space w:%d, h:%d", surface_space3D->GetWidth(), surface_space3D->GetHeight());
 }
@@ -250,10 +259,9 @@ static void Surfaces_Destroy() {
 void MovieRT_SetRenderTarget() {
 
     if (!rt_Movie)
-        rt_Movie = new RenderTarget(0, 0, clientWidth, clientHeight, DXGI_FORMAT_B8G8R8A8_UNORM, 0xFFFF0000);
+        rt_Movie = new RenderTarget(0, 0, clientWidth, clientHeight, 32, 0x00000000);
 
-    float colour[4]{ 0.0f,0.0f,0.0f,0.0f };
-    rt_Movie->ClearRenderTarget(g_d3dDepthStencilView, colour);
+    rt_Movie->ClearRenderTarget(g_d3dDepthStencilView);
     rt_Movie->SetRenderTarget(g_d3dDepthStencilView);
 }
 
@@ -262,8 +270,7 @@ void MovieRT_Clear() {
 
     if (!rt_Movie)
         return;
-    float colour[4]{ 0.0f,0.0f,0.0f,0.0f };
-    rt_Movie->ClearRenderTarget(g_d3dDepthStencilView, colour);
+    rt_Movie->ClearRenderTarget(g_d3dDepthStencilView);
 }
 
 
@@ -279,8 +286,8 @@ static void RenderTargets_Destroy() {
 }
 
 
-//________________________________
-GEN_SURFACE* Get_Space2D_Surface() {
+//____________________________________
+DrawSurface8_RT* Get_Space2D_Surface() {
     return surface_space2D;
 }
 
@@ -298,10 +305,9 @@ void Display_Dx_Present(PRESENT_TYPE present_type) {
     g_d3dDeviceContext->ClearDepthStencilView(g_d3dDepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
 
     if (!rt_display)
-        rt_display = new RenderTarget(0, 0, clientWidth, clientHeight, DXGI_FORMAT_B8G8R8A8_UNORM, 0xFFFF0000);
+        rt_display = new RenderTarget(0, 0, clientWidth, clientHeight, 32, 0x00000000);
 
-    colour[0] = 0.0f, colour[1] = 0.0f, colour[2] = 0.0f, colour[3] = 0.0f;
-    rt_display->ClearRenderTarget(g_d3dDepthStencilView, colour);
+    rt_display->ClearRenderTarget(g_d3dDepthStencilView);
     rt_display->SetRenderTarget(g_d3dDepthStencilView);
 
     Set_ViewPort(clientWidth, clientHeight);
@@ -324,8 +330,7 @@ void Display_Dx_Present(PRESENT_TYPE present_type) {
             pMovie_vlc_Inflight->Display();
 
         if (surface_space2D) {
-            palette_buff_data->UpdateData(g_d3dDeviceContext, 0, &pal_mask_cockpit_hud);
-            surface_space2D->Display(pd3d_PS_Basic_Tex_8_masked);
+            surface_space2D->Display();
         }
     }
     else {
@@ -334,8 +339,7 @@ void Display_Dx_Present(PRESENT_TYPE present_type) {
                 rt_Movie->Display();
         }
         if (surface_gui) {
-            palette_buff_data->UpdateData(g_d3dDeviceContext, 0, &pal_mask_movie_text);
-            surface_gui->Display(pd3d_PS_Basic_Tex_8_masked);
+            surface_gui->Display();
         }
     }
 

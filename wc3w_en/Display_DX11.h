@@ -129,6 +129,7 @@ bool CreateQuadVB(ID3D11Device* pD3DDev, unsigned int width, unsigned int height
 bool Shader_Main_Setup();
 void Shader_Main_Destroy();
 
+void Shader_SetPaletteData(DirectX::XMFLOAT4 pal_data);
 
 class BUFFER_DX {
 public:
@@ -446,10 +447,10 @@ public:
     };
     void SetBackGroungColour(DWORD in_bgColour) {
         bg_Colour = in_bgColour;
-        bg_Colour_f[0] = ((bg_Colour & 0xFF000000) >> 24) / 256.0f;
-        bg_Colour_f[1] = ((bg_Colour & 0x00FF0000) >> 16) / 256.0f;
-        bg_Colour_f[2] = ((bg_Colour & 0x0000FF00) >> 8) / 256.0f;
-        bg_Colour_f[3] = ((bg_Colour & 0x000000FF)) / 256.0f;
+        bg_Colour_f[3] = ((bg_Colour & 0xFF000000) >> 24) / 256.0f;
+        bg_Colour_f[2] = ((bg_Colour & 0x00FF0000) >> 16) / 256.0f;
+        bg_Colour_f[1] = ((bg_Colour & 0x0000FF00) >> 8) / 256.0f;
+        bg_Colour_f[0] = ((bg_Colour & 0x000000FF)) / 256.0f;
     }
     ID3D11ShaderResourceView* GetShaderResourceView() {
         return pTex_shaderResourceView;
@@ -899,107 +900,96 @@ private:
 };
 
 
-///ddraw dummy structures, for the basic requirements here.-----------------------------------
-typedef struct _DUMMY_DDSURFACEDESC   FAR* LPDDSURFACEDESC;
-typedef void FAR* LPDDBLTFX;//unused here.
 
-typedef struct _DDPIXELFORMAT {
-    DWORD       dwSize;                 // size of the structure
-    DWORD       dwFlags;                // unused here.
-    DWORD       dwFourCC;               // unused here.
-    DWORD       dwRGBBitCount;          // how many bits per pixel
-    DWORD       dwRBitMask;             // unused here.
-    DWORD       dwGBitMask;             // unused here.
-    DWORD       dwBBitMask;             // unused here.
-    DWORD       dwRGBAlphaBitMask;      // unused here.
-} DDPIXELFORMAT;
-
-
-typedef struct _DUMMY_DDSURFACEDESC {
-    DWORD           dwSize;                 // size of the structure
-    DWORD           dwFlags;                // unused here.
-    DWORD           dwHeight;               // height of surface to be created
-    DWORD           dwWidth;                // width of input surface
-    LONG            lPitch;                 // distance to start of next line (return value only)
-    DWORD           dwBackBufferCount;      // unused here.
-    DWORD           dwMipMapCount;          // unused here.
-    DWORD           dwAlphaBitDepth;        // unused here.
-    DWORD           dwReserved;             // reserved
-    LPVOID          lpSurface;              // pointer to the associated surface memory
-    DWORD           colorKeySec1a;          // color key section filler
-    DWORD           colorKeySec1b;          // color key section filler
-    DWORD           colorKeySec2a;          // color key section filler
-    DWORD           colorKeySec2b;          // color key section filler
-    DWORD           colorKeySec3a;          // color key section filler
-    DWORD           colorKeySec3b;          // color key section filler
-    DWORD           colorKeySec4a;          // color key section filler
-    DWORD           colorKeySec4b;          // color key section filler
-    DDPIXELFORMAT   ddpfPixelFormat;        // pixel format description of the surface
-    DWORD           dwCaps;                 // dwCaps section filler
-} DDSURFACEDESC;
-//------------------------------------------------------------------------------------------------
-
-
-
-
-class GEN_SURFACE : public BASE_VERTEX_DX, public BASE_TEXTURE_DX, public BASE_POSITION_DX {
+class BASE_DISPLAY_SURFACE : public BASE_VERTEX_DX, public BASE_TEXTURE_DX, public BASE_POSITION_DX {
 public:
-    GEN_SURFACE(DDSURFACEDESC* DDSurfaceDesc, GEN_SURFACE** plp_GEN_SURFACE) :
+    BASE_DISPLAY_SURFACE(float inX, float inY, DWORD inWidth, DWORD inHeight, DWORD in_colour_bits, DWORD in_bgColour, bool isRenderTarget, bool hasStagingTexture) :
         BASE_VERTEX_DX(),
-        BASE_TEXTURE_DX(0x00000000),
-        BASE_POSITION_DX(0, 0, 1, false)
+        BASE_TEXTURE_DX(in_bgColour),
+        BASE_POSITION_DX(inX, inY, 1, false)
     {
+        scale_type = SCALE_TYPE::none;
+        scaled_Width = (float)width * scaleX;
+        scaled_Height = (float)height * scaleY;
+        p_pixel_shader = nullptr;
+        p_sampler_state = pd3dPS_SamplerState_Linear;
         DXGI_FORMAT dxgi_Format = DXGI_FORMAT_UNKNOWN;
-        if (DDSurfaceDesc->ddpfPixelFormat.dwRGBBitCount == 8)
+        if (in_colour_bits == 8) {
             dxgi_Format = DXGI_FORMAT_R8_UNORM;
-        else if (DDSurfaceDesc->ddpfPixelFormat.dwRGBBitCount == 16)
-            dxgi_Format = DXGI_FORMAT_B5G5R5A1_UNORM;
-        else
-            dxgi_Format = DXGI_FORMAT_B8G8R8A8_UNORM;
-
-        SetBaseDimensions(DDSurfaceDesc->dwWidth, DDSurfaceDesc->dwHeight);
-        if (!CreateVerticies())
-            Debug_Info_Error("Failed GEN_SURFACE CreateVerticies.");
-        if (!Texture_Initialize(dxgi_Format, false, true))
-            Debug_Info_Error("Failed GEN_SURFACE CreateTexture.");
-        display_w = (float)width;
-        display_h = (float)height;
-        current_scale_type = SCALE_TYPE::none;
-        //ScaleToScreen();
-        if(plp_GEN_SURFACE)
-            *plp_GEN_SURFACE = this;
-    };
-    GEN_SURFACE(DWORD in_width, DWORD in_height, DWORD in_colour_bits) :
-        BASE_VERTEX_DX(),
-        BASE_TEXTURE_DX(0x00000000),
-        BASE_POSITION_DX(0, 0, 1, false)
-    {
-        DXGI_FORMAT dxgi_Format = DXGI_FORMAT_UNKNOWN;
-        if (in_colour_bits == 8)
-            dxgi_Format = DXGI_FORMAT_R8_UNORM;
+            p_pixel_shader = pd3d_PS_Basic_Tex_8;
+            p_sampler_state = pd3dPS_SamplerState_Point;
+        }
         else if (in_colour_bits == 16)
             dxgi_Format = DXGI_FORMAT_B5G5R5A1_UNORM;
-        else
+        else {
             dxgi_Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+            p_pixel_shader = pd3d_PS_Basic_Tex_32;
+        }
 
-        SetBaseDimensions(in_width, in_height);
+        SetBaseDimensions(inWidth, inHeight);
         if (!CreateVerticies())
-            Debug_Info_Error("Failed GEN_SURFACE CreateVerticies.");
-        if (!Texture_Initialize(dxgi_Format, false, true))
-            Debug_Info_Error("Failed GEN_SURFACE CreateTexture.");
-        //ScaleToScreen();
-        display_w = (float)width;
-        display_h = (float)height;
-        current_scale_type = SCALE_TYPE::none;
+            Debug_Info_Error("Failed RenderTarget CreateVerticies.");
+        if (!Texture_Initialize(dxgi_Format, isRenderTarget, hasStagingTexture))
+            Debug_Info_Error("Failed RenderTarget CreateTexture.");
+        //SetMatrices();
     };
-    ~GEN_SURFACE() {
+    ~BASE_DISPLAY_SURFACE() {
+    };
+    void Set_Default_SamplerState(ID3D11SamplerState* in_p_sampler_state) { p_sampler_state = in_p_sampler_state; };
+    void Set_Default_Pixel_Shader(ID3D11PixelShader* in_p_pixel_shader) { p_pixel_shader = in_p_pixel_shader; };
+    void Display() { Display(p_pixel_shader); };
+    void Display(ID3D11PixelShader* pd3d_PixelShader);
+
+    void ScaleTo(float in_width, float in_height);
+    void ScaleTo(float in_width, float in_height, SCALE_TYPE in_scale_type) {
+        scale_type = in_scale_type;
+        ScaleTo(in_width, in_height);
+    };
+  
+    float GetScaledWidth() const { return (float)width * scaleX; };
+    float GetScaledHeight() const { return height * scaleY; };
+protected:
+    ID3D11PixelShader* p_pixel_shader;
+    ID3D11SamplerState* p_sampler_state;
+    float scaled_Width;
+    float scaled_Height;
+    SCALE_TYPE scale_type;
+private:
+    
+};
+
+
+
+class RenderTarget : public BASE_DISPLAY_SURFACE {
+public:
+    RenderTarget(float inX, float inY, DWORD inWidth, DWORD inHeight, DWORD in_colour_bits, DWORD in_bgColour) :
+        BASE_DISPLAY_SURFACE(inX, inY, inWidth, inHeight, in_colour_bits, in_bgColour, true, false)
+    {
+        SetMatrices();
+    };
+    ~RenderTarget() {
+    };
+protected:
+private:
+};
+
+
+
+class DrawSurface : public BASE_DISPLAY_SURFACE {
+public:
+    DrawSurface(float inX, float inY, DWORD inWidth, DWORD inHeight, DWORD in_colour_bits, DWORD in_bgColour) :
+        BASE_DISPLAY_SURFACE(inX, inY, inWidth, inHeight, in_colour_bits, in_bgColour, false, true)
+    {
+        SetMatrices();
+    };
+    ~DrawSurface() {
     };
     HRESULT Lock(VOID** lpSurface, LONG* p_lPitch) {
         HRESULT result;
         D3D11_MAPPED_SUBRESOURCE mappedResource;
         result = pD3DDevContext->Map(pTex_Staging, 0, D3D11_MAP_WRITE, 0, &mappedResource);
-        if(lpSurface)
-        *lpSurface = mappedResource.pData;
+        if (lpSurface)
+            *lpSurface = mappedResource.pData;
         *p_lPitch = mappedResource.RowPitch;
         return result;
     };
@@ -1015,7 +1005,7 @@ public:
         LONG pitch = 0;
         if (Lock(&pSurface, &pitch) != S_OK)
             return FALSE;
-        if(pixelWidth == 1)
+        if (pixelWidth == 1)
             memset(pSurface, (BYTE)colour, pitch * height);
         else if (pixelWidth == 2) {
             DWORD size = pitch / 2 * height;
@@ -1036,56 +1026,89 @@ public:
         Unlock();
         return TRUE;
     }
-    void Display();
-    void Display(ID3D11PixelShader* pd3d_PixelShader);
-    void ScaleToScreen();
-    void ScaleToScreen(SCALE_TYPE scale_type);
-    float GetDisplayWidth() const { return display_w; };
-    float GetDisplayHeight() const { return display_h; };
+protected:
+
 private:
-    float display_w = 0;
-    float display_h = 0;
-    SCALE_TYPE current_scale_type;
 };
 
 
-
-class RenderTarget : public BASE_VERTEX_DX, public BASE_TEXTURE_DX, public BASE_POSITION_DX {
+class DrawSurface8 : public DrawSurface {
 public:
-    RenderTarget(float inX, float inY, DWORD inWidth, DWORD inHeight, DXGI_FORMAT in_dxgiFormat, DWORD in_bgColour) :
-        BASE_VERTEX_DX(),
-        BASE_TEXTURE_DX(in_bgColour),
-        BASE_POSITION_DX(inX, inY, 1, false)
+    DrawSurface8(DWORD inWidth, DWORD inHeight, bool has_mask_colour, BYTE pal_mask_offset) :
+        DrawSurface(0, 0, inWidth, inHeight, 8, 0)
     {
-        SetBaseDimensions(inWidth, inHeight);
-        opaqueness = 1.0f;
-        if (!CreateVerticies())
-            Debug_Info_Error("Failed RenderTarget CreateVerticies.");
-        if (!Texture_Initialize(in_dxgiFormat, true, false))
-            Debug_Info_Error("Failed RenderTarget CreateTexture.");
+        if (has_mask_colour)
+            p_pixel_shader = pd3d_PS_Basic_Tex_8_masked;
+        mask_colour = { pal_mask_offset / 255.0f,0.0f,0.0f,0.0f };
         SetMatrices();
     };
-    ~RenderTarget() {
+    ~DrawSurface8() {
     };
-    //void ClearRect(DirectX::XMFLOAT4 colour, RECT* pRect);
-    void SetOpaqueness(float inOpaqueness) {
-        opaqueness = inOpaqueness;
+    void Display_Masked() { 
+        Shader_SetPaletteData(mask_colour); 
+        Display(p_pixel_shader);
     };
-    float GetOpaqueness() const { return opaqueness; };
-    void Display();
-    void Display(ID3D11PixelShader* pd3d_PixelShader);
+protected:
+    void SetMatrices() {
+        MATRIX_DATA posData{};
+        DirectX::XMMATRIX Ortho2D;
+        GetOrthoMatrix(&Ortho2D);
+        posData.World = DirectX::XMMatrixTranslation(0, 0, (float)0.0f);
+        posData.WorldViewProjection = XMMatrixMultiply(posData.World, Ortho2D);
+        UpdatePositionData(0, &posData);
+    };
+private:
+    DirectX::XMFLOAT4 mask_colour;
+};
+
+
+
+class DrawSurface8_RT : public RenderTarget {
+public:
+    DrawSurface8_RT(float inX, float inY, DWORD inWidth, DWORD inHeight, DWORD in_colour_bits, DWORD in_bgColour, bool has_mask, BYTE pal_mask_offset) :
+        RenderTarget(inX, inY, inWidth, inHeight, in_colour_bits, in_bgColour)
+    {
+        
+        staging = new DrawSurface8(width, height, has_mask, pal_mask_offset);
+    };
+    ~DrawSurface8_RT() {
+        delete staging;
+    };
+
+    HRESULT Lock(VOID** lpSurface, LONG* p_lPitch) {
+        return staging->Lock(lpSurface, p_lPitch);
+    }
+    HRESULT Unlock() {
+        HRESULT result = staging->Unlock();
+
+        ID3D11DepthStencilView* p_depthStencilView = GetDepthStencilView();
+        ClearRenderTarget(p_depthStencilView);
+        SetRenderTarget(p_depthStencilView);
+
+
+        staging->Display_Masked();
+
+        return result;
+    };
+    BOOL Clear_Texture(DWORD colour) {
+        staging->Clear_Texture(colour);
+        ClearRenderTarget(GetDepthStencilView());
+        return TRUE;
+    };
 protected:
 private:
-    float opaqueness;
+    DrawSurface8* staging;
+   
 };
+
 
 extern UINT clientWidth;
 extern UINT clientHeight;
 
-extern GEN_SURFACE* surface_gui;
-extern GEN_SURFACE* surface_space3D;
-extern GEN_SURFACE* surface_space2D;
-extern GEN_SURFACE* surface_movieXAN;
+extern DrawSurface8_RT* surface_gui;
+extern DrawSurface* surface_space3D;
+extern DrawSurface8_RT* surface_space2D;
+extern DrawSurface8_RT* surface_movieXAN;
 
 extern BOOL is_cockpit_view;
 extern BOOL is_POV3_view;
@@ -1102,7 +1125,7 @@ void Palette_Update(BYTE* p_pal_buff, WORD offset, DWORD num_entries);
 void MovieRT_SetRenderTarget();
 void MovieRT_Clear();
 
-GEN_SURFACE* Get_Space2D_Surface();
+DrawSurface8_RT* Get_Space2D_Surface();
 
 BOOL Display_Dx_Setup(HWND hwnd, UINT width, UINT height);
 void Display_Dx_Destroy();
