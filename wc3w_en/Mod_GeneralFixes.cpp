@@ -347,6 +347,111 @@ static void __declspec(naked) build_save_names_file(void) {
 }
 
 
+
+/*
+ACM Tail
+    DWORD Identifier;//0x00  = ACM!
+    DWORD data_size;//0x04
+    WORD  sample_rate;//0x08 (in hertz)
+    WORD  bits_per_sample;//0x0A
+    WORD  num_channels;//0x0C, 1 channel == 0, 
+
+audio_format_struct, seems to be similar to wav format structure.
+    WORD  audio_format?//0x00
+    WORD  num_channels?//0x02
+    DWORD sample_rate;//0x04 (in hertz)
+    DWORD bytes_per_sec?//0x08
+    WORD  bytes_per_block?//0x0C
+    WORD  bits_per_sample;// 0x0E
+    WORD  unk_10;
+*/
+struct AUDIO_DATA_STRUCT {
+    DWORD unk_00;
+    void* p_data_ptr;//0x04
+    DWORD unk_08;
+    DWORD unk_0C;//set to 0
+    DWORD unk_10;
+    DWORD data_size;//0x14
+    DWORD flags;//0x18
+    DWORD unk_1C;
+};
+
+
+//____________________________________________________________________________________________________________________
+static void Check_And_Set_Wav_Audio_Data(void* file_struct, AUDIO_DATA_STRUCT* data_struct, void* audio_format_struct) {
+
+    DWORD file_size = ((DWORD*)file_struct)[0];
+    void* file_data_ptr = (void*)((DWORD*)file_struct)[5];
+
+
+    if (((DWORD*)file_data_ptr)[0] != 0x46464952) //RIFF
+            wc3_error_message_box("Neither ACM! tail or WAV header info were found: 0x%x", ((DWORD*)file_struct)[1]);
+
+    //data_struct->data_size = file_size - 44;
+    data_struct->p_data_ptr = (BYTE*)file_data_ptr + 44;
+
+    //copy the wav format structure.
+    memcpy(audio_format_struct, (BYTE*)file_data_ptr + 20, 16);
+
+    Debug_Info("sound has WAV format - sample rate:%dHz, bits per sample:%d, num channels:%d", ((DWORD*)audio_format_struct)[1], ((WORD*)audio_format_struct)[7], ((WORD*)audio_format_struct)[1]);
+}
+
+
+//______________________________________________________________
+static void __declspec(naked) check_and_set_wav_audio_data(void) {
+
+    __asm {
+        pushad
+
+        push edx
+        push esi
+        push ebp
+        call Check_And_Set_Wav_Audio_Data
+        add esp, 0x0C
+
+        popad
+
+        ret
+    }
+}
+
+
+//____________________________________________________
+static void __declspec(naked) check_audio_format(void) {
+    //[ebp] holds the data size.
+    //ebx holds the expected data size, minus the ACM tail.
+    //[ebp+0x14] holds the data pointer.
+    //edi holds the expected pointer within the data to the ACM tail.
+    
+    __asm {
+        xor eax, eax
+        mov edx, dword ptr ss:[ebp+0x14]
+        cmp dword ptr ds:[edx], 0x46464952//RIFF
+        jne cheak_acm
+
+        sub ebx, 0x2C   //adjust data size to exclude size of wav header
+        mov eax, -1     //set format as NOT an ACM, but still check is ACM tail is present to fix the second sound(ref 0x15) in the German version of the file "VICD2.IFF". Which has both a WAV header and ACM tail.
+
+        cheak_acm:
+        cmp dword ptr ds:[edi], 0x214D4341//ACM!
+        je is_acm
+
+        //fix for the third sound(ref 0x1A) in the German version of the file "VICD2.IFF". The header position is off by one.  
+        //retry the acm check after subtracting the pointer position by one.
+        sub edi, 1
+        sub ebx, 1
+        cmp dword ptr ds:[edi], 0x214D4341//ACM!
+        je is_acm
+
+        add ebx, 0x23   //add the size of the ACM tail back to the data size, as it was not found.
+        mov eax, -1     //set format as NOT an ACM.
+
+        is_acm:
+        ret
+    }
+}
+
+
 //_______________________________
 void Modifications_GeneralFixes() {
 
@@ -381,4 +486,19 @@ void Modifications_GeneralFixes() {
     MemWrite16(0x4098A0, 0xEC81, 0xE990);
     FuncWrite32(0x4098A2, 0x02B4, (DWORD)&build_save_names_file);
     //------------------------------------------------------------
+
+
+
+    //--------German-Audio-Fix-And-WAV-Format-Support-------------
+    FuncReplace32(0x438BF7, 0x058285, (DWORD)&check_audio_format);
+    //skip the No ACM tail error box.
+    MemWrite8(0x438C0D, 0xE8, 0x90);
+    MemWrite32(0x438C0E, 0x03769E, 0x90909090);
+    //check and set WAV audio data or reestablish error box if not.
+    MemWrite16(0x438C84, 0xC766, 0xE890);
+    FuncWrite32(0x438C86, 0x00080E42, (DWORD)&check_and_set_wav_audio_data);
+    //skip forced 16bit audio format selection.
+    MemWrite8(0x438C91, 0x74, 0xEB);
+    //------------------------------------------------------------
+
 }

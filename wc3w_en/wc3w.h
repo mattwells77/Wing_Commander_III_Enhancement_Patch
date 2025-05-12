@@ -302,3 +302,5 @@ extern void(__thiscall*wc3_set_music_volume)(void*, LONG level);
 
 extern void*(*wc3_allocate_mem_main)(DWORD);
 extern void(*wc3_deallocate_mem_main)(void*);
+
+extern void(*wc3_error_message_box)(const char* format, ...);

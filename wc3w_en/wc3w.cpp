@@ -180,6 +180,8 @@ void(__thiscall*wc3_set_music_volume)(void*, LONG level) = nullptr;
 void* (*wc3_allocate_mem_main)(DWORD) = nullptr;
 void(*wc3_deallocate_mem_main)(void*) = nullptr;
 
+void(*wc3_error_message_box)(const char* format, ...);
+
 //_______________
 void WC3W_Setup() {
 
@@ -343,4 +345,6 @@ void WC3W_Setup() {
     p_wc3_movie_no_interlace = (bool*)0x49F73C;
 
     p_wc3_movie_branch_subtitle = (char**)0x4AAA80;
+
+    wc3_error_message_box = (void(*)(const char*, ...))0x4702B0;
 }
