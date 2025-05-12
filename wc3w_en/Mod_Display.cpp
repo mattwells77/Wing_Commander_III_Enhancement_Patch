@@ -1391,10 +1391,22 @@ static void __declspec(naked) winproc_movie_message_check(void) {
 }
 
 
+//_______________________________________
+static void Check_Optional_Enhancements() {
+
+    if (ConfigReadInt(L"MAIN", L"ENABLE_CONTROLLER_ENHANCEMENTS", CONFIG_MAIN_ENABLE_CONTROLLER_ENHANCEMENTS))
+        Modifications_Joystick();
+    //Joysticks.Update();
+}
+
 //______________________________________________________
 static void __declspec(naked) check_no_full_screen(void) {
 
     __asm {
+        pushad
+        call Check_Optional_Enhancements
+        popad
+        
         //set *p_wc3_is_windowed var depending on "-no_full_screen" command line arg.
         cmp eax, 0
         je no_full_screen

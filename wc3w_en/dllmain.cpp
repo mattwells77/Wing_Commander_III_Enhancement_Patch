@@ -30,7 +30,7 @@ HINSTANCE phinstDLL;
 
 //______________________
 static void Initialize() {
-    Modifications_Joystick();
+    //Modifications_Joystick();
     Modifications_Display();
     Modifications_GeneralFixes();
     WC3W_Setup();

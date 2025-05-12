@@ -376,6 +376,7 @@ public:
 		joysticks = {};
 		setup = false;
 		deadzone = 0;
+		concurrency::critical_section::scoped_lock s0{ controllerListLock };
 		//Setup();
 	}
 	~JOYSTICKS() {
@@ -423,7 +424,7 @@ protected:
 private:
 	std::vector<JOYSTICK*> joysticks;
 	concurrency::critical_section controllerListLock;
-	std::mutex mut1;
+	//std::mutex mut1;
 
 	bool setup;
 	int deadzone;
