@@ -1729,9 +1729,10 @@ static BOOL Play_Movie_Sequence(void* p_wc3_movie_class, void* p_sig_movie_class
                 if (!movie_state.hasPlayed) {
                     Debug_Info_Error("Play_Movie_Sequence: ended BAD, branch:%d, listnum:%d", movie_state.branch, movie_state.list_num);
                     //if branch failed to play, shift to the current branch position so the rest of the movie can be played out using the original player.
-                    if (wc3_movie_set_position(p_wc3_movie_class, p_wc3_movie_branch_list[movie_state.list_num]) == FALSE)
+                    if (wc3_movie_set_position(p_wc3_movie_class, p_wc3_movie_branch_list[movie_state.list_num]) == FALSE) 
                         Debug_Info_Error("Play_Movie_Sequence: wc3_movie_set_position Failed, branch:%d", p_wc3_movie_branch_list[movie_state.list_num]);
-                    play_successfull = FALSE;
+                    else
+                        play_successfull = FALSE;//Only set false if wc3_movie_set_position succeeds. 
                 }
                 else
                     Debug_Info_Movie("Play_Movie_Sequence: ended OK, branch:%d, listnum:%d", movie_state.branch, movie_state.list_num);
