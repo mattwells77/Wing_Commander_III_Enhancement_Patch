@@ -183,7 +183,7 @@ static void Palette_Destroy() {
 
 
 //___________________________________________________________________
-void Palette_Update(BYTE* p_pal_buff, WORD offset, DWORD num_entries) {
+void Palette_Update(BYTE* p_pal_buff, BYTE offset, DWORD num_entries) {
 
     if (main_pal)
         main_pal->SetPalEntries(p_pal_buff, offset, num_entries);

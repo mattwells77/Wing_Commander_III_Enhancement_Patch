@@ -1120,7 +1120,7 @@ extern BOOL is_nav_view;
 void Set_ViewPort(long width, long height);
 void Set_ViewPort(float x, float y, float width, float height);
 
-void Palette_Update(BYTE* p_pal_buff, WORD offset, DWORD num_entries);
+void Palette_Update(BYTE* p_pal_buff, BYTE offset, DWORD num_entries);
 
 void MovieRT_SetRenderTarget();
 void MovieRT_Clear();
