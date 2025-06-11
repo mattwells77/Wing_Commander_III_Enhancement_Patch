@@ -816,8 +816,11 @@ bool LibVlc_MovieInflight::Play() {
             has_audio = true;
         }
         //set the movie start time
-        if (time_ms_start)
+        if (time_ms_start) {
+            if (mediaPlayer.length() <= time_ms_start)
+                time_ms_start = mediaPlayer.length() - 1;
             mediaPlayer.setTime(time_ms_start);
+        }
 
 
     }
