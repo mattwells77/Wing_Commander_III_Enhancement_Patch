@@ -62,6 +62,9 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 UINT ConfigReadInt(const wchar_t* lpAppName, const wchar_t* lpKeyName, int nDefault);
 BOOL ConfigWriteInt(const wchar_t* lpAppName, const wchar_t* lpKeyName, int intVal);
 
+UINT ConfigReadInt_InGame(const wchar_t* lpAppName, const wchar_t* lpKeyName, int nDefault);
+BOOL ConfigWriteInt_InGame(const wchar_t* lpAppName, const wchar_t* lpKeyName, int intVal);
+
 DWORD ConfigReadString(const wchar_t* lpAppName, const wchar_t* lpKeyName, const wchar_t* lpDefault, wchar_t* lpReturnedString, DWORD nSize);
 BOOL ConfigWriteString(const wchar_t* lpAppName, const wchar_t* lpKeyName, const wchar_t* lpString);
 

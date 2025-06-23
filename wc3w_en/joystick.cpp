@@ -897,7 +897,7 @@ BOOL JOYSTICK::Profile_Save() {
 void JOYSTICKS::Setup() {
 	if (setup)
 		return;
-	Set_Deadzone_Level(ConfigReadInt(L"MAIN", L"DEAD_ZONE", CONFIG_MAIN_DEAD_ZONE));
+	Set_Deadzone_Level(ConfigReadInt_InGame(L"MAIN", L"DEAD_ZONE", CONFIG_MAIN_DEAD_ZONE));
 
 	winrt::init_apartment();
 	//Debug_Info("JOYSTICKS setup");
@@ -1026,7 +1026,7 @@ BOOL JOYSTICKS::Save() {
 			all_good = FALSE;
 	}
 
-	ConfigWriteInt(L"MAIN", L"DEAD_ZONE", deadzone);
+	ConfigWriteInt_InGame(L"MAIN", L"DEAD_ZONE", deadzone);
 
 	return all_good;
 }
@@ -1042,7 +1042,7 @@ BOOL JOYSTICKS::Load() {
 			all_good = FALSE;
 	}
 
-	Set_Deadzone_Level(ConfigReadInt(L"MAIN", L"DEAD_ZONE", CONFIG_MAIN_DEAD_ZONE));
+	Set_Deadzone_Level(ConfigReadInt_InGame(L"MAIN", L"DEAD_ZONE", CONFIG_MAIN_DEAD_ZONE));
 	return all_good;
 }
 

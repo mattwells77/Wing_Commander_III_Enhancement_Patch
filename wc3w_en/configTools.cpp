@@ -112,18 +112,22 @@ const wchar_t* GetAppDataPath() {
 }
 
 
-//___________________________________________
-static void ConfigCreate( bool is_app_folder) {
-    
-    //This setting is only valid in the wc3 app folder.
-    if(is_app_folder)
-        ConfigWriteInt(L"MAIN", L"UAC_AWARE", CONFIG_MAIN_UAC_AWARE);
+//_______________________________
+static void ConfigCreate_InGame() {
 
-    ConfigWriteInt(L"MAIN", L"WINDOWED", CONFIG_MAIN_WINDOWED);
-    ConfigWriteInt(L"MAIN", L"WIN_DATA", CONFIG_MAIN_WIN_DATA);
+    ConfigWriteInt_InGame(L"MAIN", L"WINDOWED", CONFIG_MAIN_WINDOWED);
+    ConfigWriteInt_InGame(L"MAIN", L"WIN_DATA", CONFIG_MAIN_WIN_DATA);
+
+    ConfigWriteInt_InGame(L"MAIN", L"DEAD_ZONE", CONFIG_MAIN_DEAD_ZONE);
+}
+
+
+//________________________
+static void ConfigCreate() {
+    
+    ConfigWriteInt(L"MAIN", L"UAC_AWARE", CONFIG_MAIN_UAC_AWARE);
 
     ConfigWriteInt(L"MAIN", L"ENABLE_CONTROLLER_ENHANCEMENTS", CONFIG_MAIN_ENABLE_CONTROLLER_ENHANCEMENTS);
-    ConfigWriteInt(L"MAIN", L"DEAD_ZONE", CONFIG_MAIN_DEAD_ZONE);
 
     ConfigWriteInt(L"MAIN", L"ENABLE_LINEAR_UPSCALING_GUI", CONFIG_MAIN_ENABLE_LINEAR_UPSCALING_GUI);
     ConfigWriteInt(L"MAIN", L"ENABLE_LINEAR_UPSCALING_COCKPIT_HUD", CONFIG_MAIN_ENABLE_LINEAR_UPSCALING_COCKPIT_HUD);
@@ -154,9 +158,9 @@ static void ConfigCreate( bool is_app_folder) {
 }
 
 
-//____________________________________
-static const wchar_t* Get_ConfigPath() {
-    
+//___________________________________________
+static const wchar_t* Get_ConfigPath_InGame() {
+
     static bool config_path_set = false;
     static wstring wConfigPath;
     if (!config_path_set) {
@@ -171,6 +175,7 @@ static const wchar_t* Get_ConfigPath() {
 
         wConfigPath.append(L"\\");
         wConfigPath.append(VER_PRODUCTNAME_STR);
+        wConfigPath.append(L"_ingame");
         wConfigPath.append(L".ini");
 
         if (GetFileAttributes(wConfigPath.c_str()) == INVALID_FILE_ATTRIBUTES) {
@@ -178,15 +183,37 @@ static const wchar_t* Get_ConfigPath() {
                 wstring local_ini = GetAppPath();
                 local_ini.append(L"\\");
                 local_ini.append(VER_PRODUCTNAME_STR);
+                local_ini.append(L"_ingame");
                 local_ini.append(L".ini");
                 if (GetFileAttributes(local_ini.c_str()) != INVALID_FILE_ATTRIBUTES && CopyFile(local_ini.c_str(), wConfigPath.c_str(), TRUE))
                     return wConfigPath.c_str();
             }
-            ConfigCreate(is_app_folder);
+            ConfigCreate_InGame();
         }
-        //__Debug_Info(0,"ConfigPath: %S", wConfigPath.c_str());
     }
+    return wConfigPath.c_str();
+}
 
+
+//____________________________________
+static const wchar_t* Get_ConfigPath() {
+    
+    static bool config_path_set = false;
+    static wstring wConfigPath;
+    if (!config_path_set) {
+        config_path_set = true;
+
+        wConfigPath.assign(GetAppPath());
+
+        wConfigPath.append(L"\\");
+        wConfigPath.append(VER_PRODUCTNAME_STR);
+        wConfigPath.append(L".ini");
+
+        if (GetFileAttributes(wConfigPath.c_str()) == INVALID_FILE_ATTRIBUTES) {
+
+            ConfigCreate();
+        }
+    }
     return wConfigPath.c_str();
 }
 
@@ -215,6 +242,12 @@ UINT ConfigReadInt(const wchar_t* lpAppName, const wchar_t* lpKeyName, int nDefa
 }
 
 
+//_________________________________________________________________________________________
+UINT ConfigReadInt_InGame(const wchar_t* lpAppName, const wchar_t* lpKeyName, int nDefault) {
+    return GetPrivateProfileInt(lpAppName, lpKeyName, nDefault, Get_ConfigPath_InGame());
+}
+
+
 //_________________________________________________________________________________
 BOOL ConfigWriteInt(const wchar_t* lpAppName, const wchar_t* lpKeyName, int intVal) {
     wchar_t lpString[64]{0};
@@ -223,16 +256,24 @@ BOOL ConfigWriteInt(const wchar_t* lpAppName, const wchar_t* lpKeyName, int intV
 }
 
 
+//________________________________________________________________________________________
+BOOL ConfigWriteInt_InGame(const wchar_t* lpAppName, const wchar_t* lpKeyName, int intVal) {
+    wchar_t lpString[64]{ 0 };
+    swprintf_s(lpString, 64, L"%d", intVal);
+    return WritePrivateProfileString(lpAppName, lpKeyName, lpString, Get_ConfigPath_InGame());
+}
+
+
 //___________________________________________________________________________________________________
 BOOL ConfigReadWinData(const wchar_t* lpAppName, const wchar_t* lpKeyName, WINDOWPLACEMENT* pWinData) {
     pWinData->length = sizeof(WINDOWPLACEMENT);
-    return GetPrivateProfileStruct(lpAppName, lpKeyName, pWinData, sizeof(WINDOWPLACEMENT), Get_ConfigPath());
+    return GetPrivateProfileStruct(lpAppName, lpKeyName, pWinData, sizeof(WINDOWPLACEMENT), Get_ConfigPath_InGame());
 }
 
 
 //____________________________________________________________________________________________________
 BOOL ConfigWriteWinData(const wchar_t* lpAppName, const wchar_t* lpKeyName, WINDOWPLACEMENT* pWinData) {
-    return WritePrivateProfileStruct(lpAppName, lpKeyName, pWinData, sizeof(WINDOWPLACEMENT), Get_ConfigPath());
+    return WritePrivateProfileStruct(lpAppName, lpKeyName, pWinData, sizeof(WINDOWPLACEMENT), Get_ConfigPath_InGame());
 }
 
 

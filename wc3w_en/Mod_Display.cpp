@@ -207,7 +207,7 @@ static bool Display_Exit() {
 static BOOL Window_Setup(HWND hwnd) {
     
     if (!*p_wc3_is_windowed) {
-        if (ConfigReadInt(L"MAIN", L"WINDOWED", CONFIG_MAIN_WINDOWED))
+        if (ConfigReadInt_InGame(L"MAIN", L"WINDOWED", CONFIG_MAIN_WINDOWED))
             *p_wc3_is_windowed = true;
     }
     
@@ -1089,7 +1089,7 @@ void Set_WindowActive_State(BOOL isActive) {
 static void Toggle_WindowMode(HWND hwnd) {
 
     *p_wc3_is_windowed = 1 - *p_wc3_is_windowed;
-    ConfigWriteInt(L"MAIN", L"WINDOWED", *p_wc3_is_windowed);
+    ConfigWriteInt_InGame(L"MAIN", L"WINDOWED", *p_wc3_is_windowed);
 
     if (*p_wc3_is_windowed) {
         Debug_Info("Toggle_WindowMode: Windowed");
