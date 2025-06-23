@@ -72,7 +72,11 @@ public:
             }
             else {
                 mediaPlayer.play();
+#if LIBVLC_VERSION_INT >= LIBVLC_VERSION(4, 0, 0, 0)
+                mediaPlayer.setPosition(position, false);
+#else
                 mediaPlayer.setPosition(position);
+#endif
                 //subtitles must be re-initialised whenever media playback is stopped. subtitles can not be setup until media is actually playing - on_play() function called.
                 while (!is_vlc_playing && !isError)
                     Sleep(0);
@@ -155,6 +159,33 @@ public:
         if (next)
             next->SetScale();
     }
+#if LIBVLC_VERSION_INT >= LIBVLC_VERSION(4, 0, 0, 0)
+    RenderTarget* Set_Surface(unsigned int width, unsigned int height) {
+        if (!surface || width != surface->GetWidth() || height < surface->GetHeight()) {
+            if (surface)
+                delete surface;
+            surface = new RenderTarget(0, 0, width, height, 32, 0);
+        }
+        return surface;
+    }
+    RenderTarget* Get_Surface() {
+        return surface;
+    }
+    bool IsReadyToDisplay() {
+        if (!initialised_for_play || !isPlaying)
+            return false;
+        return true;
+    }
+    void SetReadyForDisplay() {
+        if (!initialised_for_play) {
+            Debug_Info_Movie("LibVlc_Movie: initialised_for_play SetReadyForDisplay %s", path.c_str());
+            InitialiseForPlay_End();
+        }
+    }
+    void Destroy_Surface() {
+        cleanup();
+    };
+#endif
 protected:
 private:
     LibVlc_Movie* next;
@@ -173,7 +204,11 @@ private:
     bool initialised_for_play;
     float position;
     bool is_vlc_playing;
+#if LIBVLC_VERSION_INT >= LIBVLC_VERSION(4, 0, 0, 0)
+    RenderTarget* surface;
+#else
     DrawSurface* surface;
+#endif
 
     bool InitialiseForPlay_Start();
     void InitialiseForPlay_End();
@@ -206,6 +241,12 @@ private:
         //}
     };
     void on_end_reached() {
+#if LIBVLC_VERSION_INT >= LIBVLC_VERSION(4, 0, 0, 0)
+        //libvlc v4 has replace onEndReached with onStopping.
+        //have to check if it was stopped(!isPlaying) or ending.
+        if (!isPlaying)
+            return;
+#endif
         Debug_Info_Movie("LibVlc_Movie: end reached: %s", path.c_str());
         if (next)
             next->Play();
@@ -214,6 +255,7 @@ private:
 
     };
     void on_time_changed(libvlc_time_t time_ms);
+#if LIBVLC_VERSION_INT < LIBVLC_VERSION(4, 0, 0, 0)
     void* lock(void** planes) {
         if (!initialised_for_play) {
             Debug_Info_Movie("LibVlc_Movie: initialised_for_play ON FIRST LOCK %s", path.c_str());
@@ -265,6 +307,7 @@ private:
         *lines = *height;
         return 1;
     };
+#endif
     void cleanup() {
         Debug_Info_Movie("LibVlc_Movie: cleanup: %s", path.c_str());
         if (surface)
@@ -321,12 +364,20 @@ public:
             }
             else {
                 mediaPlayer.play();
+#if LIBVLC_VERSION_INT >= LIBVLC_VERSION(4, 0, 0, 0)
+                mediaPlayer.setPosition(position, false);
+#else
                 mediaPlayer.setPosition(position);
+#endif
                 //subtitles must be re-initialised whenever media playback is stopped. subtitles can not be setup until media is actually playing - on_play() function called.
                 while (!is_vlc_playing && !isError)
                     Sleep(0);
                 //disable subtitles, we don't want subs overlayed on the inflight video.
+#if LIBVLC_VERSION_INT >= LIBVLC_VERSION(4, 0, 0, 0)
+                libvlc_media_player_unselect_track_type(mediaPlayer, libvlc_track_type_t::libvlc_track_text);
+#else
                 mediaPlayer.setSpu(-1);
+#endif
             }
         }
     };
@@ -416,6 +467,12 @@ private:
          //}
     };
     void on_end_reached() {
+#if LIBVLC_VERSION_INT >= LIBVLC_VERSION(4, 0, 0, 0)
+        //libvlc v4 has replace onEndReached with onStopping.
+        //have to check if it was stopped(!isPlaying) or ending.
+        if (!isPlaying)
+            return;
+#endif
         Debug_Info_Movie("LibVlc_MovieInflight: end reached: %s", path.c_str());
         isPlaying = false;
         hasPlayed = true;

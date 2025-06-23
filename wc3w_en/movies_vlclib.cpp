@@ -316,6 +316,102 @@ static BOOL Create_Movie_Path_Name_Branch(const char* movie_name, int branch, st
 }
 
 
+#if LIBVLC_VERSION_INT >= LIBVLC_VERSION(4, 0, 0, 0)
+//_________________________________________________________________________________________________________________________________
+static bool video_output_setup_cb(void** opaque, const libvlc_video_setup_device_cfg_t* cfg, libvlc_video_setup_device_info_t* out) {
+    Debug_Info_Movie("LibVlc_Movie: video_output_setup_cb");
+    //LibVlc_Movie* libvlc_movie = static_cast<LibVlc_Movie*>(*opaque);
+    out->d3d11.device_context = GetD3dDeviceContext();
+    out->d3d11.context_mutex = nullptr;
+    return true;
+}
+
+//_______________________________________________
+static void video_output_cleanup_cb(void* opaque) {
+    Debug_Info_Movie("LibVlc_Movie: video_output_cleanup_cb");
+    LibVlc_Movie* libvlc_movie = static_cast<LibVlc_Movie*>(opaque);
+    libvlc_movie->Destroy_Surface();
+
+    Reset_DX11_Shader_Defaults();
+}
+
+//____________________________________________________________________________________________________________________
+static bool video_update_output_cb(void* opaque, const libvlc_video_render_cfg_t* cfg, libvlc_video_output_cfg_t* out) {
+
+    LibVlc_Movie* libvlc_movie = static_cast<LibVlc_Movie*>(opaque);
+    unsigned width = cfg->width;
+    if (width == 0)
+        width = 8;
+    unsigned height = cfg->height;
+    if (height == 0)
+        height = 8;
+    Debug_Info_Movie("LibVlc_Movie: video_update_output_cb %d, %d", width, height);
+
+    libvlc_movie->Set_Surface(width, height);
+    RenderTarget* surface = libvlc_movie->Get_Surface();
+    surface->ScaleTo((float)clientWidth, (float)clientHeight, SCALE_TYPE::fit);
+
+    out->dxgi_format = DXGI_FORMAT_B8G8R8A8_UNORM;
+    out->full_range = true;
+    out->colorspace = libvlc_video_colorspace_BT709;
+    out->primaries = libvlc_video_primaries_BT709;
+    out->transfer = libvlc_video_transfer_func_SRGB;
+    out->orientation = libvlc_video_orient_top_left;
+
+    return true;
+}
+
+//_____________________________________
+static void video_swap_cb(void* opaque) {
+    //Debug_Info_Movie("LibVlc_Movie: video_swap_cb");
+    LibVlc_Movie* libvlc_movie = static_cast<LibVlc_Movie*>(opaque);
+    if (!libvlc_movie->IsReadyToDisplay())
+        return;
+    Display_Dx_Present(PRESENT_TYPE::movie);
+}
+
+//________________________________________________________
+static bool video_makeCurrent_cb(void* opaque, bool enter) {
+
+    LibVlc_Movie* libvlc_movie = static_cast<LibVlc_Movie*>(opaque);
+    libvlc_movie->SetReadyForDisplay();
+    if (!libvlc_movie->IsReadyToDisplay())
+        return false;
+    RenderTarget* surface = libvlc_movie->Get_Surface();
+    if (!surface)
+        return false;
+    if (enter) {
+        //Debug_Info_Movie("LibVlc_Movie: video_makeCurrent_cb enter");
+        surface->ClearRenderTarget(GetDepthStencilView());
+    }
+    else {
+        //Debug_Info_Movie("LibVlc_Movie: video_makeCurrent_cb exit");
+        Reset_DX11_Shader_Defaults();
+        MovieRT_SetRenderTarget();
+
+        if (surface)
+            surface->Display();
+    }
+    return true;
+}
+
+//_____________________________________________________________________________
+static bool video_output_select_plane_cb(void* opaque, size_t plane, void* out) {
+    //Debug_Info_Movie("LibVlc_Movie: video_output_select_plane_cb");
+    ID3D11RenderTargetView** output = static_cast<ID3D11RenderTargetView**>(out);
+    LibVlc_Movie* libvlc_movie = static_cast<LibVlc_Movie*>(opaque);
+    RenderTarget* surface = libvlc_movie->Get_Surface();
+    if (!surface)
+        return false;
+    if (plane != 0) //DXGI_FORMAT_R8G8B8A8_UNORM should only have the one plane.
+        return false;
+    //return ID3D11RenderTargetView.
+    *output = surface->GetRenderTargetView();
+    return true;
+}
+#endif
+
+
 //_________________________________________________________________________________________
 LibVlc_Movie::LibVlc_Movie(std::string movie_name, LONG* branch_list, LONG branch_list_num) {
     //Debug_Info("LibVlc_Movie: Create Start");
@@ -341,10 +437,20 @@ LibVlc_Movie::LibVlc_Movie(std::string movie_name, LONG* branch_list, LONG branc
     mediaPlayer.eventManager().onTimeChanged(std::bind(&LibVlc_Movie::on_time_changed, this, _1));
 
     mediaPlayer.eventManager().onBuffering(std::bind(&LibVlc_Movie::on_buffering, this, _1));
+#if LIBVLC_VERSION_INT >= LIBVLC_VERSION(4, 0, 0, 0)
+    mediaPlayer.eventManager().onStopping(std::bind(&LibVlc_Movie::on_end_reached, this));
+#else
     mediaPlayer.eventManager().onEndReached(std::bind(&LibVlc_Movie::on_end_reached, this));
-
+#endif
+#if LIBVLC_VERSION_INT >= LIBVLC_VERSION(4, 0, 0, 0)
+    libvlc_video_set_output_callbacks(mediaPlayer, libvlc_video_engine_d3d11,
+        video_output_setup_cb, video_output_cleanup_cb, nullptr,
+        video_update_output_cb, video_swap_cb, video_makeCurrent_cb,
+        nullptr, nullptr, video_output_select_plane_cb, this);
+#else
     mediaPlayer.setVideoCallbacks(std::bind(&LibVlc_Movie::lock, this, _1), std::bind(&LibVlc_Movie::unlock, this, _1, _2), std::bind(&LibVlc_Movie::display, this, _1));
     mediaPlayer.setVideoFormatCallbacks(std::bind(&LibVlc_Movie::format, this, _1, _2, _3, _4, _5), std::bind(&LibVlc_Movie::cleanup, this));
+#endif
 
     list_num = branch_list_num;
     if (branch_list)
@@ -471,6 +577,15 @@ void LibVlc_Movie::SetMedia(std::string path) {
 
 #if LIBVLC_VERSION_INT >= LIBVLC_VERSION(4, 0, 0, 0)
     media = VLC::Media(path, VLC::Media::FromPath);
+    //////////////libvlc subtitle autodetection path (bug) work-around////////////////////////////////////////////
+    //To-Do - Check for this issue in later versions. Current version = vlc-4.0.0-dev-win32-3db080cb
+    //The current libvlc 4 nightly doesn't seem to scan the ".\subtitles" folders as the stable v3 does.
+    //Needed to add the full path here, to get things working.
+    std::string subs_path = "sub-autodetect-path=";
+    subs_path.append(movie_dir);
+    subs_path.append("subtitles\\");
+    libvlc_media_add_option(media, subs_path.c_str());
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #else
     Debug_Info_Movie("LibVlc_Movie: SetMedia: %s", path.c_str());
     media = VLC::Media(vlc_instance, path, VLC::Media::FromPath);
@@ -513,11 +628,22 @@ void LibVlc_Movie::on_time_changed(libvlc_time_t time_ms) {
 //_______________________________________
 void LibVlc_Movie::Initialise_Subtitles() {
 
-    int subCount = mediaPlayer.spuCount();
+#if LIBVLC_VERSION_INT >= LIBVLC_VERSION(4, 0, 0, 0)
+    VLC::MediaPtr media_p = mediaPlayer.media();
+    //libvlc_media_parse_request(vlc_instance, *media_p, libvlc_media_parse_local, -1);
+    libvlc_media_tracklist_t* p_sub_tracklist = libvlc_media_player_get_tracklist(mediaPlayer, libvlc_track_type_t::libvlc_track_text, false);
+    size_t subCount = libvlc_media_tracklist_count(p_sub_tracklist);
+#else
+    size_t subCount = mediaPlayer.spuCount();
+#endif
     Debug_Info_Movie("LibVlc_Movie: subCount: %d", subCount);
 
     if (*p_wc3_subtitles_enabled == 0)
+#if LIBVLC_VERSION_INT >= LIBVLC_VERSION(4, 0, 0, 0)
+        libvlc_media_player_unselect_track_type(mediaPlayer, libvlc_track_type_t::libvlc_track_text);
+#else
         mediaPlayer.setSpu(-1);
+#endif
     else {
         Debug_Info_Movie("language ref: %d", *p_wc3_language_ref);
         std::string language;
@@ -537,6 +663,19 @@ void LibVlc_Movie::Initialise_Subtitles() {
         }
         Debug_Info_Movie("LibVlc_Movie: language: %s", language.c_str());
 
+#if LIBVLC_VERSION_INT >= LIBVLC_VERSION(4, 0, 0, 0)
+        for (size_t i = 0; i < subCount; i++) {
+            libvlc_media_track_t* p_sub = libvlc_media_tracklist_at(p_sub_tracklist, i);
+            std::string name = p_sub->psz_name;
+
+            if (name.find(language) != std::string::npos) {
+                Debug_Info_Movie("LibVlc_Movie: TrackDescription: %d, name: %s", p_sub->i_id, name.c_str());
+                libvlc_media_player_select_track(mediaPlayer, p_sub);
+            }
+
+        }
+        libvlc_media_tracklist_delete(p_sub_tracklist);
+#else
         std::vector <VLC::TrackDescription> trackDescriptions = mediaPlayer.spuDescription();
         for (size_t i = 0; i < trackDescriptions.size(); i++) {
             VLC::TrackDescription description = trackDescriptions[i];
@@ -546,6 +685,7 @@ void LibVlc_Movie::Initialise_Subtitles() {
                 mediaPlayer.setSpu(description.id());
             }
         }
+#endif
     }
 }
 
@@ -765,7 +905,11 @@ void LibVlc_MovieInflight::libvlc_movieinflight_initialise() {
     mediaPlayer.eventManager().onTimeChanged(std::bind(&LibVlc_MovieInflight::on_time_changed, this, _1));
 
     mediaPlayer.eventManager().onBuffering(std::bind(&LibVlc_MovieInflight::on_buffering, this, _1));
+#if LIBVLC_VERSION_INT >= LIBVLC_VERSION(4, 0, 0, 0)
+    mediaPlayer.eventManager().onStopping(std::bind(&LibVlc_MovieInflight::on_end_reached, this));
+#else
     mediaPlayer.eventManager().onEndReached(std::bind(&LibVlc_MovieInflight::on_end_reached, this));
+#endif
 
 
     mediaPlayer.setVideoCallbacks(std::bind(&LibVlc_MovieInflight::lock, this, _1), std::bind(&LibVlc_MovieInflight::unlock, this, _1, _2), std::bind(&LibVlc_MovieInflight::display, this, _1));
@@ -806,12 +950,24 @@ bool LibVlc_MovieInflight::Play() {
             Sleep(0);
         }
         //disable subtitles, we don't want subs overlayed on the inflight video.
+#if LIBVLC_VERSION_INT >= LIBVLC_VERSION(4, 0, 0, 0)
+        libvlc_media_player_unselect_track_type(mediaPlayer, libvlc_track_type_t::libvlc_track_text);
+#else
         mediaPlayer.setSpu(-1);
+#endif
         //setup audio
         if (!inflight_use_audio_from_file_if_present)
+#if LIBVLC_VERSION_INT >= LIBVLC_VERSION(4, 0, 0, 0)
+            libvlc_media_player_unselect_track_type(mediaPlayer, libvlc_track_type_t::libvlc_track_audio);
+#else
             mediaPlayer.setAudioTrack(-1);
+#endif
 
+#if LIBVLC_VERSION_INT >= LIBVLC_VERSION(4, 0, 0, 0)
+        if (libvlc_media_player_get_selected_track(mediaPlayer, libvlc_track_type_t::libvlc_track_audio) != nullptr) {
+#else
         if (mediaPlayer.audioTrack() != -1) {
+#endif
             Debug_Info_Movie("initialise_for_play: HD movie HAS AUDIO");
             has_audio = true;
         }
@@ -819,10 +975,12 @@ bool LibVlc_MovieInflight::Play() {
         if (time_ms_start) {
             if (mediaPlayer.length() <= time_ms_start)
                 time_ms_start = mediaPlayer.length() - 1;
+#if LIBVLC_VERSION_INT >= LIBVLC_VERSION(4, 0, 0, 0)
+            mediaPlayer.setTime(time_ms_start, false);
+#else
             mediaPlayer.setTime(time_ms_start);
+#endif
         }
-
-
     }
     //Debug_Info("LibVlc_MovieInflight: Play END");
     return isPlaying;

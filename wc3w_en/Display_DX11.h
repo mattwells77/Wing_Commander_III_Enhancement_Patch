@@ -969,6 +969,9 @@ public:
     };
     ~RenderTarget() {
     };
+    ID3D11RenderTargetView* GetRenderTargetView() {
+        return pTex_renderTargetView;
+    }
 protected:
 private:
 };
@@ -1135,3 +1138,4 @@ void Display_Dx_Present(PRESENT_TYPE present_type);
 BOOL Get_Monitor_Refresh_Rate(HWND hwnd, DXGI_RATIONAL* refreshRate);
 
 void Inflight_Mono_Colour_Setup(DWORD colour, UINT brightness, UINT contrast);
+void Reset_DX11_Shader_Defaults();

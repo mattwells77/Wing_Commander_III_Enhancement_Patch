@@ -121,6 +121,27 @@ RenderTarget* rt_display = nullptr;
 RenderTarget* rt_Movie = nullptr;
 
 
+//_______________________________
+void Reset_DX11_Shader_Defaults() {
+    //set vetex shader stuff
+    g_d3dDeviceContext->VSSetShader(pd3dVertexShader_Main, nullptr, 0);
+    g_d3dDeviceContext->IASetInputLayout(pd3dVS_InputLayout_Main);
+    //set index buffer stuff
+    g_d3dDeviceContext->IASetIndexBuffer(pVB_Quad_IndexBuffer, DXGI_FORMAT_R16_UINT, 0);
+    g_d3dDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+    //set blend state
+    //g_d3dDeviceContext->PSSetSamplers(0, 1, &pd3dPS_SamplerState_Point);
+    g_d3dDeviceContext->OMSetBlendState(pBlendState_One, nullptr, -1);
+
+    if (main_pal) {
+        ID3D11ShaderResourceView* palTex = main_pal->GetShaderResourceView();
+        g_d3dDeviceContext->PSSetShaderResources(1, 1, &palTex);
+        palette_buff_data->SetForRenderPS(g_d3dDeviceContext, 0, 0);
+    }
+
+}
+
+
 //___________________________________________
 void Shader_SetPaletteData(XMFLOAT4 pal_data) {
     if (palette_buff_data)
