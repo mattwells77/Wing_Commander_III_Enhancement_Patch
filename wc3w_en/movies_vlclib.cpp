@@ -144,7 +144,7 @@ static void Set_Movie_Config_Path() {
 static BOOL Set_Movie_Settings() {
     if (are_movie_path_setting_set)
         return TRUE;
-    
+
     char* char_buff = new char[MAX_PATH];
     char* char_ptr = char_buff;
     
@@ -365,7 +365,7 @@ static bool video_update_output_cb(void* opaque, const libvlc_video_render_cfg_t
 static void video_swap_cb(void* opaque) {
     //Debug_Info_Movie("LibVlc_Movie: video_swap_cb");
     LibVlc_Movie* libvlc_movie = static_cast<LibVlc_Movie*>(opaque);
-    if (!libvlc_movie->IsReadyToDisplay())
+    if (!libvlc_movie->IsReadyToDisplay()) 
         return;
     Display_Dx_Present(PRESENT_TYPE::movie);
 }
@@ -387,10 +387,6 @@ static bool video_makeCurrent_cb(void* opaque, bool enter) {
     else {
         //Debug_Info_Movie("LibVlc_Movie: video_makeCurrent_cb exit");
         Reset_DX11_Shader_Defaults();
-        MovieRT_SetRenderTarget();
-
-        if (surface)
-            surface->Display();
     }
     return true;
 }
@@ -427,7 +423,7 @@ LibVlc_Movie::LibVlc_Movie(std::string movie_name, LONG* branch_list, LONG branc
     position = 0;
     paused = false;
     is_vlc_playing = false;
-
+   
     using namespace std::placeholders; // for `_1`
 
     mediaPlayer.eventManager().onPlaying(std::bind(&LibVlc_Movie::on_play, this));
@@ -438,6 +434,7 @@ LibVlc_Movie::LibVlc_Movie(std::string movie_name, LONG* branch_list, LONG branc
 
     mediaPlayer.eventManager().onBuffering(std::bind(&LibVlc_Movie::on_buffering, this, _1));
 #if LIBVLC_VERSION_INT >= LIBVLC_VERSION(4, 0, 0, 0)
+    is_stop_set = false;
     mediaPlayer.eventManager().onStopping(std::bind(&LibVlc_Movie::on_end_reached, this));
 #else
     mediaPlayer.eventManager().onEndReached(std::bind(&LibVlc_Movie::on_end_reached, this));
@@ -636,7 +633,7 @@ void LibVlc_Movie::Initialise_Subtitles() {
 #else
     size_t subCount = mediaPlayer.spuCount();
 #endif
-    Debug_Info_Movie("LibVlc_Movie: subCount: %d", subCount);
+    Debug_Info_Movie("LibVlc_Movie: Subtitle track count: %d", subCount);
 
     if (*p_wc3_subtitles_enabled == 0)
 #if LIBVLC_VERSION_INT >= LIBVLC_VERSION(4, 0, 0, 0)
@@ -645,7 +642,7 @@ void LibVlc_Movie::Initialise_Subtitles() {
         mediaPlayer.setSpu(-1);
 #endif
     else {
-        Debug_Info_Movie("language ref: %d", *p_wc3_language_ref);
+        //Debug_Info_Movie("language ref: %d", *p_wc3_language_ref);
         std::string language;
         switch (*p_wc3_language_ref) {
         case 0:
@@ -661,7 +658,7 @@ void LibVlc_Movie::Initialise_Subtitles() {
             return;
             break;
         }
-        Debug_Info_Movie("LibVlc_Movie: language: %s", language.c_str());
+        Debug_Info_Movie("LibVlc_Movie: Search for subtitles: %s", language.c_str());
 
 #if LIBVLC_VERSION_INT >= LIBVLC_VERSION(4, 0, 0, 0)
         for (size_t i = 0; i < subCount; i++) {
@@ -669,7 +666,7 @@ void LibVlc_Movie::Initialise_Subtitles() {
             std::string name = p_sub->psz_name;
 
             if (name.find(language) != std::string::npos) {
-                Debug_Info_Movie("LibVlc_Movie: TrackDescription: %d, name: %s", p_sub->i_id, name.c_str());
+                Debug_Info_Movie("LibVlc_Movie: Subtitle track selected ID: %d, name: %s", p_sub->i_id, name.c_str());
                 libvlc_media_player_select_track(mediaPlayer, p_sub);
             }
 
@@ -681,12 +678,70 @@ void LibVlc_Movie::Initialise_Subtitles() {
             VLC::TrackDescription description = trackDescriptions[i];
             //find a subtitle track description containing matching language text and set it for display.
             if (description.name().find(language) != std::string::npos) {
-                Debug_Info_Movie("LibVlc_Movie: TrackDescription: %d, name: %s", description.id(), description.name().c_str());
+                Debug_Info_Movie("LibVlc_Movie: Subtitle track selected ID: %d, name: %s", description.id(), description.name().c_str());
                 mediaPlayer.setSpu(description.id());
             }
         }
 #endif
     }
+}
+
+
+//___________________________________
+void LibVlc_Movie::Initialise_Audio() {
+
+#if LIBVLC_VERSION_INT >= LIBVLC_VERSION(4, 0, 0, 0)
+    VLC::MediaPtr media_p = mediaPlayer.media();
+    //libvlc_media_parse_request(vlc_instance, *media_p, libvlc_media_parse_local, -1);
+    libvlc_media_tracklist_t* p_audio_tracklist = libvlc_media_player_get_tracklist(mediaPlayer, libvlc_track_type_t::libvlc_track_audio, false);
+    size_t audioCount = libvlc_media_tracklist_count(p_audio_tracklist);
+#else
+    size_t audioCount = mediaPlayer.audioTrackCount();
+#endif
+    Debug_Info_Movie("LibVlc_Movie: Audio track count: %d", audioCount);
+
+    //Debug_Info_Movie("language ref: %d", *p_wc3_language_ref);
+    std::string language;
+    switch (*p_wc3_language_ref) {
+    case 0:
+        language = "[English]";
+        break;
+    case 1:
+        language = "[German]";
+        break;
+    case 2:
+        language = "[French]";
+        break;
+    default:
+        return;
+        break;
+    }
+    Debug_Info_Movie("LibVlc_Movie: Search for audio: %s", language.c_str());
+
+#if LIBVLC_VERSION_INT >= LIBVLC_VERSION(4, 0, 0, 0)
+    for (size_t i = 0; i < audioCount; i++) {
+        libvlc_media_track_t* p_track = libvlc_media_tracklist_at(p_audio_tracklist, i);
+        std::string name = p_track->psz_name;
+
+        if (name.find(language) != std::string::npos) {
+            Debug_Info_Movie("LibVlc_Movie: Audio track selected ID: %d, name: %s", p_track->i_id, name.c_str());
+            libvlc_media_player_select_track(mediaPlayer, p_track);
+        }
+
+    }
+    libvlc_media_tracklist_delete(p_audio_tracklist);
+#else
+    std::vector <VLC::TrackDescription> trackDescriptions = mediaPlayer.audioTrackDescription();
+    for (size_t i = 0; i < trackDescriptions.size(); i++) {
+        VLC::TrackDescription description = trackDescriptions[i];
+        //find a audio track description containing matching language text.
+        if (description.name().find(language) != std::string::npos) {
+            Debug_Info_Movie("LibVlc_Movie: Audio track selected ID: %d, name: %s", description.id(), description.name().c_str());
+            mediaPlayer.setAudioTrack(description.id());
+        }
+    }
+#endif
+
 }
 
 
@@ -712,6 +767,7 @@ bool LibVlc_Movie::InitialiseForPlay_Start() {
         Sleep(0);
     }
     Initialise_Subtitles();
+    Initialise_Audio();
     while (isPlaying)//play untill InitialiseForPlay_End called.
         Sleep(0);
     return true;
@@ -968,6 +1024,7 @@ bool LibVlc_MovieInflight::Play() {
 #else
         if (mediaPlayer.audioTrack() != -1) {
 #endif
+            Initialise_Audio();
             Debug_Info_Movie("initialise_for_play: HD movie HAS AUDIO");
             has_audio = true;
         }
@@ -999,6 +1056,64 @@ void LibVlc_MovieInflight::SetMedia(std::string path) {
 
 #endif
     mediaPlayer.setMedia(media);
+
+}
+
+
+//___________________________________________
+void LibVlc_MovieInflight::Initialise_Audio() {
+
+#if LIBVLC_VERSION_INT >= LIBVLC_VERSION(4, 0, 0, 0)
+    VLC::MediaPtr media_p = mediaPlayer.media();
+    //libvlc_media_parse_request(vlc_instance, *media_p, libvlc_media_parse_local, -1);
+    libvlc_media_tracklist_t* p_audio_tracklist = libvlc_media_player_get_tracklist(mediaPlayer, libvlc_track_type_t::libvlc_track_audio, false);
+    size_t audioCount = libvlc_media_tracklist_count(p_audio_tracklist);
+#else
+    size_t audioCount = mediaPlayer.audioTrackCount();
+#endif
+    Debug_Info_Movie("LibVlc_MovieInflight: Audio track count: %d", audioCount);
+
+    //Debug_Info_Movie("language ref: %d", *p_wc3_language_ref);
+    std::string language;
+    switch (*p_wc3_language_ref) {
+    case 0:
+        language = "[English]";
+        break;
+    case 1:
+        language = "[German]";
+        break;
+    case 2:
+        language = "[French]";
+        break;
+    default:
+        return;
+        break;
+    }
+    Debug_Info_Movie("LibVlc_MovieInflight: Search for audio: %s", language.c_str());
+
+#if LIBVLC_VERSION_INT >= LIBVLC_VERSION(4, 0, 0, 0)
+    for (size_t i = 0; i < audioCount; i++) {
+        libvlc_media_track_t* p_track = libvlc_media_tracklist_at(p_audio_tracklist, i);
+        std::string name = p_track->psz_name;
+
+        if (name.find(language) != std::string::npos) {
+            Debug_Info_Movie("LibVlc_MovieInflight: Audio track selected ID: %d, name: %s", p_track->i_id, name.c_str());
+            libvlc_media_player_select_track(mediaPlayer, p_track);
+        }
+
+    }
+    libvlc_media_tracklist_delete(p_audio_tracklist);
+#else
+    std::vector <VLC::TrackDescription> trackDescriptions = mediaPlayer.audioTrackDescription();
+    for (size_t i = 0; i < trackDescriptions.size(); i++) {
+        VLC::TrackDescription description = trackDescriptions[i];
+        //find a audio track description containing matching language text.
+        if (description.name().find(language) != std::string::npos) {
+            Debug_Info_Movie("LibVlc_MovieInflight: Audio track selected ID: %d, name: %s", description.id(), description.name().c_str());
+            mediaPlayer.setAudioTrack(description.id());
+        }
+    }
+#endif
 
 }
 

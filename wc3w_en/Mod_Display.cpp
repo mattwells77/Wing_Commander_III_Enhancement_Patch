@@ -486,8 +486,6 @@ static BOOL DrawVideoFrame(VIDframe* vidFrame, RGBQUAD* tBuff, UINT tWidth, DWOR
     }
 
     surface_movieXAN->Unlock();
-    MovieRT_SetRenderTarget();
-    surface_movieXAN->Display();
 
     return TRUE;
 }
@@ -1695,7 +1693,7 @@ static void __declspec(naked) update_space_mouse(void) {
 }
 
 
-//__________________________________________________________________________________________________
+//______________________________________________________________________________________________________
 static BOOL Play_Movie_Sequence(void* p_wc3_movie_class, void* p_sig_movie_class, DWORD sig_movie_flags) {
 
     char* mve_path = (char*)((DWORD*)p_wc3_movie_class)[28];
@@ -1704,8 +1702,6 @@ static BOOL Play_Movie_Sequence(void* p_wc3_movie_class, void* p_sig_movie_class
     Debug_Info_Movie("Play_Movie_Sequence: current_list_num: %d", *p_wc3_movie_branch_current_list_num);
     Debug_Info_Movie("Play_Movie_Sequence: first branch: %d", *p_wc3_movie_branch_list);
     //Debug_Info("max branches:%d", ((LONG*)p_wc3_movie_class)[21]);
-
-    MovieRT_Clear();
 
     if (pMovie_vlc)
         delete pMovie_vlc;
@@ -1741,13 +1737,13 @@ static BOOL Play_Movie_Sequence(void* p_wc3_movie_class, void* p_sig_movie_class
             }
         }
     }
+    delete pMovie_vlc;
+    pMovie_vlc = nullptr;
+
     //if alternate movie failed to play, continue movie using original player.
     if (!play_successfull)
         play_successfull = wc3_sig_movie_play_sequence(p_sig_movie_class, sig_movie_flags);
     
-    delete pMovie_vlc;
-    pMovie_vlc = nullptr;
-
     Debug_Info_Movie("Play_Movie_Sequence: Done");
     return play_successfull;
 }

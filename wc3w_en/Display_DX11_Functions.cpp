@@ -118,7 +118,6 @@ DrawSurface8_RT* surface_space2D = nullptr;
 DrawSurface8_RT* surface_movieXAN = nullptr;
 
 RenderTarget* rt_display = nullptr;
-RenderTarget* rt_Movie = nullptr;
 
 
 //_______________________________
@@ -276,34 +275,12 @@ static void Surfaces_Destroy() {
 }
 
 
-//____________________________
-void MovieRT_SetRenderTarget() {
-
-    if (!rt_Movie)
-        rt_Movie = new RenderTarget(0, 0, clientWidth, clientHeight, 32, 0x00000000);
-
-    rt_Movie->ClearRenderTarget(g_d3dDepthStencilView);
-    rt_Movie->SetRenderTarget(g_d3dDepthStencilView);
-}
-
-//__________________
-void MovieRT_Clear() {
-
-    if (!rt_Movie)
-        return;
-    rt_Movie->ClearRenderTarget(g_d3dDepthStencilView);
-}
-
-
 //_________________________________
 static void RenderTargets_Destroy() {
 
     if (rt_display)
         delete rt_display;
     rt_display = nullptr;
-    if (rt_Movie)
-        delete rt_Movie;
-    rt_Movie = nullptr;
 }
 
 
@@ -331,7 +308,7 @@ void Display_Dx_Present(PRESENT_TYPE present_type) {
     rt_display->ClearRenderTarget(g_d3dDepthStencilView);
     rt_display->SetRenderTarget(g_d3dDepthStencilView);
 
-    Set_ViewPort(clientWidth, clientHeight);
+    //Set_ViewPort(clientWidth, clientHeight);
 
     if (present_type == PRESENT_TYPE::space) {
         if (is_nav_view || (is_cockpit_view && cockpit_scale_type == SCALE_TYPE::fit && crop_cockpit_rect)) {//when nav screen is up or the cockpit is visible but not streched to fill the screen, clip 3d space view to the cockpit's rect.
@@ -356,8 +333,30 @@ void Display_Dx_Present(PRESENT_TYPE present_type) {
     }
     else {
         if (present_type == PRESENT_TYPE::movie) {
-            if (rt_Movie)
-                rt_Movie->Display();
+            if (pMovie_vlc) {
+#if LIBVLC_VERSION_INT >= LIBVLC_VERSION(4, 0, 0, 0)
+                RenderTarget* surface = pMovie_vlc->Get_Currently_Playing_Surface();
+                //For some strange reason I have to set the clipping rect to the movie surface dimensions when they are less than the display dimensions.
+                //Not sure if this is vlc related.
+                //To-Do - Check for this issue in later versions. Current version = vlc-4.0.0-dev-win32-3db080cb
+                if (surface) {
+                    UINT surface_w = surface->GetWidth();
+                    UINT surface_h = surface->GetHeight();
+                    if (surface_w < clientWidth)
+                        surface_w = clientWidth;
+                    if (surface_h < clientHeight)
+                        surface_h = clientHeight;
+                    D3D11_RECT rect{ 0,0,(LONG)surface_w ,(LONG)surface_h };
+                    g_d3dDeviceContext->RSSetScissorRects(1, &rect);
+                }
+#else
+                DrawSurface* surface = pMovie_vlc->Get_Currently_Playing_Surface();
+#endif
+                if (surface)
+                    surface->Display();
+            }
+            else if (surface_movieXAN)
+                surface_movieXAN->Display();
         }
         if (surface_gui) {
             surface_gui->Display();

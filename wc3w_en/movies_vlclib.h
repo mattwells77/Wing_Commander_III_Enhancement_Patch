@@ -46,6 +46,8 @@ public:
 
     ~LibVlc_Movie() {
         Stop();
+        while (is_vlc_playing)//ensure vlc is done with surface. 
+            Sleep(0);
         if (surface)
             delete surface;
         surface = nullptr;
@@ -65,7 +67,10 @@ public:
             if (pause) {
                 position = mediaPlayer.position();
 #if LIBVLC_VERSION_INT >= LIBVLC_VERSION(4, 0, 0, 0)
+                is_stop_set = true;
                 mediaPlayer.stopAsync();
+                while (is_vlc_playing)//ensure vlc is done with surface. 
+                    Sleep(0);
 #else
                 mediaPlayer.stop();
 #endif
@@ -81,7 +86,7 @@ public:
                 while (!is_vlc_playing && !isError)
                     Sleep(0);
                 Initialise_Subtitles();
-
+                Initialise_Audio();
             }
             //mediaPlayer.setPause(pause);
         }
@@ -94,6 +99,7 @@ public:
     void Stop() {
 
 #if LIBVLC_VERSION_INT >= LIBVLC_VERSION(4, 0, 0, 0)
+        is_stop_set = true;
         mediaPlayer.stopAsync();
 #else
         mediaPlayer.stop();
@@ -171,7 +177,7 @@ public:
     RenderTarget* Get_Surface() {
         return surface;
     }
-    bool IsReadyToDisplay() {
+    bool IsReadyToDisplay() const {
         if (!initialised_for_play || !isPlaying)
             return false;
         return true;
@@ -185,6 +191,17 @@ public:
     void Destroy_Surface() {
         cleanup();
     };
+    RenderTarget* Get_Currently_Playing_Surface() {
+        if (hasPlayed && !isPlaying && next)
+            return next->Get_Currently_Playing_Surface();
+        return surface;
+    }
+#else
+    DrawSurface* Get_Currently_Playing_Surface() {
+        if (hasPlayed && !isPlaying && next)
+            return next->Get_Currently_Playing_Surface();
+        return surface;
+    }
 #endif
 protected:
 private:
@@ -205,6 +222,7 @@ private:
     float position;
     bool is_vlc_playing;
 #if LIBVLC_VERSION_INT >= LIBVLC_VERSION(4, 0, 0, 0)
+    bool is_stop_set;//when stopping after being deliberatly stopped rather than reaching the end of the movie. 
     RenderTarget* surface;
 #else
     DrawSurface* surface;
@@ -213,18 +231,21 @@ private:
     bool InitialiseForPlay_Start();
     void InitialiseForPlay_End();
     void Initialise_Subtitles();
-
+    void Initialise_Audio();
 
     void on_play() {
         is_vlc_playing = true;
-        Debug_Info_Movie("LibVlc_Movie: On Play stopped: %s", path.c_str());
+#if LIBVLC_VERSION_INT >= LIBVLC_VERSION(4, 0, 0, 0)
+        is_stop_set = false;
+#endif
+        Debug_Info_Movie("LibVlc_Movie: on_play Play started: %s", path.c_str());
 
     };
     void on_stopped() {
         is_vlc_playing = false;
         if (!paused) {
             isPlaying = false;
-            Debug_Info_Movie("LibVlc_Movie: OnStop stopped: %s", path.c_str());
+            Debug_Info_Movie("LibVlc_Movie: on_stopped Play stopped: %s", path.c_str());
         }
     };
     void on_encountered_error() {
@@ -244,7 +265,7 @@ private:
 #if LIBVLC_VERSION_INT >= LIBVLC_VERSION(4, 0, 0, 0)
         //libvlc v4 has replace onEndReached with onStopping.
         //have to check if it was stopped(!isPlaying) or ending.
-        if (!isPlaying)
+        if (is_stop_set || isError)
             return;
 #endif
         Debug_Info_Movie("LibVlc_Movie: end reached: %s", path.c_str());
@@ -278,8 +299,6 @@ private:
         surface->Unlock();
         if (!initialised_for_play || !isPlaying)
             return;
-        MovieRT_SetRenderTarget();
-        surface->Display();
     };
     void display(void* picture) const {
         if (!initialised_for_play || !isPlaying)
@@ -287,7 +306,7 @@ private:
         Display_Dx_Present(PRESENT_TYPE::movie);
     };
     uint32_t format(char* chroma, uint32_t* width, uint32_t* height, uint32_t* p_pitch, uint32_t* lines) {
-        memcpy(chroma, "RV32", 4);
+        memcpy(chroma, "BGRA", 4);
         Debug_Info_Movie("LibVlc_Movie: setVideoFormatCallbacks w:%d, h:%d", *width, *height);
         if (!surface || *width != surface->GetWidth() || *height < surface->GetHeight() || surface->GetPixelWidth() != 4) {
             if (surface)
@@ -328,6 +347,8 @@ public:
     LibVlc_MovieInflight(const char* file_name, RECT* p_rc_gui_unscaled, DWORD appendix);
     ~LibVlc_MovieInflight() {
         Stop();
+        while (is_vlc_playing)//ensure vlc is done with surface. 
+            Sleep(0);
         if (surface)
             delete surface;
         surface = nullptr;
@@ -358,6 +379,8 @@ public:
                 position = mediaPlayer.position();
 #if LIBVLC_VERSION_INT >= LIBVLC_VERSION(4, 0, 0, 0)
                 mediaPlayer.stopAsync();
+                while (is_vlc_playing)//ensure vlc is done with surface. 
+                    Sleep(0);
 #else
                 mediaPlayer.stop();
 #endif
@@ -438,6 +461,7 @@ private:
     libvlc_time_t time_ms_start;
     LARGE_INTEGER play_end_time_in_ticks;
 
+    void Initialise_Audio();
     void libvlc_movieinflight_initialise();
 
     void initialise_for_play();
@@ -470,7 +494,7 @@ private:
 #if LIBVLC_VERSION_INT >= LIBVLC_VERSION(4, 0, 0, 0)
         //libvlc v4 has replace onEndReached with onStopping.
         //have to check if it was stopped(!isPlaying) or ending.
-        if (!isPlaying)
+        if (!isPlaying || isError)
             return;
 #endif
         Debug_Info_Movie("LibVlc_MovieInflight: end reached: %s", path.c_str());
@@ -507,7 +531,7 @@ private:
         // Display_Dx_Present(PRESENT_TYPE::space);
     };
     uint32_t format(char* chroma, uint32_t* width, uint32_t* height, uint32_t* p_pitch, uint32_t* lines) {
-        memcpy(chroma, "RV32", 4);
+        memcpy(chroma, "BGRA", 4);
         Debug_Info_Movie("LibVlc_MovieInflight: setVideoFormatCallbacks w:%d, h:%d", *width, *height);
         if (!surface || *width != surface->GetWidth() || *height < surface->GetHeight() || surface->GetPixelWidth() != 4) {
             if (surface)
@@ -536,6 +560,7 @@ private:
 
 };
 
+extern LibVlc_Movie* pMovie_vlc;
 extern LibVlc_MovieInflight* pMovie_vlc_Inflight;
 
 BOOL Get_Movie_Name_From_Path(const char* mve_path, std::string* p_retPath);

@@ -119,7 +119,7 @@ ID3D11DepthStencilView* GetDepthStencilView();
 ID3D11DepthStencilState* GetDepthStencilState();
 
 void Set_ViewPort(long width, long height);
-
+void Set_ViewPort(float x, float y, float width, float height);
 
 bool SetScreenProjectionMatrix_XM(DWORD width, DWORD height);
 DirectX::XMMATRIX* GetScreenProjectionMatrix_XM();
@@ -1120,13 +1120,8 @@ extern BOOL crop_cockpit_rect;
 extern SCALE_TYPE cockpit_scale_type;
 extern BOOL is_nav_view;
 
-void Set_ViewPort(long width, long height);
-void Set_ViewPort(float x, float y, float width, float height);
 
 void Palette_Update(BYTE* p_pal_buff, BYTE offset, DWORD num_entries);
-
-void MovieRT_SetRenderTarget();
-void MovieRT_Clear();
 
 DrawSurface8_RT* Get_Space2D_Surface();
 
