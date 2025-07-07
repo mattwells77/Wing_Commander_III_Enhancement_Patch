@@ -452,6 +452,43 @@ static void __declspec(naked) check_audio_format(void) {
 }
 
 
+//________________________________________________
+static void Modify_Object_LOD_Distance(DWORD *LOD) {
+
+    static int lod_modifier = 100;
+    static bool run_once = false;
+    if (!run_once) {
+        lod_modifier = ConfigReadInt(L"SPACE", L"LOD_LEVEL_DISTANCE_MODIFIER", CONFIG_SPACE_LOD_LEVEL_DISTANCE_MODIFIER);
+        if (lod_modifier < 100)
+            lod_modifier = 100;
+        
+        run_once = true;
+        Debug_Info("LOD_LEVEL_DISTANCE_MODIFIER SET AT: %d%%", lod_modifier);
+    }
+    if(*LOD > 7)//Ignore values 7 or less. LOD dist 0-7 used by afterburner effect animation.
+        *LOD = *LOD * lod_modifier / 100;
+    //Debug_Info("Modify_Object_LOD dist:%d", *LOD);
+}
+
+
+//________________________________________________________
+static void __declspec(naked) modify_object_lod_dist(void) {
+
+    __asm {
+        pushad
+        mov ecx, ebx
+        add ecx, 0x30
+        push ecx
+        call Modify_Object_LOD_Distance
+        add esp, 0x4
+        popad
+        //re-insert original code
+        mov eax, dword ptr ds:[eax + 0x90]
+        ret
+    }
+}
+
+
 //_______________________________
 void Modifications_GeneralFixes() {
 
@@ -501,4 +538,7 @@ void Modifications_GeneralFixes() {
     MemWrite8(0x438C91, 0x74, 0xEB);
     //------------------------------------------------------------
 
+
+    MemWrite16(0x465712, 0x808B, 0xE890);
+    FuncWrite32(0x465714, 0x90, (DWORD)&modify_object_lod_dist);
 }
