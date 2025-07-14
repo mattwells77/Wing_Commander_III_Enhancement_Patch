@@ -1156,20 +1156,22 @@ static bool WinProc_Main(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam) 
             break;
         WINDOWPOS* winpos = (WINDOWPOS*)lParam;
 
-        if (!(winpos->flags & (SWP_NOSIZE)) && !is_in_sizemove) {
-            //Debug_Info("WM_WINDOWPOSCHANGED is_in_sizemove");
-            Window_Resized();
-            if (pMovie_vlc) {
-                pMovie_vlc->Pause(false);
-                pMovie_vlc->SetScale(); 
+        if (!is_in_sizemove) {
+            if (!(winpos->flags & (SWP_NOSIZE))) {
+                //Debug_Info("WM_WINDOWPOSCHANGED is_in_sizemove");
+                Window_Resized();
+                if (pMovie_vlc) {
+                    pMovie_vlc->Pause(false);
+                    pMovie_vlc->SetScale();
+                }
+                if (pMovie_vlc_Inflight) {
+                    pMovie_vlc_Inflight->Pause(false);
+                    pMovie_vlc_Inflight->Update_Display_Dimensions(nullptr);
+                }
             }
-            if (pMovie_vlc_Inflight) {
-                pMovie_vlc_Inflight->Pause(false);
-                pMovie_vlc_Inflight->Update_Display_Dimensions(nullptr);
-            }
-            //SetWindowTitle(hwnd, L"");
+            SetWindowTitle(hwnd, L"");
         }
-        SetWindowTitle(hwnd, L"");
+        //SetWindowTitle(hwnd, L"");
         return true; //this should prevent calling DefWindowProc, and stop WM_SIZE and WM_MOVE messages being sent.
     }
     case WM_ENTERSIZEMOVE:
