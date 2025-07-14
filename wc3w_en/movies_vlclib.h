@@ -45,7 +45,12 @@ public:
     LibVlc_Movie(std::string mve_path, LONG* branch_list, LONG branch_list_num);
 
     ~LibVlc_Movie() {
-        Stop();
+#if LIBVLC_VERSION_INT >= LIBVLC_VERSION(4, 0, 0, 0)
+        is_stop_set = true;
+        mediaPlayer.stopAsync();
+#else
+        mediaPlayer.stop();
+#endif
         while (is_vlc_playing)//ensure vlc is done with surface. 
             Sleep(0);
         if (surface)
@@ -107,6 +112,8 @@ public:
         isPlaying = false;
 
         Debug_Info_Movie("LibVlc_Movie: Stop: %s", path.c_str());
+        if (next)
+            next->Stop();
     };
     bool IsPlaying() const {
         return isPlaying;
@@ -329,9 +336,9 @@ private:
 #endif
     void cleanup() {
         Debug_Info_Movie("LibVlc_Movie: cleanup: %s", path.c_str());
-        if (surface)
-            delete surface;
-        surface = nullptr;
+        //if (surface)
+        //    delete surface;
+        //surface = nullptr;
     };
 
 };

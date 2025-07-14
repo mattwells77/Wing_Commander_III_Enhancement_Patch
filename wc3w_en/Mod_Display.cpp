@@ -1736,14 +1736,16 @@ static BOOL Play_Movie_Sequence(void* p_wc3_movie_class, void* p_sig_movie_class
                 exit_flag = TRUE;
             }
         }
+        pMovie_vlc->Stop();
     }
-    delete pMovie_vlc;
-    pMovie_vlc = nullptr;
+    
 
     //if alternate movie failed to play, continue movie using original player.
-    if (!play_successfull)
+    if (!play_successfull) {
+        delete pMovie_vlc;
+        pMovie_vlc = nullptr;
         play_successfull = wc3_sig_movie_play_sequence(p_sig_movie_class, sig_movie_flags);
-    
+    }
     Debug_Info_Movie("Play_Movie_Sequence: Done");
     return play_successfull;
 }
