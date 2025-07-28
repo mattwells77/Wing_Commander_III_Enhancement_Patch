@@ -1129,6 +1129,7 @@ BOOL Display_Dx_Setup(HWND hwnd, UINT width, UINT height);
 void Display_Dx_Destroy();
 BOOL Display_Dx_Resize(UINT width, UINT height);
 void Display_Dx_Present(PRESENT_TYPE present_type);
+void Display_Dx_Present();
 
 BOOL Get_Monitor_Refresh_Rate(HWND hwnd, DXGI_RATIONAL* refreshRate);
 

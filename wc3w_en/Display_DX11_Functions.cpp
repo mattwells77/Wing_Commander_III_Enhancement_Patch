@@ -119,6 +119,7 @@ DrawSurface8_RT* surface_movieXAN = nullptr;
 
 RenderTarget* rt_display = nullptr;
 
+PRESENT_TYPE last_present_type = PRESENT_TYPE::gui;
 
 //_______________________________
 void Reset_DX11_Shader_Defaults() {
@@ -296,7 +297,7 @@ void Display_Dx_Present(PRESENT_TYPE present_type) {
     if (!g_d3dDeviceContext)
         return;
 
-    static PRESENT_TYPE last_present_type = present_type;
+    last_present_type = present_type;
 
     float colour[4]{ 0.0f,0.0f,0.0f,0.0f };
     g_d3dDeviceContext->ClearRenderTargetView(g_d3dRenderTargetView, colour);
@@ -379,6 +380,11 @@ void Display_Dx_Present(PRESENT_TYPE present_type) {
     }
 }
 
+
+//_______________________
+void Display_Dx_Present() {
+    Display_Dx_Present(last_present_type);
+}
 
 
 /*

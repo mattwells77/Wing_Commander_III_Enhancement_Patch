@@ -1117,6 +1117,7 @@ static void Toggle_WindowMode(HWND hwnd) {
         //SetWindowPos(hwnd, 0, 0, 0, 0, 0, 0);
         ShowWindow(hwnd, SW_MAXIMIZE);
     }
+    Display_Dx_Present();
 }
 
 
@@ -1740,7 +1741,6 @@ static BOOL Play_Movie_Sequence(void* p_wc3_movie_class, void* p_sig_movie_class
         }
         pMovie_vlc->Stop();
     }
-    
 
     //if alternate movie failed to play, continue movie using original player.
     if (!play_successfull) {
@@ -1748,6 +1748,9 @@ static BOOL Play_Movie_Sequence(void* p_wc3_movie_class, void* p_sig_movie_class
         pMovie_vlc = nullptr;
         play_successfull = wc3_sig_movie_play_sequence(p_sig_movie_class, sig_movie_flags);
     }
+
+    Sleep(150);//add a small delay to reduce unintended button clicks after ending a movie by double-clicking.
+
     Debug_Info_Movie("Play_Movie_Sequence: Done");
     return play_successfull;
 }

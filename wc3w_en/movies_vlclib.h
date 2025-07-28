@@ -106,6 +106,8 @@ public:
 #if LIBVLC_VERSION_INT >= LIBVLC_VERSION(4, 0, 0, 0)
         is_stop_set = true;
         mediaPlayer.stopAsync();
+        while (is_vlc_playing)//ensure vlc is done with surface. 
+            Sleep(0);
 #else
         mediaPlayer.stop();
 #endif
