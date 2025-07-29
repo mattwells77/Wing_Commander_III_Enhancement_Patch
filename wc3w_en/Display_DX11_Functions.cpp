@@ -256,19 +256,19 @@ static void Surfaces_Resize(UINT width, UINT height) {
 //____________________________
 static void Surfaces_Destroy() {
 
-    if (surface_gui == nullptr)
+    if (surface_gui)
         delete surface_gui;
     surface_gui = nullptr;
 
-    if (surface_movieXAN == nullptr)
+    if (surface_movieXAN)
         delete surface_movieXAN;
     surface_movieXAN = nullptr;
 
-    if (surface_space2D == nullptr)
+    if (surface_space2D)
         delete surface_space2D;
     surface_space2D = nullptr;
 
-    if (surface_space3D == nullptr)
+    if (surface_space3D)
         delete surface_space3D;
     surface_space3D = nullptr;
 
