@@ -612,6 +612,13 @@ void Load_Cockpit_HD_Background(const char* cockpit_name) {
 DrawSurface* Get_Cockpit_HD_BG_Surface() {
     if (p_wc3_camera_01->view_type > SPACE_VIEW_TYPE::CockBack)
         return nullptr;
+    
+    //fixes cockpit display if a new mission starts in space and resets to the default camera view but doesn't set *p_wc3_view_cockpit_or_hud. 
+    if (p_wc3_camera_01->view_type == SPACE_VIEW_TYPE::Cockpit && *p_wc3_view_cockpit_or_hud != SPACE_VIEW_TYPE::Cockpit) {
+        Debug_Info("Get_Cockpit_HD_BG_Surface: Reset Cockpit View:%d", p_wc3_camera_01->view_type);
+        *p_wc3_view_cockpit_or_hud = p_wc3_camera_01->view_type;
+    }
+
     return surface_cockpit[static_cast<WORD>(p_wc3_camera_01->view_type)];
 }
 
