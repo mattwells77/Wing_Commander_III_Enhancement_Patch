@@ -596,7 +596,7 @@ void LibVlc_Movie::SetMedia(std::string path) {
 
 //_______________________________________________________
 void LibVlc_Movie::on_time_changed(libvlc_time_t time_ms) {
-    if (next && !next->IsPlaying()) {
+    if (next && !next->IsPlaying() && !next->IsError()) {
         libvlc_time_t mediaLength = mediaPlayer.length();
         if (mediaLength >= 0 && time_ms >= mediaLength - 1000) {
             Debug_Info_Movie("LibVlc_Movie: ON TIME CHANGED time_ms:%d:%d: dist:%d, %s", (LONG)(time_ms), (LONG)(mediaLength), (LONG)(mediaLength - time_ms), path.c_str());
