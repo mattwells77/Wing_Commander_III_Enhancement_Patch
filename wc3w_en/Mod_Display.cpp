@@ -35,8 +35,8 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 
-BOOL is_cockpit_view = FALSE;
-BOOL is_POV3_view = FALSE;
+BOOL space_view_has_BG_image = FALSE;
+//BOOL is_POV3_view = FALSE;
 
 SCALE_TYPE cockpit_scale_type = SCALE_TYPE::fit;
 BOOL crop_cockpit_rect = TRUE;
@@ -493,15 +493,15 @@ static BOOL DrawVideoFrame(VIDframe* vidFrame, RGBQUAD* tBuff, UINT tWidth, DWOR
 
 // Adjust width, height and centre target point of FIRST person POV space views.
 // __fastcall used here as class "this" is parsed on the ecx register.
-//___________________________________________________
+//_____________________________________________________________
 static void __fastcall Set_Space_View_POV1(void* p_space_class) {
 
     WORD* p_view_vars = (WORD*)p_space_class;
     DWORD* p_cockpit_class = ((DWORD**)p_space_class)[67]; //[p_space_struct + 0x10C]
     DWORD cockpit_view_type = p_cockpit_class[8];//[p_cockpit_struct + 0x20] //view_type: cockpit = 0, left = 1, rear = 2, right = 3, hud = 4.
 
-    is_cockpit_view = FALSE;
-    is_POV3_view = FALSE;
+    space_view_has_BG_image = FALSE;
+    //is_POV3_view = FALSE;
     SCALE_TYPE scale_type = SCALE_TYPE::fit;
 
 
@@ -515,12 +515,14 @@ static void __fastcall Set_Space_View_POV1(void* p_space_class) {
     case 0:
         p_view_vars[6] = (WORD)(*p_wc3_x_centre_cockpit / (float)GUI_WIDTH * width);
         p_view_vars[7] = (WORD)(*p_wc3_y_centre_cockpit / (float)GUI_HEIGHT * height);
-        is_cockpit_view = TRUE;
+        space_view_has_BG_image = TRUE;
         scale_type = cockpit_scale_type;
         Debug_Info_Flight("Set Space View - CockPit");
         Debug_Info_Flight("centre_x=%d, centre_y=%d, new_centre_x=%d, new_centre_y=%d", *p_wc3_x_centre_cockpit, *p_wc3_y_centre_cockpit, p_view_vars[6], p_view_vars[7]);
         break;
     case 1:
+        if(*p_wc3_view_cockpit_or_hud == SPACE_VIEW_TYPE::Cockpit && Get_Cockpit_HD_BG_Surface(static_cast<WORD>(SPACE_VIEW_TYPE::CockLeft)))
+            space_view_has_BG_image = TRUE;
         Debug_Info_Flight("Set Space View - Left");
         break;
     case 2:
@@ -528,12 +530,14 @@ static void __fastcall Set_Space_View_POV1(void* p_space_class) {
         p_view_vars[7] = (WORD)(*p_wc3_y_centre_rear / (float)GUI_HEIGHT * height);
         Debug_Info_Flight("Set Space View - Rear");
         Debug_Info_Flight("centre_x=%d, centre_y=%d, new_centre_x=%d, new_centre_y=%d", *p_wc3_x_centre_rear, *p_wc3_y_centre_rear, p_view_vars[6], p_view_vars[7]);
-        if (p_cockpit_class[1]) {//the pointer stored here seems to be related to a background image, enable cockpit view if present to fill black area beyond background.
-            is_cockpit_view = TRUE;
+        if (p_cockpit_class[1] || *p_wc3_view_cockpit_or_hud == SPACE_VIEW_TYPE::Cockpit && Get_Cockpit_HD_BG_Surface(static_cast<WORD>(SPACE_VIEW_TYPE::CockBack))) {//the pointer stored here seems to be related to a background image, enable cockpit view if present to fill black area beyond background.
+            space_view_has_BG_image = TRUE;
             scale_type = cockpit_scale_type;
         }
         break;
     case 3:
+        if (*p_wc3_view_cockpit_or_hud == SPACE_VIEW_TYPE::Cockpit && Get_Cockpit_HD_BG_Surface(static_cast<WORD>(SPACE_VIEW_TYPE::CockRight)))
+            space_view_has_BG_image = TRUE;
         Debug_Info_Flight("Set Space View - Right");
         break;
     case 4:
@@ -596,7 +600,7 @@ static void __fastcall Set_Space_View_POV3(void* p_space_class, DRAW_BUFFER_MAIN
 
     //Debug_Info("Set_Space_View_POV3 - %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d", p_view_vars[0], p_view_vars[1], p_view_vars[2], p_view_vars[3], p_view_vars[4], p_view_vars[5], p_view_vars[6], p_view_vars[7],
     //    p_view_vars[8], p_view_vars[9], p_view_vars[10], p_view_vars[11], p_view_vars[12], p_view_vars[13], p_view_vars[14], p_view_vars[15]);
-    is_cockpit_view = FALSE;
+    space_view_has_BG_image = FALSE;
 
     WORD width = (WORD)clientWidth;
     WORD height = (WORD)clientHeight;
@@ -606,8 +610,8 @@ static void __fastcall Set_Space_View_POV3(void* p_space_class, DRAW_BUFFER_MAIN
         width = 122;
         height = 100;
         //if in cockpit view, make sure flag is set to enable clipping rect.
-        if (*p_wc3_space_view_type == SPACE_VIEW_TYPE::Cockpit)
-            is_cockpit_view = TRUE;
+        if (*p_wc3_view_current_dir == SPACE_VIEW_TYPE::Cockpit)
+            space_view_has_BG_image = TRUE;
     }
     else
         surface_space2D->ScaleTo((float)clientWidth, (float)clientHeight, SCALE_TYPE::fit);// dont alter the scale type when drawing rear view vdu.
@@ -700,7 +704,7 @@ static void Lock_3DSpace_Surface() {
 
 //_________________________________________________________
 static void Lock_3DSpace_Surface_POV1(void* p_space_class) {
-    is_POV3_view = FALSE;
+    //is_POV3_view = FALSE;
     if (((WORD*)p_space_class)[4] != (WORD)clientWidth || ((WORD*)p_space_class)[5] != (WORD)clientHeight) {
         //Debug_Info("RESIZING SPACE VIEW POV1");
         DWORD* p_cockpit_class = ((DWORD**)p_space_class)[67];
@@ -734,7 +738,7 @@ static void __declspec(naked) lock_3dspace_surface_pov1(void) {
 //_________________________________________________________
 static void Lock_3DSpace_Surface_POV3(void* p_space_struct) {
     //Debug_Info("Lock_3DSpace_Surface_POV3");
-    is_POV3_view = TRUE;
+    //is_POV3_view = TRUE;
     if (((WORD*)p_space_struct)[4] != (WORD)clientWidth || ((WORD*)p_space_struct)[5] != (WORD)clientHeight) {
         //Debug_Info("RESIZING SPACE VIEW POV3");
         Set_Space_View_POV3((WORD*)p_space_struct, nullptr);
@@ -2176,6 +2180,67 @@ static void __declspec(naked) update_alt_o_cursor(void) {
 }
 
 
+//____________________________________________________________
+static void __declspec(naked) load_cockpit_hd_background(void) {
+
+    __asm {
+        pushad
+        push edi
+        call Load_Cockpit_HD_Background
+        add esp, 0x4
+        popad
+
+        //insert original code
+        mov ecx, -1
+        ret
+
+    }
+}
+
+
+//________________________________________
+static BOOL Is_Not_Cockpit_HD_Background() {
+    if (Get_Cockpit_HD_BG_Surface())
+        return FALSE;
+    return TRUE;
+}
+
+
+//____________________________________________________________________
+//Check for the existence of a HD cockpit background alternative before drawing regular backgoung image if present.
+static void __declspec(naked) check_cockpit_alternate_background(void) {
+
+    __asm {
+        push ebx
+        push ecx
+        push edx
+        push edi
+        push esi
+        push ebp
+    
+        call Is_Not_Cockpit_HD_Background
+ 
+        pop ebp
+        pop esi
+        pop edi
+        pop edx
+        pop ecx
+        pop ebx
+
+        //check for hd cockpit background surface.
+         test eax, eax
+         je exit_func
+        
+         //insert original code - check if the view has a regular background image.
+        mov eax, dword ptr ds : [esi + 0x4]
+        test eax, eax
+        exit_func:
+        ret
+
+    }
+}
+
+
 //___________________________
 void Modifications_Display() {
 
@@ -2448,6 +2513,16 @@ void Modifications_Display() {
     FuncWrite32(0x433733, 0x4A3338, (DWORD)&inflight_movie_audio_check);
     MemWrite8(0x433737, 0x00, 0x90);
     //---------------------------------------------------------
+
+
+    // HD Cockpits--------------------------------------------------------
+    MemWrite8(0x45288C, 0xB9, 0xE8);
+    FuncWrite32(0x45288D, 0xFFFFFFFF, (DWORD)&load_cockpit_hd_background);
+
+    MemWrite8(0x41B1AC, 0x8B, 0xE8);
+    FuncWrite32(0x41B1AD, 0xC0850446, (DWORD)&check_cockpit_alternate_background);
+    //--------------------------------------------------------------------
+
 }
 
 

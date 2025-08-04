@@ -49,7 +49,10 @@ LONG* p_wc3_y_centre_rear = nullptr;
 LONG* p_wc3_x_centre_hud = nullptr;
 LONG* p_wc3_y_centre_hud = nullptr;
 
-SPACE_VIEW_TYPE* p_wc3_space_view_type = nullptr;
+SPACE_VIEW_TYPE* p_wc3_view_current_dir = nullptr;
+SPACE_VIEW_TYPE* p_wc3_view_cockpit_or_hud = nullptr;
+
+CAMERA_CLASS_01* p_wc3_camera_01 =nullptr;
 
 BOOL* p_wc3_is_mouse_present = nullptr;
 WORD* p_wc3_mouse_button = nullptr;
@@ -211,7 +214,10 @@ void WC3W_Setup() {
     p_wc3_x_centre_hud = (LONG*)0x4A2D38;
     p_wc3_y_centre_hud = (LONG*)0x4A2D3C;
 
-    p_wc3_space_view_type = (SPACE_VIEW_TYPE*)0x4A2D24;
+    p_wc3_view_current_dir = (SPACE_VIEW_TYPE*)0x4A2D24;
+    p_wc3_view_cockpit_or_hud = (SPACE_VIEW_TYPE*)0x4A4C4C;
+
+    p_wc3_camera_01 = (CAMERA_CLASS_01*)0x4B1830;
 
     //p_wc3_client_width = (DWORD*)0x49F9A8;
     //p_wc3_client_height = (DWORD*)0x49F9AC;

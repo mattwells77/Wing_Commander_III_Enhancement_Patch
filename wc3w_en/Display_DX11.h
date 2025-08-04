@@ -27,6 +27,7 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <d3dcompiler.h>
 #include <DirectXMath.h>
 #include <DirectXColors.h>
+#include <DirectXPackedVector.h>
 #include <dxgi.h>
 #include <dxgi1_2.h>
 
@@ -39,10 +40,6 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "d3dcompiler.lib")
 #pragma comment(lib, "winmm.lib")
-
-
-#include <DirectXMath.h>
-#include <DirectXPackedVector.h>
 
 
 #define RGBA_32BIT(a,r,g,b) (a<<24) | (r<<16) | (g<<8) | (b)
@@ -102,6 +99,7 @@ enum class SCALE_TYPE : LONG {
     fit = 0,
     fill = 1,
     fit_best = 2,
+    fit_height = 3,
 };
 
 enum class PRESENT_TYPE : LONG {
@@ -1113,8 +1111,8 @@ extern DrawSurface* surface_space3D;
 extern DrawSurface8_RT* surface_space2D;
 extern DrawSurface8_RT* surface_movieXAN;
 
-extern BOOL is_cockpit_view;
-extern BOOL is_POV3_view;
+extern BOOL space_view_has_BG_image;
+//extern BOOL is_POV3_view;
 
 extern BOOL crop_cockpit_rect;
 extern SCALE_TYPE cockpit_scale_type;
@@ -1135,3 +1133,9 @@ BOOL Get_Monitor_Refresh_Rate(HWND hwnd, DXGI_RATIONAL* refreshRate);
 
 void Inflight_Mono_Colour_Setup(DWORD colour, UINT brightness, UINT contrast);
 void Reset_DX11_Shader_Defaults();
+
+void Load_Cockpit_HD_Background(const char* cockpit_name);
+//Get the cockpit HD Background surface for the current camera view.
+DrawSurface* Get_Cockpit_HD_BG_Surface();
+//Get the cockpit HD Background surface for this POV, Cockpit, CockLeft, CockRight or CockBack.
+DrawSurface* Get_Cockpit_HD_BG_Surface(WORD view_type);

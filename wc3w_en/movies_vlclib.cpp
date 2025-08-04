@@ -884,7 +884,7 @@ LibVlc_MovieInflight::LibVlc_MovieInflight(const char* file_name, RECT* p_rc_des
 
     if (p_rc_dest_unscaled) {
         CopyRect(&rc_dest_unscaled, p_rc_dest_unscaled);
-        if (!surface_bg && inflight_display_aspect_type == SCALE_TYPE::fit) {
+        if (!surface_bg && inflight_display_aspect_type == SCALE_TYPE::fit && !Get_Cockpit_HD_BG_Surface()) {
             LONG bg_x = rc_dest_unscaled.left - 1;
             if (bg_x < 0)
                 bg_x = 0;
@@ -1191,7 +1191,7 @@ void LibVlc_MovieInflight::Update_Display_Dimensions(RECT* p_rc_gui_unscaled) {
 void LibVlc_MovieInflight::Display() {
     if (!play_setup_complete)//play_counter_started)
         return;
-    if (surface_bg && *p_wc3_space_view_type == SPACE_VIEW_TYPE::Cockpit)
+    if (surface_bg && *p_wc3_view_current_dir == SPACE_VIEW_TYPE::Cockpit)
         surface_bg->Display();
     if (surface) {
         if (is_inflight_mono_shader_enabled)

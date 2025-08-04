@@ -21,6 +21,8 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
 #include "pch.h"
+#include <wrl/client.h>
+#include <wincodec.h>
 
 #include "Display_DX11.h"
 
@@ -34,6 +36,7 @@ using namespace DirectX;
 using namespace DirectX::PackedVector;
 
 using namespace std;
+using Microsoft::WRL::ComPtr;
 
 //vertex shaders
 #include "shaders\compiled_h\VS_Basic.h"
@@ -116,6 +119,8 @@ DrawSurface8_RT* surface_gui = nullptr;
 DrawSurface* surface_space3D = nullptr;
 DrawSurface8_RT* surface_space2D = nullptr;
 DrawSurface8_RT* surface_movieXAN = nullptr;
+
+DrawSurface* surface_cockpit[4] = { nullptr,nullptr,nullptr,nullptr };
 
 RenderTarget* rt_display = nullptr;
 
@@ -244,6 +249,29 @@ static void Surfaces_Resize(UINT width, UINT height) {
 
     if (surface_space2D)
         surface_space2D->ScaleTo((float)width, (float)height);
+    
+    
+    for (int i = 0; i < _countof(surface_cockpit); i++) {
+        if (!surface_cockpit[i])
+            continue;
+        if (i == static_cast<WORD>(SPACE_VIEW_TYPE::Cockpit)) {
+            float x = 0;
+            float y = 0;
+            float cockpit_height = (float)height;
+            if (surface_space2D)
+                cockpit_height = surface_space2D->GetScaledHeight();
+
+            surface_cockpit[i]->ScaleTo((float)width, cockpit_height);
+            surface_cockpit[i]->GetPosition(&x, &y);
+            if (surface_space2D)
+                surface_space2D->GetPosition(nullptr, &y);
+
+            surface_cockpit[i]->SetPosition(x, y);
+        }
+        else {
+            surface_cockpit[i]->ScaleTo((float)width, (float)height);
+        }
+    }
 
     if (surface_space3D)
         delete surface_space3D;
@@ -272,6 +300,13 @@ static void Surfaces_Destroy() {
         delete surface_space3D;
     surface_space3D = nullptr;
 
+
+    for (int i = 0; i < _countof(surface_cockpit); i++) {
+        if (surface_cockpit[i])
+        delete surface_cockpit[i];
+        surface_cockpit[i] = nullptr;
+    }
+    
     Debug_Info("Surfaces_Destroy Done");
 }
 
@@ -309,23 +344,38 @@ void Display_Dx_Present(PRESENT_TYPE present_type) {
     rt_display->ClearRenderTarget(g_d3dDepthStencilView);
     rt_display->SetRenderTarget(g_d3dDepthStencilView);
 
-    //Set_ViewPort(clientWidth, clientHeight);
-
     if (present_type == PRESENT_TYPE::space) {
-        if (is_nav_view || (is_cockpit_view && cockpit_scale_type == SCALE_TYPE::fit && crop_cockpit_rect)) {//when nav screen is up or the cockpit is visible but not streched to fill the screen, clip 3d space view to the cockpit's rect.
+        if (is_nav_view || (space_view_has_BG_image && cockpit_scale_type == SCALE_TYPE::fit && crop_cockpit_rect)) {//when nav screen is up or the cockpit is visible but not streched to fill the screen, clip 3d space view to the cockpit's rect.
             float x_unit = 0;
             float y_unit = 0;
             float x = 0;
             float y = 0;
-            surface_space2D->GetPosition(&x, &y);
-            surface_space2D->GetScaledPixelDimensions(&x_unit, &y_unit);
-            D3D11_RECT rect{ (LONG)x,(LONG)y, (LONG)x + (LONG)(surface_space2D->GetWidth() * x_unit), (LONG)y + (LONG)(surface_space2D->GetHeight() * y_unit) };
+            DWORD surface_w = 0;
+            DWORD surface_h = 0;
+            //clip to the HD cockpit background if one is present for the current POV.
+            if (!is_nav_view && p_wc3_camera_01->view_type <= SPACE_VIEW_TYPE::CockBack && surface_cockpit[static_cast<WORD>(p_wc3_camera_01->view_type)]) {
+                surface_cockpit[static_cast<WORD>(p_wc3_camera_01->view_type)]->GetPosition(&x, &y);
+                surface_cockpit[static_cast<WORD>(p_wc3_camera_01->view_type)]->GetScaledPixelDimensions(&x_unit, &y_unit);
+                surface_w = surface_cockpit[static_cast<WORD>(p_wc3_camera_01->view_type)]->GetWidth();
+                surface_h = surface_cockpit[static_cast<WORD>(p_wc3_camera_01->view_type)]->GetHeight();
+            }
+            else {
+                surface_space2D->GetPosition(&x, &y);
+                surface_space2D->GetScaledPixelDimensions(&x_unit, &y_unit);
+                surface_w = surface_space2D->GetWidth();
+                surface_h = surface_space2D->GetHeight();
+            }
+            D3D11_RECT rect{ (LONG)x,(LONG)y, (LONG)x + (LONG)(surface_w * x_unit), (LONG)y + (LONG)(surface_h * y_unit) };
             g_d3dDeviceContext->RSSetScissorRects(1, &rect);
         }
         if (surface_space3D)
             surface_space3D->Display();
 
-        if (pMovie_vlc_Inflight && (*p_wc3_space_view_type == SPACE_VIEW_TYPE::Cockpit || *p_wc3_space_view_type == SPACE_VIEW_TYPE::CockHud) && !is_POV3_view)
+        if (*p_wc3_view_cockpit_or_hud == SPACE_VIEW_TYPE::Cockpit && p_wc3_camera_01->view_type <= SPACE_VIEW_TYPE::CockBack || (space_view_has_BG_image && p_wc3_camera_01->view_type == SPACE_VIEW_TYPE::CockBack)) {
+            if (surface_cockpit[static_cast<WORD>(p_wc3_camera_01->view_type)])
+                surface_cockpit[static_cast<WORD>(p_wc3_camera_01->view_type)]->Display();
+        }
+        if (pMovie_vlc_Inflight && (p_wc3_camera_01->view_type == SPACE_VIEW_TYPE::Cockpit || p_wc3_camera_01->view_type == SPACE_VIEW_TYPE::CockHud))// && !is_POV3_view)
             pMovie_vlc_Inflight->Display();
 
         if (surface_space2D) {
@@ -384,6 +434,193 @@ void Display_Dx_Present(PRESENT_TYPE present_type) {
 //_______________________
 void Display_Dx_Present() {
     Display_Dx_Present(last_present_type);
+}
+
+
+//_______________________________________________________________________________________________________________________
+static BOOL LoadBGRAImage(const wchar_t* filename, uint32_t& width, uint32_t& height, vector<uint8_t>* p_ret_8bit_vector) {
+    
+    if (!p_ret_8bit_vector)
+        return FALSE;
+    p_ret_8bit_vector->clear();
+
+    HRESULT hr = S_OK;
+
+    ComPtr<IWICImagingFactory> wicFactory;
+    hr = CoCreateInstance(CLSID_WICImagingFactory2, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&wicFactory));
+    if (FAILED(hr)) {
+        Debug_Info_Error("LoadBGRAImage - CoCreateInstance Failed.");
+        return FALSE;
+    }
+    ComPtr<IWICBitmapDecoder> decoder;
+    hr = wicFactory->CreateDecoderFromFilename(filename, nullptr, GENERIC_READ, WICDecodeMetadataCacheOnDemand, decoder.GetAddressOf());
+    if (FAILED(hr)) {
+        Debug_Info_Error("LoadBGRAImage - CreateDecoderFromFilename Failed. %S", filename);
+        return FALSE;
+    }
+    ComPtr<IWICBitmapFrameDecode> frame;
+    hr = decoder->GetFrame(0, frame.GetAddressOf());
+    if (FAILED(hr)) {
+        Debug_Info_Error("LoadBGRAImage - GetFrame Failed.");
+        return FALSE;
+    }
+    hr = frame->GetSize(&width, &height);
+    if (FAILED(hr)) {
+        Debug_Info_Error("LoadBGRAImage - GetSize Failed.");
+        return FALSE;
+    }
+    WICPixelFormatGUID pixelFormat;
+    hr = frame->GetPixelFormat(&pixelFormat);
+    if (FAILED(hr)) {
+        Debug_Info_Error("LoadBGRAImage - GetPixelFormat Failed.");
+        return FALSE;
+    }
+    uint32_t rowPitch = width * sizeof(uint32_t);
+    uint32_t imageSize = rowPitch * height;
+
+
+    p_ret_8bit_vector->resize(size_t(imageSize));
+
+    if (memcmp(&pixelFormat, &GUID_WICPixelFormat32bppBGRA, sizeof(GUID)) == 0) {
+        hr = frame->CopyPixels(nullptr, rowPitch, imageSize, reinterpret_cast<BYTE*>(p_ret_8bit_vector->data()));
+        if (FAILED(hr)) {
+            Debug_Info_Error("LoadBGRAImage - CopyPixels Failed.");
+            p_ret_8bit_vector->clear();
+            return FALSE;
+        }
+    }
+    else
+    {
+        ComPtr<IWICFormatConverter> formatConverter;
+        hr = wicFactory->CreateFormatConverter(formatConverter.GetAddressOf());
+        if (FAILED(hr)) {
+            Debug_Info_Error("LoadBGRAImage - CreateFormatConverter Failed.");
+            p_ret_8bit_vector->clear();
+            return FALSE;
+        }
+        BOOL canConvert = FALSE;
+        hr = formatConverter->CanConvert(pixelFormat, GUID_WICPixelFormat32bppBGRA, &canConvert);
+        if (FAILED(hr)) {
+            Debug_Info_Error("LoadBGRAImage - CanConvert Failed.");
+            p_ret_8bit_vector->clear();
+            return FALSE;
+        }
+
+        if (!canConvert) {
+            Debug_Info_Error("LoadBGRAImage - CanConvert Failed to convert.");
+            p_ret_8bit_vector->clear();
+            return FALSE;
+        }
+
+        hr = formatConverter->Initialize(frame.Get(), GUID_WICPixelFormat32bppBGRA,
+            WICBitmapDitherTypeErrorDiffusion, nullptr, 0, WICBitmapPaletteTypeMedianCut);
+        if (FAILED(hr)) {
+            Debug_Info_Error("LoadBGRAImage - formatConverter->Initialize Failed.");
+            p_ret_8bit_vector->clear();
+            return FALSE;
+        }
+
+        hr = formatConverter->CopyPixels(nullptr, rowPitch, imageSize, reinterpret_cast<BYTE*>(p_ret_8bit_vector->data()));
+        if (FAILED(hr)) {
+            Debug_Info_Error("LoadBGRAImage - formatConverter->CopyPixels Failed.");
+            p_ret_8bit_vector->clear();
+            return FALSE;
+        }
+    }
+
+    return TRUE;
+}
+
+
+//____________________________________________________________________________________________
+static BOOL LoadImageToDrawSurface(const wchar_t* filename, DrawSurface** pp_ret_draw_surface) {
+    
+    if (!pp_ret_draw_surface)
+        return FALSE;
+
+    uint32_t width = 0;
+    uint32_t height = 0;
+    vector<uint8_t> image;
+
+    if (LoadBGRAImage(filename, width, height, &image)) {
+        Debug_Info("LoadImageToDrawSurface: creating surface for %S", filename);
+        BYTE* image_buff = reinterpret_cast<BYTE*>(image.data());
+        uint32_t image_pitch = width * sizeof(uint32_t);
+
+        *pp_ret_draw_surface = new DrawSurface(0, 0, width, height, 32, 0x00000000);
+
+        BYTE* p_surface = nullptr;
+        LONG surface_pitch = 0;
+        (*pp_ret_draw_surface)->Lock((VOID**)&p_surface, &surface_pitch);
+        if (surface_pitch >= (LONG)image_pitch) {
+            for (UINT y = 0; y < height; y++) {
+                memcpy(p_surface, image_buff, image_pitch);
+                p_surface += surface_pitch;
+                image_buff += image_pitch;
+            }
+        }
+        (*pp_ret_draw_surface)->Unlock();
+
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+
+//_______________________________________________________
+void Load_Cockpit_HD_Background(const char* cockpit_name) {
+    const wchar_t file_id[4][3] = { L"_F",  L"_L", L"_R", L"_B" };
+    
+    Debug_Info("Load_Cockpit_Background: %s", cockpit_name);
+    wstring filename(L"DATA\\MISSIONS\\COCKPITS\\");
+    filename.append(cockpit_name, cockpit_name + strlen(cockpit_name));
+    size_t path_type_pos = filename.length();
+    filename.append(file_id[0]);
+    filename.append(L".png");
+
+    for (int i = 0; i < _countof(surface_cockpit); i++) {
+        if (surface_cockpit[i])
+            delete surface_cockpit[i];
+        surface_cockpit[i] = nullptr;
+        filename.replace(path_type_pos, 2, file_id[i]);
+ 
+        if (LoadImageToDrawSurface(filename.c_str(), &surface_cockpit[i])) {
+            if (i == static_cast<WORD>(SPACE_VIEW_TYPE::Cockpit)) {
+                float x = 0;
+                float y = 0;
+                float cockpit_height = (float)clientHeight;
+                if (surface_space2D)
+                    cockpit_height = surface_space2D->GetScaledHeight();
+
+                surface_cockpit[i]->ScaleTo((float)clientWidth, cockpit_height, SCALE_TYPE::fit_height);
+                surface_cockpit[i]->GetPosition(&x, &y);
+                if (surface_space2D)
+                    surface_space2D->GetPosition(nullptr, &y);
+
+                surface_cockpit[i]->SetPosition(x, y);
+            }
+            else {
+                surface_cockpit[i]->ScaleTo((float)clientWidth, (float)clientHeight, SCALE_TYPE::fit_height);
+            }
+        }
+    }
+}
+
+
+//______________________________________
+DrawSurface* Get_Cockpit_HD_BG_Surface() {
+    if (p_wc3_camera_01->view_type > SPACE_VIEW_TYPE::CockBack)
+        return nullptr;
+    return surface_cockpit[static_cast<WORD>(p_wc3_camera_01->view_type)];
+}
+
+
+//____________________________________________________
+DrawSurface* Get_Cockpit_HD_BG_Surface(WORD view_type) {
+    if (view_type > static_cast<WORD>(SPACE_VIEW_TYPE::CockBack))
+        return nullptr;
+    return surface_cockpit[view_type];
 }
 
 

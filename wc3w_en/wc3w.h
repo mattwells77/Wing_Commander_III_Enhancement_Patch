@@ -161,6 +161,14 @@ enum class SPACE_VIEW_TYPE : WORD {
     Track = 11,
 };
 
+//this structure is very incomplete and likely larger than specified.
+struct CAMERA_CLASS_01 {
+    DWORD unk00;//0x00
+    DWORD unk04;//0x04
+    DWORD unk08;//0x08
+    SPACE_VIEW_TYPE view_type;//0x0C
+    //WORD unk05;//0x10
+};
 
 void WC3W_Setup();
 
@@ -190,7 +198,10 @@ extern LONG* p_wc3_y_centre_rear;
 extern LONG* p_wc3_x_centre_hud;
 extern LONG* p_wc3_y_centre_hud;
 
-extern SPACE_VIEW_TYPE* p_wc3_space_view_type;
+extern SPACE_VIEW_TYPE* p_wc3_view_current_dir;//will only be Cockpit, CockLeft, CockRight, CockBack or CockHud
+extern SPACE_VIEW_TYPE* p_wc3_view_cockpit_or_hud;//will only be Cockpit or CockHud
+
+extern CAMERA_CLASS_01* p_wc3_camera_01;
 
 extern BOOL* p_wc3_is_mouse_present;
 

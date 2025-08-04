@@ -50,6 +50,18 @@ void BASE_DISPLAY_SURFACE::ScaleTo(float in_width, float in_height) {
         scaleX = scaled_Width / width;
         scaleY = scaled_Height / height;
     }
+    else if (scale_type == SCALE_TYPE::fit_height) {
+        float rtRO = width / (float)height;
+
+        y = 0;
+        scaled_Height = (float)in_height;
+        scaled_Width = scaled_Height * rtRO;
+        x = ((float)in_width - scaled_Width) / 2;
+
+
+        scaleX = scaled_Width / width;
+        scaleY = scaled_Height / height;
+    }
     else if (scale_type == SCALE_TYPE::fit_best) {
         //Keep the display width and height a multiple of the texture width and height, in order to maintain original pixel alignment.
         float max_height = (float)((DWORD)in_height / height * height);
