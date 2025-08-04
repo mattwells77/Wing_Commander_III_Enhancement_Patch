@@ -216,6 +216,28 @@ void Palette_Update(BYTE* p_pal_buff, BYTE offset, DWORD num_entries) {
 }
 
 
+//___________________________________________
+void Set_Space2D_Surface_SamplerState_Point() {
+    if (surface_space2D)
+        surface_space2D->Set_Default_SamplerState(pd3dPS_SamplerState_Point);
+    Debug_Info("Setup Space2D_Surface SamplerState - Point");
+}
+
+
+//_________________________________________________
+void Set_Space2D_Surface_SamplerState_From_Config() {
+    if (!surface_space2D)
+        return;
+    
+    ID3D11SamplerState* pd3dPS_SamplerState = pd3dPS_SamplerState_Linear;
+    if (!ConfigReadInt(L"MAIN", L"ENABLE_LINEAR_UPSCALING_COCKPIT_HUD", CONFIG_MAIN_ENABLE_LINEAR_UPSCALING_COCKPIT_HUD))
+        pd3dPS_SamplerState = pd3dPS_SamplerState_Point;
+
+    surface_space2D->Set_Default_SamplerState(pd3dPS_SamplerState);
+    Debug_Info("Setup Space2D_Surface SamplerState from Config");
+}
+
+
 //_________________________________________________
 static void Surfaces_Setup(UINT width, UINT height) {
 
@@ -604,6 +626,16 @@ void Load_Cockpit_HD_Background(const char* cockpit_name) {
                 surface_cockpit[i]->ScaleTo((float)clientWidth, (float)clientHeight, SCALE_TYPE::fit_height);
             }
         }
+    }
+}
+
+
+//___________________________________
+void Destroy_Cockpit_HD_Background() {
+    for (int i = 0; i < _countof(surface_cockpit); i++) {
+        if (surface_cockpit[i])
+            delete surface_cockpit[i];
+        surface_cockpit[i] = nullptr;
     }
 }
 

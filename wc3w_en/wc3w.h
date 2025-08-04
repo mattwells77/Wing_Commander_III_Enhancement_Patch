@@ -203,6 +203,8 @@ extern SPACE_VIEW_TYPE* p_wc3_view_cockpit_or_hud;//will only be Cockpit or Cock
 
 extern CAMERA_CLASS_01* p_wc3_camera_01;
 
+extern bool* p_wc3_is_ejecting;
+
 extern BOOL* p_wc3_is_mouse_present;
 
 extern WORD* p_wc3_mouse_button;

@@ -2250,6 +2250,32 @@ static void __declspec(naked) check_cockpit_alternate_background(void) {
 }
 
 
+//_____________________________________________________
+static void __declspec(naked) check_cockpit_death(void) {
+
+    __asm {
+        mov edi, p_wc3_is_ejecting
+        cmp byte ptr ds:[edi], 0x0
+        jne exitfunc
+
+        pushad
+        //fix fade out for death scene.
+        call Destroy_Cockpit_HD_Background//destroy cockpit background so the the original graphic is use on death.
+        call Set_Space2D_Surface_SamplerState_Point//ensure point sampler is used as linear sampler induces some artefacts.
+        popad
+
+        exitfunc:
+
+        //insert original code
+        mov edi, p_wc3_is_ejecting
+        cmp byte ptr ds : [edi] , 0x0
+        ret
+
+    }
+}
+
+
+
 //___________________________
 void Modifications_Display() {
 
@@ -2530,6 +2556,10 @@ void Modifications_Display() {
 
     MemWrite8(0x41B1AC, 0x8B, 0xE8);
     FuncWrite32(0x41B1AD, 0xC0850446, (DWORD)&check_cockpit_alternate_background);
+
+    MemWrite16(0x422016, 0x3D80, 0xE890);
+    FuncWrite32(0x422018, 0x4A2DA0, (DWORD)&check_cockpit_death);
+    MemWrite8(0x42201C, 0x00, 0x90);
     //--------------------------------------------------------------------
 
 }

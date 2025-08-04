@@ -1139,3 +1139,6 @@ void Load_Cockpit_HD_Background(const char* cockpit_name);
 DrawSurface* Get_Cockpit_HD_BG_Surface();
 //Get the cockpit HD Background surface for this POV, Cockpit, CockLeft, CockRight or CockBack.
 DrawSurface* Get_Cockpit_HD_BG_Surface(WORD view_type);
+void Destroy_Cockpit_HD_Background();
+void Set_Space2D_Surface_SamplerState_From_Config();
+void Set_Space2D_Surface_SamplerState_Point();

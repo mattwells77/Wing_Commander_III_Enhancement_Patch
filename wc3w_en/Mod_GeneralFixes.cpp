@@ -21,6 +21,7 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
 #include "pch.h"
+#include "Display_DX11.h"
 #include "modifications.h"
 #include "memwrite.h"
 #include "configTools.h"
@@ -481,6 +482,7 @@ static void __declspec(naked) modify_object_lod_dist(void) {
         push ecx
         call Modify_Object_LOD_Distance
         add esp, 0x4
+        call Set_Space2D_Surface_SamplerState_From_Config//set-up sample state in case it was modified on death.
         popad
         //re-insert original code
         mov eax, dword ptr ds:[eax + 0x90]
