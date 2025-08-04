@@ -1857,6 +1857,15 @@ static LONG Get_Num_Frames_Between_Timecodes_30fps(DWORD timecode_start, DWORD t
 static BOOL Play_Inflight_Movie(HUD_CLASS_01* p_hud_class_01) {
 
     if (*pp_movie_class_inflight_01) {
+
+        if (p_hud_class_01->hud_y + p_hud_class_01->comm_y + (LONG)p_movie_class_inflight_02->height > (*pp_wc3_db_game_main)->rc.bottom - (*pp_wc3_db_game_main)->rc.top + 1) {
+            Debug_Info_Movie("Play_Inflight_Movie: Movie being drawn beyond screen height hud_y:%d, comm_y:%d, vid_height:%d, scrn_height:%d", p_hud_class_01->hud_y, p_hud_class_01->comm_y, (LONG)p_movie_class_inflight_02->height, (*pp_wc3_db_game_main)->rc.bottom - (*pp_wc3_db_game_main)->rc.top + 1);
+            LONG y_diff = (p_hud_class_01->hud_y + p_hud_class_01->comm_y + (LONG)p_movie_class_inflight_02->height) - ((*pp_wc3_db_game_main)->rc.bottom - (*pp_wc3_db_game_main)->rc.top + 1);
+            if (p_hud_class_01->comm_y >= y_diff)
+                p_hud_class_01->comm_y -= y_diff;
+            Debug_Info_Movie("Play_Inflight_Movie: comm_y adjusted:%d", p_hud_class_01->comm_y);
+        }
+
         static LARGE_INTEGER inflight_audio_play_start_time{ 0 };
         static LARGE_INTEGER inflight_audio_play_start_offset{ 0 };
 
