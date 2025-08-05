@@ -694,10 +694,10 @@ static void Lock_3DSpace_Surface() {
     (**pp_wc3_db_game).buff = pbuffer_space_3D;
 
     (**pp_wc3_db_game_main).rc.right = clientWidth - 1;
-    (**pp_wc3_db_game_main).rc.bottom = clientHeight - 1;
+    (**pp_wc3_db_game_main).rc.bottom = clientHeight - 2;
 
     (**pp_wc3_db_game).rc_inv.left = buffer_space_3D_pitch - 1;
-    (**pp_wc3_db_game).rc_inv.top = clientHeight - 1;
+    (**pp_wc3_db_game).rc_inv.top = clientHeight - 2;
 
 }
 
