@@ -1,7 +1,7 @@
 # Wing Commander III Enhancement Patch
 This patch was created for the Windows version of the PC game "Wing Commander III". Which came as part of the "Wing Commander Kilrathi Saga" compilation.
 
-It can also be used with the [GOG](https://www.gog.com) DOS version of the game. But will require some extra files and a little more work to set things up. The best and easiest option is to install [Wing Loader](https://www.wcnews.com/chatzone/threads/wing-loader-ks-wcdx-loader-voice-over-mod.30387/ "(KS/WCDX) Loader & Voice Over Mod"). It also has some upgrades and fixes for other Wing Commander games.
+It can also be used with the [GOG](https://www.gog.com) DOS version of the game. But will require some extra files and a little more work to set things up. The best and easiest option is to install [Wing Loader](https://www.wcnews.com/chatzone/threads/wing-loader-ks-wcdx-loader-voice-over-mod.30387/ "(KS/WCDX) Loader & Voice Over Mod"). Wing Loader also has some upgrades and fixes for other Wing Commander games.
 
 This patch uses DirectX 11 for rendering and will likely require Windows 10 or greater to use.
 
