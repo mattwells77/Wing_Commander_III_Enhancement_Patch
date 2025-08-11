@@ -568,7 +568,7 @@ static BOOL LoadImageToDrawSurface(const wchar_t* filename, DrawSurface** pp_ret
     uint32_t height = 0;
     vector<uint8_t> image;
 
-    if (LoadBGRAImage(filename, width, height, &image)) {
+    if (GetFileAttributes(filename) != INVALID_FILE_ATTRIBUTES && LoadBGRAImage(filename, width, height, &image)) {
         Debug_Info("LoadImageToDrawSurface: creating surface for %S", filename);
         BYTE* image_buff = reinterpret_cast<BYTE*>(image.data());
         uint32_t image_pitch = width * sizeof(uint32_t);
@@ -598,12 +598,13 @@ static BOOL LoadImageToDrawSurface(const wchar_t* filename, DrawSurface** pp_ret
 void Load_Cockpit_HD_Background(const char* cockpit_name) {
     const wchar_t file_id[4][3] = { L"_F",  L"_L", L"_R", L"_B" };
     
-    Debug_Info("Load_Cockpit_Background: %s", cockpit_name);
+    Debug_Info("Load HD Cockpit Backgrounds for: %s", cockpit_name);
     wstring filename(L"DATA\\MISSIONS\\COCKPITS\\");
     filename.append(cockpit_name, cockpit_name + strlen(cockpit_name));
     size_t path_type_pos = filename.length();
     filename.append(file_id[0]);
     filename.append(L".png");
+    bool has_hd_cockpit = false;
 
     for (int i = 0; i < _countof(surface_cockpit); i++) {
         if (surface_cockpit[i])
@@ -612,6 +613,7 @@ void Load_Cockpit_HD_Background(const char* cockpit_name) {
         filename.replace(path_type_pos, 2, file_id[i]);
  
         if (LoadImageToDrawSurface(filename.c_str(), &surface_cockpit[i])) {
+            has_hd_cockpit = true;
             if (i == static_cast<WORD>(SPACE_VIEW_TYPE::Cockpit)) {
                 float x = 0;
                 float y = 0;
@@ -631,6 +633,8 @@ void Load_Cockpit_HD_Background(const char* cockpit_name) {
             }
         }
     }
+    if(!has_hd_cockpit)
+        Debug_Info("No HD Cockpit backgrounds found.");
 }
 
 
