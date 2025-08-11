@@ -1,6 +1,8 @@
 # Wing Commander III Enhancement Patch
 This patch was created for the Windows version of the PC game "Wing Commander III". Which came as part of the "Wing Commander Kilrathi Saga" compilation.
 
+It can also be used with the [GOG](https://www.gog.com) DOS version of the game. But will require some extra files and a little more work to set things up. The best and easiest option is to install [Wing Loader](https://www.wcnews.com/chatzone/threads/wing-loader-ks-wcdx-loader-voice-over-mod.30387/ "(KS/WCDX) Loader & Voice Over Mod"). It also has some upgrades and fixes for other Wing Commander games.
+
 This patch uses DirectX 11 for rendering and will likely require Windows 10 or greater to use.
 
 This patch makes use of [DLL injection](https://en.wikipedia.org/wiki/DLL_injection) to make changes to the game's executable file. And is loaded by the game itself by pretending to be the Direct Draw library file "ddraw.dll". It is thus incompatible with patches which use the same method to load eg. [DirectDraw_Hack](https://www.wcnews.com/wcpedia/DirectDraw_Hack "DirectDraw DLL replacement").
