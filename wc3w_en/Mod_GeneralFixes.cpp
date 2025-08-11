@@ -491,6 +491,58 @@ static void __declspec(naked) modify_object_lod_dist(void) {
 }
 
 
+//_________________________________________________
+static void Debug_Info_WC3(const char* format, ...) {
+    __Debug_Info(DEBUG_INFO_ERROR, format);
+}
+
+
+/*
+//_____________________________________________
+static void Proccess_Object(DWORD** func_array) {
+    static int count = 0;
+    Debug_Info("Proccess_Object: %d, func:%X", count, func_array[1]);
+
+    count++;
+}
+
+
+//________________________________
+static void Proccess_Object_Pass() {
+    static int count = 0;
+    Debug_Info("Proccess_Object PASSED: %d", count);
+
+    count++;
+}
+
+
+//__________________________________________________
+static void __declspec(naked) processes_object(void) {
+
+    __asm {
+        mov ebx, dword ptr ds : [eax]
+
+        pushad
+        push ebx
+        call Proccess_Object
+        add esp, 0x4
+        popad
+
+
+        mov ecx, eax
+        call dword ptr ds : [ebx + 0x4]
+
+        //pushad
+        //call Proccess_Object_Pass
+        //popad
+
+        ret
+
+    }
+}
+*/
+
+
 //_______________________________
 void Modifications_GeneralFixes() {
 
@@ -543,4 +595,24 @@ void Modifications_GeneralFixes() {
 
     MemWrite16(0x465712, 0x808B, 0xE890);
     FuncWrite32(0x465714, 0x90, (DWORD)&modify_object_lod_dist);
+    //-----Debugging---------------------------------------------
+    //hijack WC3 Debug info
+    MemWrite8(0x491000, 0x56, 0xE9);
+    FuncWrite32(0x491001, 0x85606857, (DWORD)&Debug_Info_WC3);
+
+    //Remove the need to need for mitchell mode to enable to display space debug overlay "ALT+D". 
+    MemWrite16(0x4501EF, 0x840F, 0x9090);
+    MemWrite32(0x4501F1, 0x0332, 0x90909090);
+    //Prevent the general space overlay from also being displayed when pressing "ALT+D".
+    MemWrite8(0x450205, 0xA2, 0x90);
+    MemWrite32(0x450206, 0x4A271C, 0x90909090);
+    //___________________________________________________________
+
+
+    //00486CA2 | .  8B18 | MOV EBX, DWORD PTR DS : [EAX]
+    //00486CA4 | .  8BC8 | MOV ECX, EAX
+    //00486CA6 | .FF53 04 | CALL DWORD PTR DS : [EBX + 4]
+    //MemWrite8(0x486CA2, 0x8B, 0xE8);
+    //FuncWrite32(0x486CA3, 0xFFC88B18, (DWORD)&processes_object);
+    //MemWrite16(0x486CA7, 0x0453, 0x9090);
 }
