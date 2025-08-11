@@ -491,6 +491,27 @@ static void __declspec(naked) modify_object_lod_dist(void) {
 }
 
 
+//__________________________________________________________
+static LONG MULTI_ARG1_BY_256_DIV_ARG2(LONG arg1, LONG arg2) {
+    LONGLONG val = (LONGLONG)arg1 << 8;
+    return LONG(val / arg2);
+}
+
+
+//__________________________________________________________
+static LONG MULTI_ARG1_BY_ARG2_DIV_256(LONG arg1, LONG arg2) {
+    LONGLONG val = (LONGLONG)arg1 * arg2;
+
+    return LONG(val >> 8);
+}
+
+
+//______________________________________________________________________
+static LONG MULTI_ARG1_BY_ARG2_DIV_ARG3(LONG arg1, LONG arg2, LONG arg3) {
+    return LONG((LONGLONG)arg1 * arg2 / arg3);
+}
+
+
 //_________________________________________________
 static void Debug_Info_WC3(const char* format, ...) {
     __Debug_Info(DEBUG_INFO_ERROR, format);
@@ -595,6 +616,21 @@ void Modifications_GeneralFixes() {
 
     MemWrite16(0x465712, 0x808B, 0xE890);
     FuncWrite32(0x465714, 0x90, (DWORD)&modify_object_lod_dist);
+
+
+    //-----Replacement integer math function-------------------------------
+    //originals causing crashes when imul/idiv were overflowing.
+    MemWrite16(0x46EABC, 0x8B55, 0xE990);
+    FuncWrite32(0x46EABE, 0x08458BEC, (DWORD)&MULTI_ARG1_BY_256_DIV_ARG2);
+
+    MemWrite16(0x46EACF, 0x8B55, 0xE990);
+    FuncWrite32(0x46EAD1, 0x08458BEC, (DWORD)&MULTI_ARG1_BY_ARG2_DIV_256);
+
+    MemWrite16(0x46EADE, 0x8B55, 0xE990);
+    FuncWrite32(0x46EAE0, 0x08458BEC, (DWORD)&MULTI_ARG1_BY_ARG2_DIV_ARG3);
+    //---------------------------------------------------------------------
+
+
     //-----Debugging---------------------------------------------
     //hijack WC3 Debug info
     MemWrite8(0x491000, 0x56, 0xE9);
