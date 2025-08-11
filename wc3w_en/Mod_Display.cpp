@@ -496,6 +496,8 @@ static BOOL DrawVideoFrame(VIDframe* vidFrame, RGBQUAD* tBuff, UINT tWidth, DWOR
 //_____________________________________________________________
 static void __fastcall Set_Space_View_POV1(void* p_space_class) {
 
+    Set_Space2D_Surface_SamplerState_From_Config();
+
     WORD* p_view_vars = (WORD*)p_space_class;
     DWORD* p_cockpit_class = ((DWORD**)p_space_class)[67]; //[p_space_struct + 0x10C]
     DWORD cockpit_view_type = p_cockpit_class[8];//[p_cockpit_struct + 0x20] //view_type: cockpit = 0, left = 1, rear = 2, right = 3, hud = 4.

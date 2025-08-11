@@ -933,6 +933,7 @@ public:
     };
     ~BASE_DISPLAY_SURFACE() {
     };
+    ID3D11SamplerState* Get_Default_SamplerState() { return p_sampler_state; };
     void Set_Default_SamplerState(ID3D11SamplerState* in_p_sampler_state) { p_sampler_state = in_p_sampler_state; };
     void Set_Default_Pixel_Shader(ID3D11PixelShader* in_p_pixel_shader) { p_pixel_shader = in_p_pixel_shader; };
     void Display() { Display(p_pixel_shader); };

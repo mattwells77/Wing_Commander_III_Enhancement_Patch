@@ -220,7 +220,7 @@ void Palette_Update(BYTE* p_pal_buff, BYTE offset, DWORD num_entries) {
 void Set_Space2D_Surface_SamplerState_Point() {
     if (surface_space2D)
         surface_space2D->Set_Default_SamplerState(pd3dPS_SamplerState_Point);
-    Debug_Info("Setup Space2D_Surface SamplerState - Point");
+    Debug_Info("Set Space2D Sampler State - Point");
 }
 
 
@@ -230,11 +230,15 @@ void Set_Space2D_Surface_SamplerState_From_Config() {
         return;
     
     ID3D11SamplerState* pd3dPS_SamplerState = pd3dPS_SamplerState_Linear;
-    if (!ConfigReadInt(L"MAIN", L"ENABLE_LINEAR_UPSCALING_COCKPIT_HUD", CONFIG_MAIN_ENABLE_LINEAR_UPSCALING_COCKPIT_HUD))
+    static BOOL is_linear_upcaling_cockpit_hud = ConfigReadInt(L"MAIN", L"ENABLE_LINEAR_UPSCALING_COCKPIT_HUD", CONFIG_MAIN_ENABLE_LINEAR_UPSCALING_COCKPIT_HUD);
+    
+    if (!is_linear_upcaling_cockpit_hud)
         pd3dPS_SamplerState = pd3dPS_SamplerState_Point;
 
-    surface_space2D->Set_Default_SamplerState(pd3dPS_SamplerState);
-    Debug_Info("Setup Space2D_Surface SamplerState from Config");
+    if (surface_space2D->Get_Default_SamplerState() != pd3dPS_SamplerState) {
+        surface_space2D->Set_Default_SamplerState(pd3dPS_SamplerState);
+        Debug_Info("Reset Space2D Sampler State - Default");
+    }
 }
 
 
