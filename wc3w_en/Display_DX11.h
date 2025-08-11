@@ -1113,7 +1113,6 @@ extern DrawSurface8_RT* surface_space2D;
 extern DrawSurface8_RT* surface_movieXAN;
 
 extern BOOL space_view_has_BG_image;
-//extern BOOL is_POV3_view;
 
 extern BOOL crop_cockpit_rect;
 extern SCALE_TYPE cockpit_scale_type;

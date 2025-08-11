@@ -401,7 +401,7 @@ void Display_Dx_Present(PRESENT_TYPE present_type) {
             if (surface_cockpit[static_cast<WORD>(p_wc3_camera_01->view_type)])
                 surface_cockpit[static_cast<WORD>(p_wc3_camera_01->view_type)]->Display();
         }
-        if (pMovie_vlc_Inflight && (p_wc3_camera_01->view_type == SPACE_VIEW_TYPE::Cockpit || p_wc3_camera_01->view_type == SPACE_VIEW_TYPE::CockHud))// && !is_POV3_view)
+        if (pMovie_vlc_Inflight && (p_wc3_camera_01->view_type == SPACE_VIEW_TYPE::Cockpit || p_wc3_camera_01->view_type == SPACE_VIEW_TYPE::CockHud))
             pMovie_vlc_Inflight->Display();
 
         if (surface_space2D) {

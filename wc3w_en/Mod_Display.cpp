@@ -36,7 +36,6 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 BOOL space_view_has_BG_image = FALSE;
-//BOOL is_POV3_view = FALSE;
 
 SCALE_TYPE cockpit_scale_type = SCALE_TYPE::fit;
 BOOL crop_cockpit_rect = TRUE;
@@ -503,7 +502,6 @@ static void __fastcall Set_Space_View_POV1(void* p_space_class) {
     DWORD cockpit_view_type = p_cockpit_class[8];//[p_cockpit_struct + 0x20] //view_type: cockpit = 0, left = 1, rear = 2, right = 3, hud = 4.
 
     space_view_has_BG_image = FALSE;
-    //is_POV3_view = FALSE;
     SCALE_TYPE scale_type = SCALE_TYPE::fit;
 
 
@@ -706,7 +704,7 @@ static void Lock_3DSpace_Surface() {
 
 //_________________________________________________________
 static void Lock_3DSpace_Surface_POV1(void* p_space_class) {
-    //is_POV3_view = FALSE;
+
     if (((WORD*)p_space_class)[4] != (WORD)clientWidth || ((WORD*)p_space_class)[5] != (WORD)clientHeight) {
         //Debug_Info("RESIZING SPACE VIEW POV1");
         DWORD* p_cockpit_class = ((DWORD**)p_space_class)[67];
@@ -740,7 +738,6 @@ static void __declspec(naked) lock_3dspace_surface_pov1(void) {
 //_________________________________________________________
 static void Lock_3DSpace_Surface_POV3(void* p_space_struct) {
     //Debug_Info("Lock_3DSpace_Surface_POV3");
-    //is_POV3_view = TRUE;
     if (((WORD*)p_space_struct)[4] != (WORD)clientWidth || ((WORD*)p_space_struct)[5] != (WORD)clientHeight) {
         //Debug_Info("RESIZING SPACE VIEW POV3");
         Set_Space_View_POV3((WORD*)p_space_struct, nullptr);
