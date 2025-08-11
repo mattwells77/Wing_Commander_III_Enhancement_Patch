@@ -633,10 +633,12 @@ void Modifications_GeneralFixes() {
     MemWrite8(0x491000, 0x56, 0xE9);
     FuncWrite32(0x491001, 0x85606857, (DWORD)&Debug_Info_WC3);
 
-    //Remove the need to need for mitchell mode to enable to display space debug overlay "ALT+D". 
+    //changed key combo for space debug overlay from "ALT+D" to "CTRL+D".
+    MemWrite8(0x4501E1, 0x03, 0x0C);
+    //Remove the need to need for mitchell mode to enable to display space debug overlay "CTRL+D". 
     MemWrite16(0x4501EF, 0x840F, 0x9090);
     MemWrite32(0x4501F1, 0x0332, 0x90909090);
-    //Prevent the general space overlay from also being displayed when pressing "ALT+D".
+    //Prevent the general space overlay from also being displayed when pressing "CTRL+D".
     MemWrite8(0x450205, 0xA2, 0x90);
     MemWrite32(0x450206, 0x4A271C, 0x90909090);
     //___________________________________________________________
