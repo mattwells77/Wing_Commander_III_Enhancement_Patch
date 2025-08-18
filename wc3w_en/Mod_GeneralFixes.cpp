@@ -380,20 +380,56 @@ struct AUDIO_DATA_STRUCT {
 //____________________________________________________________________________________________________________________
 static void Check_And_Set_Wav_Audio_Data(void* file_struct, AUDIO_DATA_STRUCT* data_struct, void* audio_format_struct) {
 
-    DWORD file_size = ((DWORD*)file_struct)[0];
-    void* file_data_ptr = (void*)((DWORD*)file_struct)[5];
+    //DWORD file_size = ((DWORD*)file_struct)[0];
+    void* p_file_data = (void*)((DWORD*)file_struct)[5];
 
+    if (((DWORD*)p_file_data)[0] == 0x46464952) { //RIFF
 
-    if (((DWORD*)file_data_ptr)[0] != 0x46464952) //RIFF
-            wc3_error_message_box("Neither ACM! tail or WAV header info were found: 0x%x", ((DWORD*)file_struct)[1]);
+        data_struct->p_data_ptr = (BYTE*)p_file_data + 44;
+        //copy the wav format structure.
+        memcpy(audio_format_struct, (BYTE*)p_file_data + 20, 16);
 
-    //data_struct->data_size = file_size - 44;
-    data_struct->p_data_ptr = (BYTE*)file_data_ptr + 44;
+        //Debug_Info("sound has WAV format - sample rate:%dHz, bits per sample:%d, num channels:%d", ((DWORD*)audio_format_struct)[1], ((WORD*)audio_format_struct)[7], ((WORD*)audio_format_struct)[1]);
+    }
+    else if (((DWORD*)p_file_data)[0] == 0x61657243 && ((DWORD*)p_file_data)[1] == 0x65766974 && ((DWORD*)p_file_data)[2] == 0x696F5620 &&
+        ((DWORD*)p_file_data)[3] == 0x46206563 && ((DWORD*)p_file_data)[4] == 0x1A656C69) {//"Creative Voice File(0x1A)"
+        
+        data_struct->p_data_ptr = (BYTE*)p_file_data + 0x20;
+        
+        //file_data ptr's
+        WORD* p_version = (WORD*)((BYTE*)p_file_data + 0x16);
+        WORD* p_check = (WORD*)((BYTE*)p_file_data + 0x18);
+        if(~*p_version + 0x1234 != *p_check)
+            wc3_error_message_box("Creative Voice File VOC version checksum failed: version:%X, check:%X, 0x%x", *p_version, *p_check,  ((DWORD*)file_struct)[1]);
 
-    //copy the wav format structure.
-    memcpy(audio_format_struct, (BYTE*)file_data_ptr + 20, 16);
+        //file_data ptr's
+        BYTE* p_codec = ((BYTE*)p_file_data + 0x1D);
+        BYTE* p_freq_div = ((BYTE*)p_file_data + 0x1E);
 
-    Debug_Info("sound has WAV format - sample rate:%dHz, bits per sample:%d, num channels:%d", ((DWORD*)audio_format_struct)[1], ((WORD*)audio_format_struct)[7], ((WORD*)audio_format_struct)[1]);
+        if(*p_codec && *p_codec !=4)//if codec not 0(8bit PCM) or 4(16bit PCM)
+            wc3_error_message_box("Creative Voice File VOC codec not PCM: 0x%x", ((DWORD*)file_struct)[1]);
+        
+        //audio_format_struct ptr's
+        WORD* p_audio_format = (WORD*)((BYTE*)audio_format_struct + 0x0);
+        WORD* p_num_channels = (WORD*)((BYTE*)audio_format_struct + 0x2);
+        DWORD* p_sample_rate = (DWORD*)((BYTE*)audio_format_struct + 0x4);
+        DWORD* p_bytes_per_sec = (DWORD*)((BYTE*)audio_format_struct + 0x8);
+        WORD* p_bytes_per_block = (WORD*)((BYTE*)audio_format_struct + 0xC);
+        WORD* p_bits_per_sample = (WORD*)((BYTE*)audio_format_struct + 0xE);
+
+        *p_audio_format = 1;
+        *p_num_channels = 1;
+        *p_sample_rate = 1000000 / (256 - *p_freq_div);
+        *p_bits_per_sample = 8;
+        if (*p_codec == 4)
+            *p_bits_per_sample = 16;
+        *p_bytes_per_block = *p_num_channels * *p_bits_per_sample / 8;
+        *p_bytes_per_sec = *p_sample_rate * *p_bytes_per_block;
+    }
+    else
+        wc3_error_message_box("Neither ACM! tail, VOC or WAV header info were found: 0x%x", ((DWORD*)file_struct)[1]);
+    //Debug_Info("audio_format_struct %d, %d, %d, %d, %d, %d", ((WORD*)audio_format_struct)[0], ((WORD*)audio_format_struct)[1], ((DWORD*)audio_format_struct)[1], ((DWORD*)audio_format_struct)[2], ((WORD*)audio_format_struct)[6], ((WORD*)audio_format_struct)[7]);
+
 }
 
 
@@ -427,12 +463,31 @@ static void __declspec(naked) check_audio_format(void) {
         xor eax, eax
         mov edx, dword ptr ss:[ebp+0x14]
         cmp dword ptr ds:[edx], 0x46464952//RIFF
-        jne cheak_acm
+        jne check_voc
 
-        sub ebx, 0x2C   //adjust data size to exclude size of wav header
+        //sub ebx, 0x2C   //adjust data size to exclude size of wav header
+        mov ebx, dword ptr ds : [edx + 0x28]
         mov eax, -1     //set format as NOT an ACM, but still check is ACM tail is present to fix the second sound(ref 0x15) in the German version of the file "VICD2.IFF". Which has both a WAV header and ACM tail.
 
-        cheak_acm:
+        check_voc:
+        cmp dword ptr ds : [edx + 0x00] , 0x61657243//"Crea" (voc header first 4 bytes of "Creative Voice File")
+        jne check_acm
+        cmp dword ptr ds : [edx + 0x04] , 0x65766974//"tive" (voc header next 4 bytes of "Creative Voice File")
+        jne check_acm
+        cmp dword ptr ds : [edx + 0x08] , 0x696F5620//" Voi" (voc header next 4 bytes of "Creative Voice File")
+        jne check_acm
+        cmp dword ptr ds : [edx + 0x0C] , 0x46206563//"ce F" (voc header next 4 bytes of "Creative Voice File")
+        jne check_acm
+        cmp dword ptr ds : [edx + 0x10] , 0x1A656C69//"ile(0x1A)" (voc header next 4 bytes of "Creative Voice File")
+        jne check_acm
+
+        mov ebx, dword ptr ds : [edx + 0x1B]//data size 3 bytes
+        and ebx, 0x00FFFFFF//mask out 4th byte, Frequency divisor 
+        sub ebx, 0x2//subtract Frequency divisor and codec flag from data size.
+
+        mov eax, -1
+
+        check_acm:
         cmp dword ptr ds:[edi], 0x214D4341//ACM!
         je is_acm
 
