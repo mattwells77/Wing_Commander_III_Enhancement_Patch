@@ -508,19 +508,24 @@ static void __declspec(naked) check_audio_format(void) {
 
 
 //________________________________________________
-static void Modify_Object_LOD_Distance(DWORD *LOD) {
+static void Modify_Object_LOD_Distance(DWORD* LOD) {
 
     static int lod_modifier = 100;
     static bool run_once = false;
     if (!run_once) {
         lod_modifier = ConfigReadInt(L"SPACE", L"LOD_LEVEL_DISTANCE_MODIFIER", CONFIG_SPACE_LOD_LEVEL_DISTANCE_MODIFIER);
-        if (lod_modifier < 100)
+        if (lod_modifier != 0 && lod_modifier < 100)
             lod_modifier = 100;
-        
+
         run_once = true;
         Debug_Info("LOD_LEVEL_DISTANCE_MODIFIER SET AT: %d%%", lod_modifier);
     }
-    if(*LOD > 7)//Ignore values 7 or less. LOD dist 0-7 used by afterburner effect animation.
+    if (*LOD <= 7)//Ignore values 7 or less. LOD dist 0-7 used by afterburner effect animation.
+        return;
+
+    if (lod_modifier == 0)
+        *LOD = 0;
+    else
         *LOD = *LOD * lod_modifier / 100;
     //Debug_Info("Modify_Object_LOD dist:%d", *LOD);
 }
