@@ -988,6 +988,30 @@ static void __declspec(naked) draw_hud_targeting_elements(void) {
 }
 
 
+//___________________________________________
+static LONG Fix_Hud_Targeting_Rect_Max_Size() {
+
+    float length = (float)clientHeight;
+    if (clientWidth < clientHeight)
+        length = (float)clientWidth;
+    //28 was the original max value.
+    return (LONG)(length / 480.0f * 28.0f);
+}
+
+
+//_________________________________________________________________
+static void __declspec(naked) fix_hud_targeting_rect_max_size(void) {
+
+    __asm {
+        push esi
+        call Fix_Hud_Targeting_Rect_Max_Size
+        mov edx, eax
+        pop esi
+        ret
+    }
+}
+
+
 //______________________________________________________
 static void __declspec(naked) fix_nav_scrn_display(void) {
 
@@ -2386,6 +2410,10 @@ void Modifications_Display() {
 
     //draw targeting elements to 3d space
     FuncReplace32(0x41B1A8, 0x00041614, (DWORD)&draw_hud_targeting_elements);
+
+    //fix the max size of targeting rect to match the ratio between it and the original screen size.
+    MemWrite8(0x45D94B, 0xBA, 0xE8);
+    FuncWrite32(0x45D94C, 0x1C, (DWORD)&fix_hud_targeting_rect_max_size);
 
     //replace direct draw lock surface in draw space third person view function
     MemWrite16(0x42EB47, 0x6074, 0x9090);//prevent jumping before this is called
