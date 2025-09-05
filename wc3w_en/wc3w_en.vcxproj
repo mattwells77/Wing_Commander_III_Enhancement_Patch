@@ -275,6 +275,7 @@
     <ClInclude Include="shaders\compiled_h\PS_Basic_Tex_32.h" />
     <ClInclude Include="shaders\compiled_h\PS_Basic_Tex_8.h" />
     <ClInclude Include="shaders\compiled_h\PS_Basic_Tex_8_masked.h" />
+    <ClInclude Include="shaders\compiled_h\PS_Gamma_Tex_32.h" />
     <ClInclude Include="shaders\compiled_h\PS_Greyscale_Tex_32.h" />
     <ClInclude Include="shaders\compiled_h\VS_Basic.h" />
     <ClInclude Include="targetver.h" />
@@ -320,6 +321,11 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release vlc-4.0.0-dev|Win32'">Pixel</ShaderType>
     </FxCompile>
     <FxCompile Include="shaders\PS_Basic_Tex_8_masked.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release vlc-4.0.0-dev|Win32'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="shaders\PS_Gamma_Tex_32.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release vlc-4.0.0-dev|Win32'">Pixel</ShaderType>

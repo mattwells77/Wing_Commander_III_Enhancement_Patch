@@ -76,6 +76,7 @@ extern ID3D11PixelShader* pd3d_PS_Basic_Tex_32;
 extern ID3D11PixelShader* pd3d_PS_Basic_Tex_8;
 extern ID3D11PixelShader* pd3d_PS_Basic_Tex_8_masked;
 extern ID3D11PixelShader* pd3d_PS_Greyscale_Tex_32;
+extern ID3D11PixelShader* pd3d_PS_Gamma_Tex_32;
 
 extern ID3D11SamplerState* pd3dPS_SamplerState_Point;
 extern ID3D11SamplerState* pd3dPS_SamplerState_Linear;
@@ -1142,3 +1143,5 @@ DrawSurface* Get_Cockpit_HD_BG_Surface(WORD view_type);
 void Destroy_Cockpit_HD_Background();
 void Set_Space2D_Surface_SamplerState_From_Config();
 void Set_Space2D_Surface_SamplerState_Point();
+
+void Set_Gamma_Offset(UINT gamma);

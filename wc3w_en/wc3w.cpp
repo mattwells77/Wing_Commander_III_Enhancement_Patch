@@ -42,6 +42,8 @@ DRAW_BUFFER_MAIN** pp_wc3_db_game_main = nullptr;
 BITMAPINFO** pp_wc3_DIB_Bitmapinfo = nullptr;
 VOID** pp_wc3_DIB_vBits = nullptr;
 
+DWORD* p_wc3_gamma_val = nullptr;
+
 LONG* p_wc3_x_centre_cockpit = nullptr;
 LONG* p_wc3_y_centre_cockpit = nullptr;
 LONG* p_wc3_x_centre_rear = nullptr;
@@ -204,6 +206,8 @@ void WC3W_Setup() {
 
     pp_wc3_DIB_Bitmapinfo = (BITMAPINFO**)0x49F964;
     pp_wc3_DIB_vBits = (VOID**)0x49F968;
+
+    p_wc3_gamma_val = (DWORD*)0x49F744;
 
     pp_wc3_db_game = (DRAW_BUFFER**)0x49F980;
     pp_wc3_db_game_main = (DRAW_BUFFER_MAIN**)0x49F97C;

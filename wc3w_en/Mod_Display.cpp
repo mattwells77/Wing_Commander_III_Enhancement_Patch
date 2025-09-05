@@ -215,6 +215,8 @@ static BOOL Window_Setup(HWND hwnd) {
             *p_wc3_movie_no_interlace = true;
     }
 
+    *p_wc3_gamma_val = ConfigReadInt_InGame(L"MAIN", L"GAMMA_LEVEL", CONFIG_MAIN_GAMMA_LEVEL);
+
     int COCKPIT_MAINTAIN_ASPECT_RATIO = ConfigReadInt(L"SPACE", L"COCKPIT_MAINTAIN_ASPECT_RATIO", CONFIG_SPACE_COCKPIT_MAINTAIN_ASPECT_RATIO);
     if (COCKPIT_MAINTAIN_ASPECT_RATIO == 0)
         cockpit_scale_type = SCALE_TYPE::fill;
@@ -262,7 +264,7 @@ static BOOL Window_Setup(HWND hwnd) {
     *p_wc3_mouse_centre_y = (LONG)clientHeight / 2;
 
     Display_Dx_Setup(hwnd, clientWidth, clientHeight);
-
+    
     //QueryPerformanceFrequency(&Frequency);
 
     //Set the movement update time for Navigation screen, which was unregulated and way to fast on modern computers.
@@ -2298,6 +2300,34 @@ static void __declspec(naked) check_cockpit_death(void) {
 }
 
 
+//____________________________________________________
+static void __declspec(naked) apply_gamma_offset(void) {
+
+    __asm {
+        pushad
+
+        mov esi, p_wc3_gamma_val
+        push dword ptr ds:[esi]
+        call Set_Gamma_Offset
+        add esp, 0x4
+
+        popad
+
+        ret
+    }
+}
+
+
+//__________________________________________________
+static void __declspec(naked) check_gamma_high(void) {
+    //replace byte integer for comparison of values larger than 127.
+    __asm {
+        mov eax, p_wc3_gamma_val
+        cmp  dword ptr ds : [eax], 150
+        ret
+    }
+}
+
 
 //___________________________
 void Modifications_Display() {
@@ -2589,6 +2619,76 @@ void Modifications_Display() {
     MemWrite8(0x42201C, 0x00, 0x90);
     //--------------------------------------------------------------------
 
+
+    // Gamma Correction modifications--------------------------------------------------------------------------
+    // Use a shader to set the gamma instead of altering the palette.
+    // Set default gamma level to "off", instead of "low".
+    // Made gamma a global setting instead of being restored from saved games.
+    
+    //setting level(0-2) value when saving game
+    //check gamma - high
+    MemWrite16(0x408A5A, 0x3D83, 0xE890);
+    FuncWrite32(0x408A5C, 0x49F744, (DWORD)&check_gamma_high);
+    MemWrite8(0x408A60, 0x64, 0x90);
+    //check gamma - off
+    MemWrite8(0x408A6D, 0x41, 100);
+
+    //setting gamma val when loading game from level(0-2) value;
+    //jump over this section. don't set gamma from saved game file, make gamma a global value instead.
+    MemWrite16(0x409260, 0xF883, 0x42EB);
+    MemWrite8(0x409262, 0x01, 0x90);
+    //set gamma - low
+    //MemWrite32(0x409270, 0x50, 120);
+    //set gamma - high
+    //MemWrite32(0x40927C, 0x64, 150);
+    //set gamma - off
+    //MemWrite32(0x409288, 0x41, 100);
+
+    //control selection
+    //check lower limit
+    MemWrite8(0x412762, 0x1E, 50);
+    MemWrite32(0x41276B, 0x1E, 50);
+    //check upper limit
+    MemWrite32(0x4127A1, 0x8C, 200);
+
+    //options gui - set gamma val on level selection
+    //selected - off
+    MemWrite32(0x416580, 0x41, 100);
+    MemWrite8(0x416585, 0x41, 100);
+    //selected - low
+    MemWrite32(0x4165AC, 0x50, 120);
+    MemWrite8(0x4165B1, 0x50, 120);
+    //selected - high
+    MemWrite32(0x4165D8, 0x64, 150);
+    MemWrite8(0x4165DD, 0x64, 150);
+
+    //options gui - set level button selection
+    MemWrite16(0x416931, 0x3D83, 0xE890);
+    FuncWrite32(0x416933, 0x49F744, (DWORD)&check_gamma_high);
+    MemWrite8(0x416937, 0x64, 0x90);
+    //check gamma off
+    MemWrite8(0x41697D, 0x41, 100);
+
+    //movie related
+    MemWrite8(0x41BF0B, 0x1E, 50);
+    MemWrite32(0x41BF2C, 0x80, 200-12);
+
+    //keyboard selection
+    //check lower limit
+    MemWrite8(0x4504DE, 0x1E, 50);
+    MemWrite32(0x4504E7, 0x1E, 50);
+    //check upper limit
+    MemWrite32(0x4504FE, 0x8C, 200);
+
+    //ignore gamma setup for palette
+    MemWrite8(0x41DB50, 0x8B, 0xC3);
+    
+    MemWrite16(0x4607A9, 0x8B55, 0xE990);
+    FuncWrite32(0x4607AB, 0xC03356EC, (DWORD)&apply_gamma_offset);
+
+    //Set the default Gamma setting to it's lowest level.
+    MemWrite8(0x49F744, 0x50, 100);
+    //------------------------------------------------------------------------------------------
 }
 
 

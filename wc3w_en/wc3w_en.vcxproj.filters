@@ -78,6 +78,9 @@
     <ClInclude Include="targetver.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="shaders\compiled_h\PS_Gamma_Tex_32.h">
+      <Filter>Shaders\compiled_h</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
@@ -145,6 +148,9 @@
       <Filter>Shaders</Filter>
     </FxCompile>
     <FxCompile Include="shaders\PS_Greyscale_Tex_32.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="shaders\PS_Gamma_Tex_32.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
   </ItemGroup>

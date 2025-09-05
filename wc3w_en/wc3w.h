@@ -186,6 +186,7 @@ extern DRAW_BUFFER_MAIN** pp_wc3_db_game_main;
 extern BITMAPINFO** pp_wc3_DIB_Bitmapinfo;
 extern VOID** pp_wc3_DIB_vBits;
 
+extern DWORD* p_wc3_gamma_val;
 
 extern LARGE_INTEGER* p_wc3_frequency;
 extern LARGE_INTEGER* p_wc3_space_time_max;
