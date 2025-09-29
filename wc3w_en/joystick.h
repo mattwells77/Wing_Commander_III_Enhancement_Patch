@@ -416,8 +416,8 @@ public:
 	void Set_Deadzone_Level(int in_deadzone) {
 		if (in_deadzone < 0)
 			in_deadzone = 0;
-		if (in_deadzone > 5)
-			in_deadzone = 5;
+		if (in_deadzone > 10)
+			in_deadzone = 10;
 		deadzone = in_deadzone; 
 	};
 protected:

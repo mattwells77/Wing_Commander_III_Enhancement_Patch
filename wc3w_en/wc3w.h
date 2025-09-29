@@ -204,6 +204,8 @@ extern SPACE_VIEW_TYPE* p_wc3_view_cockpit_or_hud;//will only be Cockpit or Cock
 
 extern CAMERA_CLASS_01* p_wc3_camera_01;
 
+extern void** pp_wc3_player_obj_struct;
+
 extern bool* p_wc3_is_ejecting;
 
 extern BOOL* p_wc3_is_mouse_present;
@@ -227,6 +229,9 @@ extern DWORD* p_wc3_joy_pov;
 extern LONG* p_wc3_joy_move_x;
 extern LONG* p_wc3_joy_move_y;
 extern LONG* p_wc3_joy_move_r;
+
+extern LONG* p_wc3_joy_move_x_256;
+extern LONG* p_wc3_joy_move_y_256;
 
 extern LONG* p_wc3_joy_x;
 extern LONG* p_wc3_joy_y;

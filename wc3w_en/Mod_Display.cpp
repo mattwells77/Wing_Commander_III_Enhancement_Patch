@@ -2145,6 +2145,10 @@ static void Fix_Space_Mouse_Movement(LONG* p_x, LONG* p_y) {
         *p_y = 16;
     else if (*p_y < -16)
         *p_y = -16;
+
+    //multiply values by 16 for increased precision of movement mod.
+    *p_x *= 16;
+    *p_y *= 16;
 }
 
 

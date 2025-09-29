@@ -294,6 +294,7 @@
     <ClCompile Include="memwrite.cpp" />
     <ClCompile Include="Mod_Display.cpp" />
     <ClCompile Include="Mod_GeneralFixes.cpp" />
+    <ClCompile Include="Mod_ObjectRotation.cpp" />
     <ClCompile Include="movies_vlclib.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>

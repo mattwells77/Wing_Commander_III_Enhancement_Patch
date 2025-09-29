@@ -54,7 +54,9 @@ LONG* p_wc3_y_centre_hud = nullptr;
 SPACE_VIEW_TYPE* p_wc3_view_current_dir = nullptr;
 SPACE_VIEW_TYPE* p_wc3_view_cockpit_or_hud = nullptr;
 
-CAMERA_CLASS_01* p_wc3_camera_01 =nullptr;
+CAMERA_CLASS_01* p_wc3_camera_01 = nullptr;
+
+void** pp_wc3_player_obj_struct = nullptr;
 
 bool* p_wc3_is_ejecting = nullptr;
 
@@ -85,6 +87,8 @@ LONG* p_wc3_joy_move_x = nullptr;
 LONG* p_wc3_joy_move_y = nullptr;
 LONG* p_wc3_joy_move_r = nullptr;
 
+LONG* p_wc3_joy_move_x_256 = nullptr;
+LONG* p_wc3_joy_move_y_256 = nullptr;
 
 LONG* p_wc3_joy_x = nullptr;
 LONG* p_wc3_joy_y = nullptr;
@@ -225,6 +229,8 @@ void WC3W_Setup() {
 
     p_wc3_camera_01 = (CAMERA_CLASS_01*)0x4B1830;
 
+    pp_wc3_player_obj_struct = (void**)0x4AB3C0;
+
     p_wc3_is_ejecting = (bool*)0x4A2DA0;
 
     //p_wc3_client_width = (DWORD*)0x49F9A8;
@@ -249,6 +255,9 @@ void WC3W_Setup() {
     p_wc3_joy_move_x = (LONG*)0x4B24D0;
     p_wc3_joy_move_y = (LONG*)0x4B2330;
     p_wc3_joy_move_r = (LONG*)0x4A7E38;
+
+    p_wc3_joy_move_x_256 = (LONG*)0x4B2324;
+    p_wc3_joy_move_y_256 = (LONG*)0x4B22CC;
 
     p_wc3_joy_x = (LONG*)0x4B231C;
     p_wc3_joy_y = (LONG*)0x4B232C;

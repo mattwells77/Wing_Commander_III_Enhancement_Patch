@@ -974,10 +974,16 @@ void JOYSTICKS::Update() {
 	else if (wc3_joy_axes.x > 0.5f)
 		wc3_joy_axes.x = 0.5f;
 
+	int deadzone_256 = deadzone * 8;
 
 	*p_wc3_joy_move_x = (LONG)(32 * wc3_joy_axes.x);
-	if (*p_wc3_joy_move_x <= deadzone && *p_wc3_joy_move_x >= -deadzone)
+	*p_wc3_joy_move_x_256 = (LONG)(512 * wc3_joy_axes.x);
+	if (*p_wc3_joy_move_x_256 <= deadzone_256 && *p_wc3_joy_move_x_256 >= -deadzone_256) {
 		*p_wc3_joy_move_x = 0;
+		*p_wc3_joy_move_x_256 = 0;
+	}
+	//if (*p_wc3_joy_move_x <= deadzone && *p_wc3_joy_move_x >= -deadzone)
+	//	*p_wc3_joy_move_x = 0;
 
 
 	if (wc3_joy_axes.y < -0.5f)
@@ -987,8 +993,13 @@ void JOYSTICKS::Update() {
 
 
 	*p_wc3_joy_move_y = (LONG)(32 * wc3_joy_axes.y);
-	if (*p_wc3_joy_move_y <= deadzone && *p_wc3_joy_move_y >= -deadzone)
+	*p_wc3_joy_move_y_256 = (LONG)(512 * wc3_joy_axes.y);
+	if (*p_wc3_joy_move_y_256 <= deadzone_256 && *p_wc3_joy_move_y_256 >= -deadzone_256) {
 		*p_wc3_joy_move_y = 0;
+		*p_wc3_joy_move_y_256 = 0;
+	}
+	//if (*p_wc3_joy_move_y <= deadzone && *p_wc3_joy_move_y >= -deadzone)
+	//	*p_wc3_joy_move_y = 0;
 
 
 	if (wc3_joy_axes.r < -0.5f)
@@ -996,10 +1007,12 @@ void JOYSTICKS::Update() {
 	else if (wc3_joy_axes.r > 0.5f)
 		wc3_joy_axes.r = 0.5f;
 
-
-	*p_wc3_joy_move_r = (LONG)(32 * wc3_joy_axes.r);
-	if (*p_wc3_joy_move_r <= deadzone && *p_wc3_joy_move_r >= -deadzone)
+	*p_wc3_joy_move_r = (LONG)(512 * wc3_joy_axes.r);
+	if (*p_wc3_joy_move_r <= deadzone_256 && *p_wc3_joy_move_r >= -deadzone_256)
 		*p_wc3_joy_move_r = 0;
+	//*p_wc3_joy_move_r = (LONG)(32 * wc3_joy_axes.r);
+	//if (*p_wc3_joy_move_r <= deadzone && *p_wc3_joy_move_r >= -deadzone)
+	//	*p_wc3_joy_move_r = 0;
 
 
 	if (wc3_joy_axes.t != -1.0f) {

@@ -1227,7 +1227,7 @@ static void JoyConfig_Refresh(HWND hwndDlg) {
 	ScreenToClient(hwndDlg, &pt); //convert screen co-ords to client based points
 
 	width = rc.right - rc.left - 2 - 3;
-	pos_x = (int)((float)(*p_wc3_joy_move_r + 16) * ((float)width / 32.0f));
+	pos_x = (int)((float)(*p_wc3_joy_move_r + 256) * ((float)width / 512.0f));
 	hwnd_sub = GetDlgItem(hwndDlg, IDC_STATIC_ROLL_BAR);
 	MoveWindow(hwnd_sub, pt.x + 1 + pos_x, pt.y + 1, 3, 9, TRUE);
 
@@ -1478,10 +1478,15 @@ static INT_PTR CALLBACK DialogProc_JoyConfig(HWND hwndDlg, UINT uMsg, WPARAM wPa
 
 		//wc axes have 16 degrees of movement from centre, mark deadzone levels as percentages for easier reading. 6.25% == 1/16 of axis from centre.
 		SendMessage(hwnd_sub, CB_ADDSTRING, (WPARAM)0, (LPARAM)L"0%");
+		SendMessage(hwnd_sub, CB_ADDSTRING, (WPARAM)0, (LPARAM)L"3.125%");
 		SendMessage(hwnd_sub, CB_ADDSTRING, (WPARAM)0, (LPARAM)L"6.25%");
+		SendMessage(hwnd_sub, CB_ADDSTRING, (WPARAM)0, (LPARAM)L"9.375%");
 		SendMessage(hwnd_sub, CB_ADDSTRING, (WPARAM)0, (LPARAM)L"12.5%");
+		SendMessage(hwnd_sub, CB_ADDSTRING, (WPARAM)0, (LPARAM)L"15.625%");
 		SendMessage(hwnd_sub, CB_ADDSTRING, (WPARAM)0, (LPARAM)L"18.75%");
+		SendMessage(hwnd_sub, CB_ADDSTRING, (WPARAM)0, (LPARAM)L"21.875%");
 		SendMessage(hwnd_sub, CB_ADDSTRING, (WPARAM)0, (LPARAM)L"25%");
+		SendMessage(hwnd_sub, CB_ADDSTRING, (WPARAM)0, (LPARAM)L"28.125%");
 		SendMessage(hwnd_sub, CB_ADDSTRING, (WPARAM)0, (LPARAM)L"31.25%");
 
 		SendMessage(hwnd_sub, CB_SETCURSEL, (WPARAM)Joysticks.Deadzone_Level(), (LPARAM)0);
