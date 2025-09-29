@@ -323,3 +323,5 @@ extern void*(*wc3_allocate_mem_main)(DWORD);
 extern void(*wc3_deallocate_mem_main)(void*);
 
 extern void(*wc3_error_message_box)(const char* format, ...);
+
+extern void(*wc3_draw_text_to_buff)(DRAW_BUFFER* p_toBuff, DWORD x, DWORD y, DWORD unk1, char* text_buff, DWORD unk2);

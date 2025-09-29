@@ -191,7 +191,10 @@ void(__thiscall*wc3_set_music_volume)(void*, LONG level) = nullptr;
 void* (*wc3_allocate_mem_main)(DWORD) = nullptr;
 void(*wc3_deallocate_mem_main)(void*) = nullptr;
 
-void(*wc3_error_message_box)(const char* format, ...);
+void(*wc3_error_message_box)(const char* format, ...) = nullptr;
+
+void(*wc3_draw_text_to_buff)(DRAW_BUFFER* p_toBuff, DWORD x, DWORD y, DWORD unk1, char* text_buff, DWORD unk2) = nullptr;
+
 
 //_______________
 void WC3W_Setup() {
@@ -370,4 +373,6 @@ void WC3W_Setup() {
     p_wc3_movie_branch_subtitle = (char**)0x4AAA80;
 
     wc3_error_message_box = (void(*)(const char*, ...))0x4702B0;
+
+    wc3_draw_text_to_buff = (void(*)(DRAW_BUFFER*, DWORD, DWORD, DWORD, char*, DWORD)) 0x4753E1;
 }
