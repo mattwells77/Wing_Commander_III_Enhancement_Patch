@@ -179,6 +179,8 @@ DWORD* p_wc3_key_scancode = nullptr;
 
 bool* p_wc3_movie_halt_flag = nullptr;
 
+DWORD* p_wc3_movie_frame_count = nullptr;
+
 char** p_wc3_movie_branch_subtitle;
 
 BOOL(__thiscall* wc3_load_file_handle)(void*, BOOL print_error_flag, BOOL unknown_flag) = nullptr;
@@ -318,6 +320,7 @@ void WC3W_Setup() {
 
     p_wc3_movie_halt_flag = (bool*)0x4A24C4;
 
+    p_wc3_movie_frame_count = (DWORD*)0x4A24BC;
 
     wc3_draw_choice_text_buff = (void(*)(DWORD * ptr, BYTE * buff))0x446830;
 

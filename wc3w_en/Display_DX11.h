@@ -77,6 +77,7 @@ extern ID3D11PixelShader* pd3d_PS_Basic_Tex_8;
 extern ID3D11PixelShader* pd3d_PS_Basic_Tex_8_masked;
 extern ID3D11PixelShader* pd3d_PS_Greyscale_Tex_32;
 extern ID3D11PixelShader* pd3d_PS_Gamma_Tex_32;
+extern ID3D11PixelShader* pd3d_PS_Brightness_Tex_32;
 
 extern ID3D11SamplerState* pd3dPS_SamplerState_Point;
 extern ID3D11SamplerState* pd3dPS_SamplerState_Linear;
@@ -1145,3 +1146,4 @@ void Set_Space2D_Surface_SamplerState_From_Config();
 void Set_Space2D_Surface_SamplerState_Point();
 
 void Set_Gamma_Offset(UINT gamma);
+void Set_Movie_Fade_Level(UINT level);

@@ -247,6 +247,8 @@ extern LONG* p_wc3_movie_branch_current_list_num;
 
 extern bool* p_wc3_movie_halt_flag;
 
+extern DWORD* p_wc3_movie_frame_count;
+
 extern LONG* p_wc3_subtitles_enabled;
 extern LONG* p_wc3_language_ref;
 

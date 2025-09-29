@@ -326,6 +326,11 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release vlc-4.0.0-dev|Win32'">Pixel</ShaderType>
     </FxCompile>
+    <FxCompile Include="shaders\PS_Brightness_Tex_32.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release vlc-4.0.0-dev|Win32'">Pixel</ShaderType>
+    </FxCompile>
     <FxCompile Include="shaders\PS_Gamma_Tex_32.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>

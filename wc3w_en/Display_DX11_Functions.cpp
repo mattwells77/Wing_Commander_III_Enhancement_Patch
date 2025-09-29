@@ -47,6 +47,7 @@ using Microsoft::WRL::ComPtr;
 #include "shaders\compiled_h\PS_Basic_Tex_8_masked.h"
 #include "shaders\compiled_h\PS_Greyscale_Tex_32.h"
 #include "shaders\compiled_h\PS_Gamma_Tex_32.h"
+#include "shaders\compiled_h\PS_Brightness_Tex_32.h"
 
 
 
@@ -88,6 +89,7 @@ ID3D11PixelShader* pd3d_PS_Basic_Tex_8 = nullptr;
 ID3D11PixelShader* pd3d_PS_Basic_Tex_8_masked = nullptr;
 ID3D11PixelShader* pd3d_PS_Greyscale_Tex_32 = nullptr;
 ID3D11PixelShader* pd3d_PS_Gamma_Tex_32 = nullptr;
+ID3D11PixelShader* pd3d_PS_Brightness_Tex_32 = nullptr;
 
 
 ID3D11SamplerState* pd3dPS_SamplerState_Point = nullptr;
@@ -157,6 +159,26 @@ void Shader_SetPaletteData(XMFLOAT4 pal_data) {
 }
 
 
+//_________________________________________
+static void Colour_Options_Buffer_Destroy() {
+    if (colour_options_buff_data)
+        delete colour_options_buff_data;
+    colour_options_buff_data = nullptr;
+    Debug_Info("Colour_Options_Buffer_Destroy Done");
+}
+
+
+//______________________________________
+static void Colour_Options_Buffer_Init() {
+    if (colour_options_buff_data == nullptr) {
+        colour_options_buff_data = new BUFFER_DX(1, true, sizeof(COLOUR_BUFF_DATA));
+        colour_options_buff_data->SetForRenderPS(g_d3dDeviceContext, 0, 1);
+        colour_options_buff.colour_val = { 0,0,0  ,1.0f };
+        colour_options_buff.colour_opt = { 1.0f, 1.0f,0,0 };
+    }
+}
+
+
 //___________________________________________________________________________
 void Inflight_Mono_Colour_Setup(DWORD colour, UINT brightness, UINT contrast) {
     if (colour_options_buff_data == nullptr) {
@@ -174,15 +196,6 @@ void Inflight_Mono_Colour_Setup(DWORD colour, UINT brightness, UINT contrast) {
 }
 
 
-//________________________________________
-static void Inflight_Mono_Colour_Destroy() {
-    if (colour_options_buff_data)
-        delete colour_options_buff_data;
-    colour_options_buff_data = nullptr;
-    Debug_Info("Inflight_Mono_Colour_Destroy Done");
-}
-
-
 //_______________________________
 void Set_Gamma_Offset(UINT gamma) {
     ConfigWriteInt_InGame(L"MAIN", L"GAMMA_LEVEL", *p_wc3_gamma_val);
@@ -196,6 +209,27 @@ void Set_Gamma_Offset(UINT gamma) {
     colour_options_buff_data->UpdateData(g_d3dDeviceContext, 0, &colour_options_buff);
     if(last_val!= colour_options_buff.colour_opt.z)
         Debug_Info("Gamma Offset: %f", colour_options_buff.colour_opt.z);
+}
+
+
+//___________________________________
+void Set_Movie_Fade_Level(UINT level) {
+    //valid levels range from 1-16.
+    //level 0 signifies fade end.
+    static float brightness_backup = 1.0f;
+    if (colour_options_buff_data == nullptr) {
+        colour_options_buff_data = new BUFFER_DX(1, true, sizeof(COLOUR_BUFF_DATA));
+        colour_options_buff_data->SetForRenderPS(g_d3dDeviceContext, 0, 1);
+    }
+    //backup previous colour_opt.x value at fade start
+    if (level == 1)
+        brightness_backup = colour_options_buff.colour_opt.x;
+    //restore previous colour_opt.x value at fade end.
+    if (level == 0)
+        colour_options_buff.colour_opt.x = brightness_backup;
+    else
+        colour_options_buff.colour_opt.x = 1.0f -((float)level / 16.0f);
+    colour_options_buff_data->UpdateData(g_d3dDeviceContext, 0, &colour_options_buff);
 }
 
 
@@ -452,10 +486,10 @@ void Display_Dx_Present(PRESENT_TYPE present_type) {
                 DrawSurface* surface = pMovie_vlc->Get_Currently_Playing_Surface();
 #endif
                 if (surface)
-                    surface->Display();
+                    surface->Display(pd3d_PS_Brightness_Tex_32);
             }
             else if (surface_movieXAN)
-                surface_movieXAN->Display();
+                surface_movieXAN->Display(pd3d_PS_Brightness_Tex_32);
         }
         if (surface_gui) {
             surface_gui->Display();
@@ -967,6 +1001,12 @@ bool Shader_Main_Setup() {
         if (FAILED(hr))
             Debug_Info_Error("CreatePixelShader Failed - pd3d_PS_Gamma_Tex_32.");
     }
+    if (!pd3d_PS_Brightness_Tex_32) {
+        hr = g_d3dDevice->CreatePixelShader(pPS_Brightness_Tex_32_mem, sizeof(pPS_Brightness_Tex_32_mem), nullptr, &pd3d_PS_Brightness_Tex_32);
+        if (FAILED(hr))
+            Debug_Info_Error("CreatePixelShader Failed - pd3d_PS_Brightness_Tex_32.");
+    }
+
     //Create sampler states for texture sampling in the pixel shader.
     if (!pd3dPS_SamplerState_Point || !pd3dPS_SamplerState_Linear) {
         D3D11_SAMPLER_DESC samplerDesc;
@@ -1082,6 +1122,10 @@ void Shader_Main_Destroy() {
         pd3d_PS_Gamma_Tex_32->Release();
     pd3d_PS_Gamma_Tex_32 = nullptr;
 
+    if (pd3d_PS_Brightness_Tex_32)
+        pd3d_PS_Brightness_Tex_32->Release();
+    pd3d_PS_Brightness_Tex_32 = nullptr;
+
     if (pd3dPS_SamplerState_Point)
         pd3dPS_SamplerState_Point->Release();
     pd3dPS_SamplerState_Point = nullptr;
@@ -1115,7 +1159,7 @@ void Shader_Main_Destroy() {
         pVB_Quad_Line_IndexBuffer->Release();
     pVB_Quad_Line_IndexBuffer = nullptr;
 
-    Inflight_Mono_Colour_Destroy();
+    Colour_Options_Buffer_Destroy();
 }
 
 
@@ -1532,6 +1576,7 @@ BOOL Display_Dx_Setup(HWND hwnd, UINT width, UINT height) {
         return 0;
     }
 
+    Colour_Options_Buffer_Init();
     Palette_Setup();
     Surfaces_Setup(width, height);
 

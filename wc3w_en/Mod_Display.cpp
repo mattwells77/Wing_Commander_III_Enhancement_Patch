@@ -1783,6 +1783,8 @@ static BOOL Play_Movie_Sequence(void* p_wc3_movie_class, void* p_sig_movie_class
         pMovie_vlc = nullptr;
         play_successfull = wc3_sig_movie_play_sequence(p_sig_movie_class, sig_movie_flags);
     }
+    else
+        *p_wc3_movie_frame_count += 1;//this global needs to be set to evoke the movie fade out function.
 
     Sleep(150);//add a small delay to reduce unintended button clicks after ending a movie by double-clicking.
 
@@ -1809,6 +1811,47 @@ static void __declspec(naked) play_movie_sequence(void) {
 
         ret 0x4
     }
+}
+
+
+//_______________________________
+static void Movie_Fade(int count) {
+
+    Set_Movie_Fade_Level(count);
+    Display_Dx_Present();
+}
+
+
+//____________________________________________
+static void __declspec(naked) movie_fade(void) {
+
+    __asm {
+        push ebx
+
+        push ebx
+        call Movie_Fade
+        add esp, 0x4
+
+        pop ebx
+        ret
+    }
+}
+
+
+//__________________________________________________________________________
+static void Movie_Fade_End(BYTE* p_pal_buff, BYTE offset, DWORD num_entries) {
+
+    //clear movie buffers before resetting fade level.
+    if (pMovie_vlc) {
+        DrawSurface* surface = pMovie_vlc->Get_Currently_Playing_Surface();
+        if (surface)
+            surface->Clear_Texture(0);
+    }
+    if (surface_movieXAN)
+        surface_movieXAN->Clear_Texture(0);
+    //set level to 0 to end fade out.
+    Set_Movie_Fade_Level(0);
+    Display_Dx_Present();
 }
 
 
@@ -2603,6 +2646,9 @@ void Modifications_Display() {
     // HD Movies-----------------------------------------------
     //play alternate hires movies
     FuncReplace32(0x41C59E, 0x03A1FE, (DWORD)&play_movie_sequence);
+
+    FuncReplace32(0x41CCDE, 0xFFFE8A7E, (DWORD)&movie_fade);
+    FuncReplace32(0x41CD14, 0xFFFE8A48, (DWORD)&Movie_Fade_End);
 
     MemWrite16(0x422EA5, 0x3D83, 0xE890);
     FuncWrite32(0x422EA7, 0x4AB318, (DWORD)&play_inflight_movie);

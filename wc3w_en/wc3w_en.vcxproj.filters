@@ -156,6 +156,9 @@
     <FxCompile Include="shaders\PS_Gamma_Tex_32.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
+    <FxCompile Include="shaders\PS_Brightness_Tex_32.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\shaderPixel_Main.hlsli">
