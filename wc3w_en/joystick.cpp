@@ -1162,6 +1162,24 @@ static void __declspec(naked) joy_setup(void) {
 	}
 }
 
+
+//___________________________________________________
+static void __declspec(naked) joy_roll_variable(void) {
+	//p_wc3_joy_move_r was originaly a direction flag -1 to 1.
+	//now holds the full range of motion on the roll axis.
+	__asm {
+		mov ecx, dword ptr ds : [esi + 0x650]
+		mov edi, p_wc3_joy_move_r
+		cmp dword ptr ds : [edi] , 0
+		je exit_func
+		mov edi, dword ptr ds : [edi]
+		mov dword ptr ds : [ecx + 0x14] , edi//insert roll axis motion into the player movement structure.
+		exit_func :
+		ret
+	}
+}
+
+
 /*
 //___________________________
 void Print_Scancode(int code) {
@@ -1216,20 +1234,8 @@ void Modifications_Joystick() {
 	
 
 	//make the roll axis variable -------------
-	// 
-	//put the former dwRpos_sign value in edi this now contains the roll axis offset
-	//8B3D D0244B00                MOV EDI, DWORD PTR DS : [dwRpos_sign]
-	MemWrite8(0x429BF6, 0x83, 0x8B);
-	MemWrite8(0x429BFC, 0x00, 0x90);
-	//nop jmp
-	MemWrite16(0x429BFD, 0x0D7D, 0x9090);
-
-	//put the roll axis value into the player movement structure.
-	//8978 14                      MOV DWORD PTR DS : [EAX + 14] , EDI; player roll offset
-	MemWrite16(0x429C05, 0x40C7, 0x7889);
-	MemWrite32(0x429C08, 0xFFFFFFF0, 0x90909090);
-	//jmp this bit
-	MemWrite8(0x429C25, 0x7E, 0xEB);
+	MemWrite16(0x429C41, 0x8E8B, 0xE890);
+	FuncWrite32(0x429C43, 0x0650, (DWORD)&joy_roll_variable);
 	//----------------------------------------
 	
 
