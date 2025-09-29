@@ -574,6 +574,24 @@ static void Debug_Info_WC3(const char* format, ...) {
     __Debug_Info(DEBUG_INFO_ERROR, format);
 }
 
+/*
+//_______________________________________________________________________________________________________________
+static void Display_Debug_Info_1(DRAW_BUFFER* p_toBuff, DWORD x, DWORD y, DWORD unk1, char* text_buff, DWORD unk2) {
+
+    wc3_draw_text_to_buff(p_toBuff, x, y, unk1, text_buff, unk2);
+    y += 10;
+
+    sprintf_s(text_buff, 240, "yaw axis: %d", *p_wc3_joy_move_x_256);
+    y += 10;
+    wc3_draw_text_to_buff(p_toBuff, x, y, unk1, text_buff, unk2);
+    sprintf_s(text_buff, 240, "pitch axis: %d", *p_wc3_joy_move_y_256);
+    y += 10;
+    wc3_draw_text_to_buff(p_toBuff, x, y, unk1, text_buff, unk2);
+    sprintf_s(text_buff, 240, "roll axis: %d", *p_wc3_joy_move_r);
+    y += 10;
+    wc3_draw_text_to_buff(p_toBuff, x, y, unk1, text_buff, unk2);
+}
+*/
 
 /*
 //_____________________________________________
@@ -689,6 +707,9 @@ void Modifications_GeneralFixes() {
 
 
     //-----Debugging---------------------------------------------
+    //For adding debug info to inflight debug overlay. 
+    //FuncReplace32(0x420C1F, 0x0547BE, (DWORD)&Display_Debug_Info_1);
+ 
     //hijack WC3 Debug info
     MemWrite8(0x491000, 0x56, 0xE9);
     FuncWrite32(0x491001, 0x85606857, (DWORD)&Debug_Info_WC3);
@@ -710,4 +731,7 @@ void Modifications_GeneralFixes() {
     //MemWrite8(0x486CA2, 0x8B, 0xE8);
     //FuncWrite32(0x486CA3, 0xFFC88B18, (DWORD)&processes_object);
     //MemWrite16(0x486CA7, 0x0453, 0x9090);
+
+ 
+
 }
