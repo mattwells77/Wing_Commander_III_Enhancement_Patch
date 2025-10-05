@@ -257,9 +257,8 @@ static void OrthonormalizeMatrix3x3_PremerlaniBizard(float rot_matrix[3][3]) {
 }
 
 
-//_________________________________________________________________________
-static void Update_Object_Rotation(LONG obj_matrix[3][3], LONG* obj_struct) {
-
+//___________________________________________________________________________
+static void Update_Object_Rotation(LONG i_obj_matrix[3][3], LONG* obj_struct) {
 
     //maintain a float version of the player rotation matrix for greater accuracy.
     static int player_matrix_enabled = ConfigReadInt(L"SPACE", L"ENABLE_ENHANCED_PLAYER_ROTATION_MATRIX", CONFIG_SPACE_ENABLE_ENHANCED_PLAYER_ROTATION_MATRIX);
@@ -279,7 +278,7 @@ static void Update_Object_Rotation(LONG obj_matrix[3][3], LONG* obj_struct) {
     float f_r_axis = Rotation_to_Radians(-r_axis);
 
     float f_calc_matrix[3][3]{ 0.0f };
-    float ret_matrix[3][3]{ 0.0f };
+    float f_ret_matrix[3][3]{ 0.0f };
 
     float sinP = sin(f_p_axis);
     float cosP = cos(f_p_axis);
@@ -303,38 +302,37 @@ static void Update_Object_Rotation(LONG obj_matrix[3][3], LONG* obj_struct) {
         bool matrix_changed = false;
         for (int i = 0; i < 3; i++) {
             for (int k = 0; k < 3; k++)
-                if (obj_matrix[i][k] != i_player_matrix_prev[i][k])
+                if (i_obj_matrix[i][k] != i_player_matrix_prev[i][k])
                     matrix_changed = true;
         }
         //update (float)player matrix if main (integer)matrix was altered outside of this function. 
         if (matrix_changed) {
             //Debug_Info("Player Matrix Changed");
-            CopyMatrix3x3(f_player_matrix, obj_matrix);
+            CopyMatrix3x3(f_player_matrix, i_obj_matrix);
         }
         //add new rotations to return matrix (player).
-        MultiplyMatrices3x3(f_calc_matrix, f_player_matrix, ret_matrix);
+        MultiplyMatrices3x3(f_calc_matrix, f_player_matrix, f_ret_matrix);
 
-        CopyMatrix3x3(f_player_matrix, ret_matrix);
+        CopyMatrix3x3(f_player_matrix, f_ret_matrix);
     }
     else {
         float f_obj_matrix[3][3]{ 0.0f };
 
-        CopyMatrix3x3(f_obj_matrix, obj_matrix);
+        CopyMatrix3x3(f_obj_matrix, i_obj_matrix);
         //add new rotation to return matrix (general object).
-        MultiplyMatrices3x3(f_calc_matrix, f_obj_matrix, ret_matrix);
+        MultiplyMatrices3x3(f_calc_matrix, f_obj_matrix, f_ret_matrix);
     }
 
     //fix accumulating errors when adding new rotations to low res (integer)matrix.
-    OrthonormalizeMatrix3x3_PremerlaniBizard(ret_matrix);
+    OrthonormalizeMatrix3x3_PremerlaniBizard(f_ret_matrix);
     //OrthonormalizeMatrix3x3_GramSchmidt(ret_matrix);
 
     //update object matrix
-    CopyMatrix3x3(obj_matrix, ret_matrix);
+    CopyMatrix3x3(i_obj_matrix, f_ret_matrix);
 
     //store the current player (integer)matrix for testing if altered outside this function.
     if (is_player)
-        CopyMatrix3x3(i_player_matrix_prev, obj_matrix);
-
+        CopyMatrix3x3(i_player_matrix_prev, i_obj_matrix);
 }
 
 
@@ -351,9 +349,61 @@ static void __declspec(naked) update_object_rotation(void) {
         add esp, 0x8
         popad
 
-        //re-insert original code
-        lea eax, [edi + 0x50]
-        mov ecx, dword ptr ds : [edi + 0x8]
+        ret
+    }
+}
+
+
+//____________________________________________________________________________________________________________________
+static void Update_Object_Turret_Rotation(LONG i_obj_matrix[3][3], LONG* p_yaw_axis_offset, LONG* p_pitch_axis_offset) {
+
+    float f_y_axis = Rotation_to_Radians(-*p_yaw_axis_offset);
+    float f_p_axis = Rotation_to_Radians(*p_pitch_axis_offset);
+
+    float f_calc_matrix[3][3]{ 0.0f };
+    float f_ret_matrix[3][3]{ 0.0f };
+    float f_obj_matrix[3][3]{ 0.0f };
+
+    float sinP = sin(f_p_axis);
+    float cosP = cos(f_p_axis);
+    float sinY = sin(f_y_axis);
+    float cosY = cos(f_y_axis);
+
+    f_calc_matrix[0][0] = cosY;
+    f_calc_matrix[0][1] = -cosP * sinY;
+    f_calc_matrix[0][2] = sinP * sinY;
+    f_calc_matrix[1][0] = sinY;
+    f_calc_matrix[1][1] = cosP * cosY;
+    f_calc_matrix[1][2] = -sinP * cosY;
+    f_calc_matrix[2][0] = 0;
+    f_calc_matrix[2][1] = sinP;
+    f_calc_matrix[2][2] = cosP;
+
+    CopyMatrix3x3(f_obj_matrix, i_obj_matrix);
+    //add new rotation to return matrix (general object).
+    MultiplyMatrices3x3(f_calc_matrix, f_obj_matrix, f_ret_matrix);
+
+    //fix accumulating errors when adding new rotations to low res (integer)matrix.
+    OrthonormalizeMatrix3x3_PremerlaniBizard(f_ret_matrix);
+    //OrthonormalizeMatrix3x3_GramSchmidt(ret_matrix);
+
+    //update object matrix
+    CopyMatrix3x3(i_obj_matrix, f_ret_matrix);
+}
+
+
+//_______________________________________________________________
+static void __declspec(naked) update_object_turret_rotation(void) {
+
+    __asm {
+        pushad
+        lea eax, [esi + 0xB0]
+        push ebx
+        push eax
+        push edi
+        call Update_Object_Turret_Rotation
+        add esp, 0xC
+        popad
 
         ret
     }
@@ -422,7 +472,22 @@ void Modifications_ObjectRotation() {
     MemWrite32(0x42A33E, 0x00000010, 256);
     //---------------------------------------------------------------
     //------------------------------------------------------------------------------------------------------------------------------
+    
+    //-----Player-Object-turret-rotation-improvements-------------------------------
+    //null player yaw modifiers so that higher precision values are scaled correctly.
+    MemWrite16(0x449B6B, 0xE0C1, 0x9090);
+    MemWrite8(0x449B6D, 0x08, 0x90);
+    MemWrite16(0x449B6E, 0xF8C1, 0x9090);
+    MemWrite8(0x449B70, 0x04, 0x90);
+    //null player pitch modifiers so that higher precision values are scaled correctly.
+    MemWrite16(0x449B94, 0xE0C1, 0x9090);
+    MemWrite8(0x449B96, 0x08, 0x90);
+    MemWrite16(0x449B97, 0xF8C1, 0x9090);
+    MemWrite8(0x449B99, 0x04, 0x90);
 
-
-
+    MemWrite16(0x449C12, 0x868D, 0xE890);
+    FuncWrite32(0x449C14, 0xB0, (DWORD)&update_object_turret_rotation);
+    //jump over regular turret rotation update functions
+    MemWrite16(0x449C18, 0xCF8B, 0x0EEB);//JMP SHORT 00449C28
+    //------------------------------------------------------------------------------
 }
