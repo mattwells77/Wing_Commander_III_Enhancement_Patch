@@ -175,6 +175,7 @@ static void Colour_Options_Buffer_Init() {
         colour_options_buff_data->SetForRenderPS(g_d3dDeviceContext, 0, 1);
         colour_options_buff.colour_val = { 0,0,0  ,1.0f };
         colour_options_buff.colour_opt = { 1.0f, 1.0f,0,0 };
+        colour_options_buff_data->UpdateData(g_d3dDeviceContext, 0, &colour_options_buff);
     }
 }
 

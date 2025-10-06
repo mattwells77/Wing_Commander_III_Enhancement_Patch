@@ -1814,32 +1814,27 @@ static void __declspec(naked) play_movie_sequence(void) {
 }
 
 
-//_______________________________
-static void Movie_Fade(int count) {
+//__________________________
+static void Movie_Fade_Out() {
 
-    Set_Movie_Fade_Level(count);
-    Display_Dx_Present();
-}
+    LARGE_INTEGER thisTime = { 0LL };
+    LARGE_INTEGER nextTime = { 0LL };
+    LARGE_INTEGER update_offset{ 0LL };
+    update_offset.QuadPart = p_wc3_frequency->QuadPart / 32;
+    QueryPerformanceCounter(&thisTime);
+    nextTime.QuadPart = thisTime.QuadPart + update_offset.QuadPart;
 
+    int count = 0;
 
-//____________________________________________
-static void __declspec(naked) movie_fade(void) {
-
-    __asm {
-        push ebx
-
-        push ebx
-        call Movie_Fade
-        add esp, 0x4
-
-        pop ebx
-        ret
+    while (count < 16) {
+        QueryPerformanceCounter(&thisTime);
+        if (thisTime.QuadPart >= nextTime.QuadPart) {
+            nextTime.QuadPart = thisTime.QuadPart + update_offset.QuadPart;
+            count++;
+            Set_Movie_Fade_Level(count);
+            Display_Dx_Present();
+        }
     }
-}
-
-
-//__________________________________________________________________________
-static void Movie_Fade_End(BYTE* p_pal_buff, BYTE offset, DWORD num_entries) {
 
     //clear movie buffers before resetting fade level.
     if (pMovie_vlc) {
@@ -1852,6 +1847,19 @@ static void Movie_Fade_End(BYTE* p_pal_buff, BYTE offset, DWORD num_entries) {
     //set level to 0 to end fade out.
     Set_Movie_Fade_Level(0);
     Display_Dx_Present();
+}
+
+
+//________________________________________________
+static void __declspec(naked) movie_fade_out(void) {
+
+    __asm {
+        pushad
+        call Movie_Fade_Out
+        popad
+
+        ret
+    }
 }
 
 
@@ -2647,8 +2655,8 @@ void Modifications_Display() {
     //play alternate hires movies
     FuncReplace32(0x41C59E, 0x03A1FE, (DWORD)&play_movie_sequence);
 
-    FuncReplace32(0x41CCDE, 0xFFFE8A7E, (DWORD)&movie_fade);
-    FuncReplace32(0x41CD14, 0xFFFE8A48, (DWORD)&Movie_Fade_End);
+    //fade out effect for movies
+    FuncReplace32(0x41C622, 0x057A, (DWORD)&movie_fade_out);
 
     MemWrite16(0x422EA5, 0x3D83, 0xE890);
     FuncWrite32(0x422EA7, 0x4AB318, (DWORD)&play_inflight_movie);
