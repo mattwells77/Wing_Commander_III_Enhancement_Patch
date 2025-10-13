@@ -2179,33 +2179,36 @@ static void __declspec(naked) inflight_movie_audio_check(void) {
 static void Fix_Space_Mouse_Movement(LONG* p_x, LONG* p_y) {
     // Maximum turn speed was being defined by the screen resolution formally 640x480.
     // Higher resolutions were allowing for a greater mouse range and thus a higher turning speed than what was otherwise defined in game.
-    
-    //fix mouse movement range between -16 and 16.
+
+    LONG x = *p_x;
+    LONG y = *p_y;
+
+    //keep mouse movement range between -320 and 320 to maintain similar experience as original resolution 640x480.
     LONG range = *p_wc3_mouse_centre_y;
     if (*p_wc3_mouse_centre_y > *p_wc3_mouse_centre_x)
         range = *p_wc3_mouse_centre_x;
-    //keep mouse movement range less than 640/2 to maintain similar experience as original resolution 640x480.
     if (range > 320)
         range = 320;
 
-    LONG range_block = range / 16;
+    //apply a small dead zone (320 / 32 = 10).
+    if (x < 10 && x > -10)
+        x = 0;
+    if (y < 10 && y > -10)
+        y = 0;
 
-    *p_x /= range_block;
-    *p_y /= range_block;
+    if (x > range)
+        x = range;
+    else if (x < -range)
+        x = -range;
 
-    if (*p_x > 16)
-        *p_x = 16;
-    else if (*p_x < -16)
-        *p_x = -16;
+    if (y > range)
+        y = range;
+    else if (y < -range)
+        y = -range;
 
-    if (*p_y > 16)
-        *p_y = 16;
-    else if (*p_y < -16)
-        *p_y = -16;
-
-    //multiply values by 16 for increased precision of movement mod.
-    *p_x *= 16;
-    *p_y *= 16;
+    //convert mouse movement value to the ships axis range between -256 and 256 (320 / 256 = 1.25).
+    *p_x = (LONG)(x / 1.25f);
+    *p_y = (LONG)(y / 1.25f);
 }
 
 
