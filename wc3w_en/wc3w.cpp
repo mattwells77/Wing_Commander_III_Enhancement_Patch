@@ -24,6 +24,7 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #include "wc3w.h"
 
+DWORD* p_wc3_virtual_alloc_mem_size = nullptr;
 
 char* p_wc3_szAppName = nullptr;
 HINSTANCE* pp_hinstWC3W = nullptr;
@@ -200,6 +201,8 @@ void(*wc3_draw_text_to_buff)(DRAW_BUFFER* p_toBuff, DWORD x, DWORD y, DWORD unk1
 
 //_______________
 void WC3W_Setup() {
+
+    p_wc3_virtual_alloc_mem_size = (DWORD*)0x49F6D8;
 
     p_wc3_window_has_focus = (bool*)0x4A7E48;
 

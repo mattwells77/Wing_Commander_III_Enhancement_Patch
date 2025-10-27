@@ -639,6 +639,101 @@ static void __declspec(naked) processes_object(void) {
 */
 
 
+//______________________________________
+static DWORD Set_VirtualAlloc_Mem_Size() {
+
+    static bool run_once = false;
+    if (!run_once) {
+        DWORD vmem_size = ConfigReadInt(L"MAIN", L"VIRTUAL_MEM_SIZE", CONFIG_MAIN_VIRTUAL_MEM_SIZE);
+        if (vmem_size > *p_wc3_virtual_alloc_mem_size)
+            *p_wc3_virtual_alloc_mem_size = vmem_size;
+
+        run_once = true;
+        Debug_Info("Virtual Mem Allocated: %d bytes", *p_wc3_virtual_alloc_mem_size);
+    }
+
+    return *p_wc3_virtual_alloc_mem_size;
+}
+
+
+//____________________________________________________________
+static void __declspec(naked) set_virtual_alloc_mem_size(void) {
+
+    __asm {
+        push edx
+        push ebx
+        push ecx
+        push edi
+        push esi
+        push ebp
+
+        call Set_VirtualAlloc_Mem_Size
+
+        pop ebp
+        pop esi
+        pop edi
+        pop ecx
+        pop ebx
+        pop edx
+
+        ret
+    }
+}
+
+
+//_________________________________________________
+static LONG Num_Watchers_Overide(LONG num_watchers) {
+
+    static int num_watchers_overide = 500;
+    static bool run_once = false;
+    if (!run_once) {
+        num_watchers_overide = ConfigReadInt(L"MAIN", L"NUM_WATCHERS_OVERIDE", CONFIG_MAIN_NUM_WATCHERS_OVERIDE);
+        if (num_watchers_overide < 500)
+            num_watchers_overide = 500;
+
+        run_once = true;
+        Debug_Info("Max Number Of Watches Overide Value: %d", num_watchers_overide);
+    }
+
+    if (num_watchers < num_watchers_overide) {
+        num_watchers = num_watchers_overide;
+        Debug_Info("Max Number Of Watches Set At: %d", num_watchers);
+    }
+    return num_watchers;
+}
+
+
+//______________________________________________________
+static void __declspec(naked) num_watchers_overide(void) {
+
+    __asm {
+        push edx
+        push ebx
+        push ecx
+        push edi
+        push esi
+        push ebp
+
+        push eax
+        call Num_Watchers_Overide
+        add esp, 0x4
+
+        pop ebp
+        pop esi
+        pop edi
+        pop ecx
+        pop ebx
+        pop edx
+
+        //re-insert original code
+        mov dword ptr ds : [ecx + 0x4], eax
+        mov esi, ecx
+
+        ret
+    }
+}
+
+
 //_______________________________
 void Modifications_GeneralFixes() {
 
@@ -732,6 +827,11 @@ void Modifications_GeneralFixes() {
     //FuncWrite32(0x486CA3, 0xFFC88B18, (DWORD)&processes_object);
     //MemWrite16(0x486CA7, 0x0453, 0x9090);
 
- 
+    //Increase the allocated general memory size.
+    MemWrite8(0x480972, 0xA1, 0xE8);
+    FuncWrite32(0x480973, 0x49F6D8, (DWORD)&set_virtual_alloc_mem_size);
 
+    //Increase the max number of watchers at a nav point. (max number of active ships and turrets)
+    MemWrite8(0x48C9E5, 0x89, 0xE8);
+    FuncWrite32(0x48C9E6, 0xF18B0441, (DWORD)&num_watchers_overide);
 }

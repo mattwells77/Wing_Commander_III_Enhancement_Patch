@@ -172,6 +172,8 @@ struct CAMERA_CLASS_01 {
 
 void WC3W_Setup();
 
+extern DWORD* p_wc3_virtual_alloc_mem_size;
+
 extern char* p_wc3_szAppName;
 extern HINSTANCE* pp_hinstWC3W;
 
