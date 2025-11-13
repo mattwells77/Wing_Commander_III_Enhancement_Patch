@@ -24,3 +24,10 @@ HD Movie playback is achieved using [libvlc](https://www.videolan.org/vlc/libvlc
 - To compile, this project requires the [VLC media player sdk vlc-3.0.21](https://download.videolan.org/pub/videolan/vlc/last/win32/) and the [libvlcpp C++ bindings](https://github.com/videolan/libvlcpp). I've set up relative paths for these, and they should be installed adjacent to the projects solution folder to avoid the need to modify any project settings.
 - There is also an included batch file "post_build_copy_to_game_folder.cmd". That is set to copy the newly created DLL to your game folder after the build process completes. This should be edited to match your game installation path.
 
+## Donations:
+I don't need your money. If however, my work has inspired you with an overwhelming urge to part with some of your hard earned cash. Have at it! Cheers.
+| Paypal |
+| ------ |
+[![](https://www.paypalobjects.com/en_AU/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/donate/?business=9MPA8DTFJQFKW&no_recurring=1&currency_code=AUD)
+
+
