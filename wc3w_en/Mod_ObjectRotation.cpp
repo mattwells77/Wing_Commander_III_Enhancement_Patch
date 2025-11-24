@@ -422,17 +422,75 @@ static void __declspec(naked) fix_keyboard_pitch_yaw_precision(void) {
 }
 
 
+//____________________________________________________________________
+static void PC_Rotation_Calulations(void* obj_struct, LONG frame_time) {
+
+    void* ship_properties = ((void**)obj_struct)[1];
+
+    LONG ship_pitch_modifier = ((LONG*)ship_properties)[1];
+    LONG ship_yaw_modifier = ((LONG*)ship_properties)[2];
+    LONG ship_roll_modifier = ((LONG*)ship_properties)[3];
+
+    LONG raw_pitch = ((LONG*)obj_struct)[26];
+    LONG raw_yaw = ((LONG*)obj_struct)[27];
+    LONG raw_roll = ((LONG*)obj_struct)[28];
+
+    //frame_time represented in units of 256th's of a second.
+    //frame_time = 65536 / (frame_rate * 256);
+    float f_frame_time = frame_time / 256.0f;
+
+    //preform rotation calulations for next rendering.
+    float f_pitch = (float)raw_pitch * ship_pitch_modifier * f_frame_time;
+    float f_yaw = (float)raw_yaw * ship_yaw_modifier * f_frame_time;
+    float f_roll = (float)raw_roll * ship_roll_modifier * f_frame_time;
+
+    //set new rotation offsets for matrix update.
+    ((LONG*)obj_struct)[19] = (LONG)f_pitch; //obj_struct.pitch_axis
+    ((LONG*)obj_struct)[20] = (LONG)f_yaw; //obj_struct.yaw_axis
+    ((LONG*)obj_struct)[21] = (LONG)f_roll; //obj_struct.roll_axis
+}
+
+
+//_________________________________________________________
+static void __declspec(naked) pc_rotation_calulations(void) {
+
+    __asm {
+        
+        mov ecx, dword ptr ss:[esp+0x2C]
+        pushad
+
+        push ecx
+        push edi
+        call PC_Rotation_Calulations
+        add esp, 0x8
+
+        popad
+
+        ret
+    }
+}
+
+
 //_________________________________
 void Modifications_ObjectRotation() {
 
     //-----Player-Object-rotation-improvements-------------------------------
+    //fix minor drifting due to integer rounding when performing pc rotation calculations.
+    MemWrite16(0x427425, 0x478B, 0xE890);
+    FuncWrite32(0x427427, 0x08E0C168, (DWORD)&pc_rotation_calulations);
+    //jump over original rotation calculations.
+    MemWrite8(0x42742B, 0x8B, 0xE9);//JMP 004275BC
+    MemWrite32(0x42742C, 0x4C4789E8, 0x018C);
+
+    //update object rotation matrix.
     MemWrite16(0x427AE4, 0x478D, 0xE890);
     FuncWrite32(0x427AE6, 0x084F8B50, (DWORD)&update_object_rotation);
     //jump over regular rotation update functions
     MemWrite16(0x427AEA, 0x8350, 0x22EB);//JMP SHORT 00427B0E
     MemWrite16(0x427AEC, 0x34C1, 0x9090);
     //-----------------------------------------------------------------------
-
+    
+    /*no longer needed, replaced by "pc_rotation_calulations" function.
     //-------------Increase the precision of axis motion for the player object from 32(-16 to 16) to 512(-256 to 256)---------------
     //---in function at 0x427310, updating object matrix----------
     //null player pitch modifiers so that higher precision values are scaled correctly.
@@ -452,8 +510,8 @@ void Modifications_ObjectRotation() {
     MemWrite8(0x42749A, 0x08, 0x90);
     MemWrite16(0x4274A0, 0xF9C1, 0x9090);
     MemWrite8(0x4274A2, 0x04, 0x90);
-    //------------------------------------------------------------
-
+    //------------------------------------------------------------*/
+    
     //---in function at 0x429470, updating player motion vars--------
     //set keyboard roll 
     MemWrite32(0x429C08, 0xFFFFFFF0, -256);
