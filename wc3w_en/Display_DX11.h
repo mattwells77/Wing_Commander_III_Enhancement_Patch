@@ -1122,6 +1122,7 @@ extern BOOL is_nav_view;
 
 
 void Palette_Update(BYTE* p_pal_buff, BYTE offset, DWORD num_entries);
+DWORD Palette_Get_Colour(BYTE offset);
 
 DrawSurface8_RT* Get_Space2D_Surface();
 
@@ -1144,6 +1145,7 @@ DrawSurface* Get_Cockpit_HD_BG_Surface(WORD view_type);
 void Destroy_Cockpit_HD_Background();
 void Set_Space2D_Surface_SamplerState_From_Config();
 void Set_Space2D_Surface_SamplerState_Point();
+void Set_Space3D_Colour(DWORD colour);
 
 void Set_Gamma_Offset(UINT gamma);
 void Set_Movie_Fade_Level(UINT level);

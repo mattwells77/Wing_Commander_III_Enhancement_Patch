@@ -381,4 +381,6 @@ void WC3W_Setup() {
     wc3_error_message_box = (void(*)(const char*, ...))0x4702B0;
 
     wc3_draw_text_to_buff = (void(*)(DRAW_BUFFER*, DWORD, DWORD, DWORD, char*, DWORD)) 0x4753E1;
+
+    wc3_clear_buffer_colour = (LONG(*)(DRAW_BUFFER_MAIN*, BYTE))0x4735A8;
 }

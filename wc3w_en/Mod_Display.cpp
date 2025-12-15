@@ -2393,6 +2393,41 @@ static void __declspec(naked) check_gamma_high(void) {
 }
 
 
+//________________________________________________________________________
+static void Modify_Space_Colour(DRAW_BUFFER_MAIN* p_Buff, BYTE pal_offset) {
+    //clear the space scene colour to 255(mask). 
+    wc3_clear_buffer_colour(p_Buff, 255);
+
+    //Space BG colour will now be set in Display_Dx_Present function.
+    DWORD colour = Palette_Get_Colour(pal_offset);
+    Set_Space3D_Colour(colour);
+}
+
+
+//_____________________________________________________
+static void __declspec(naked) modify_space_colour(void) {
+
+    __asm {
+        push ebx
+        push edi
+        push esi
+        push ebp
+
+        push eax
+        push ecx
+        call Modify_Space_Colour
+        add esp, 0x8
+
+        pop ebp
+        pop esi
+        pop edi
+        pop ebx
+
+        ret
+    }
+}
+
+
 //___________________________
 void Modifications_Display() {
 
@@ -2756,6 +2791,12 @@ void Modifications_Display() {
     //Set the default Gamma setting to it's lowest level.
     MemWrite8(0x49F744, 0x50, 100);
     //------------------------------------------------------------------------------------------
+
+
+    MemWrite16(0x42EAFD, 0x5150, 0x9090);
+    FuncReplace32(0x42EB00, 0x044AA4, (DWORD)&modify_space_colour);
+    MemWrite16(0x42EB04, 0xC483, 0x9090);
+    MemWrite8(0x42EB06, 0x08, 0x90);
 }
 
 

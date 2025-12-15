@@ -112,6 +112,9 @@ BUFFER_DX* palette_buff_data = nullptr;
 XMFLOAT4 pal_mask_movie_text = { 0.0f,0.0f,0.0f,0.0f };
 XMFLOAT4 pal_mask_cockpit_hud = { 1.0f,0.0f,0.0f,0.0f };
 
+XMFLOAT4 pal_mask_space = { 1.0f,0.0f,0.0f,0.0f };
+float f_space_colour[4]{ 0.0f,0.0f,0.0f,1.0f };
+
 BUFFER_DX* colour_options_buff_data = nullptr;
 COLOUR_BUFF_DATA colour_options_buff;
 //XMFLOAT4 inflight_colour = { 1.0f,0.0f,0.0f,0.0f };
@@ -270,6 +273,15 @@ void Palette_Update(BYTE* p_pal_buff, BYTE offset, DWORD num_entries) {
 }
 
 
+//___________________________________
+DWORD Palette_Get_Colour(BYTE offset) {
+
+    if (main_pal)
+        return main_pal->GetColour(offset);
+    return 0;
+}
+
+
 //___________________________________________
 void Set_Space2D_Surface_SamplerState_Point() {
     if (surface_space2D)
@@ -313,6 +325,7 @@ static void Surfaces_Setup(UINT width, UINT height) {
     }
     if (surface_space3D == nullptr) {
         surface_space3D = new DrawSurface(0, 0, width, height, 8, 0x00000000);
+        surface_space3D->Set_Default_Pixel_Shader(pd3d_PS_Basic_Tex_8_masked);
     }
     Debug_Info("Surfaces_Setup Done");
 }
@@ -356,6 +369,7 @@ static void Surfaces_Resize(UINT width, UINT height) {
     if (surface_space3D)
         delete surface_space3D;
     surface_space3D = new DrawSurface(0, 0, width, height, 8, 0x00000000);
+    surface_space3D->Set_Default_Pixel_Shader(pd3d_PS_Basic_Tex_8_masked);
 
     Debug_Info("Surfaces_Resize Done - space w:%d, h:%d", surface_space3D->GetWidth(), surface_space3D->GetHeight());
 }
@@ -409,6 +423,34 @@ DrawSurface8_RT* Get_Space2D_Surface() {
 }
 
 
+//___________________________________
+void Set_Space3D_Colour(DWORD colour) {
+
+    static DWORD last_colour = 0;
+    if (last_colour == colour)
+        return;
+    last_colour = colour;
+
+    static float f_brightness = -1.0f;
+    if (f_brightness < 0) {//run once
+        f_brightness = (float)ConfigReadInt(L"SPACE", L"SPACE_COLOUR_BRIGHTNESS", CONFIG_SPACE_COLOUR_BRIGHTNESS) / 100.0f;
+        if (f_brightness < 0)
+            f_brightness = 0;
+        Debug_Info("Set_Space3D_Colour: brightness: %f", colour, f_brightness);
+    }
+
+    int comp = 0;
+    while (comp < 3) {
+        f_space_colour[comp] = ((BYTE*)&colour)[2-comp] / 255.0f;
+        //only adjust brightness for normal space colour argb, pal offset 0x11. To avoid messing up nebular missions.
+        if (colour == 0xFF081024)
+            f_space_colour[comp] *= f_brightness;
+        comp++;
+    }
+    Debug_Info("Set_Space3D_Colour: argb: %X,  r: %f, g: %f, b: %f, a: %f", colour, f_space_colour[0], f_space_colour[1], f_space_colour[2], f_space_colour[3]);
+}
+
+
 //________________________________________________
 void Display_Dx_Present(PRESENT_TYPE present_type) {
 
@@ -428,6 +470,7 @@ void Display_Dx_Present(PRESENT_TYPE present_type) {
     rt_display->SetRenderTarget(g_d3dDepthStencilView);
     
     if (present_type == PRESENT_TYPE::space) {
+        rt_display->ClearRenderTarget(g_d3dDepthStencilView, f_space_colour);
         if (is_nav_view || (space_view_has_BG_image && cockpit_scale_type == SCALE_TYPE::fit && crop_cockpit_rect)) {//when nav screen is up or the cockpit is visible but not streched to fill the screen, clip 3d space view to the cockpit's rect.
             float x_unit = 0;
             float y_unit = 0;
@@ -451,9 +494,10 @@ void Display_Dx_Present(PRESENT_TYPE present_type) {
             D3D11_RECT rect{ (LONG)x,(LONG)y, (LONG)x + (LONG)(surface_w * x_unit), (LONG)y + (LONG)(surface_h * y_unit) };
             g_d3dDeviceContext->RSSetScissorRects(1, &rect);
         }
-        if (surface_space3D)
+        if (surface_space3D) {
+            Shader_SetPaletteData(pal_mask_space);
             surface_space3D->Display();
-
+        }
         if (*p_wc3_view_cockpit_or_hud == SPACE_VIEW_TYPE::Cockpit && p_wc3_camera_01->view_type <= SPACE_VIEW_TYPE::CockBack || (space_view_has_BG_image && p_wc3_camera_01->view_type == SPACE_VIEW_TYPE::CockBack)) {
             if (surface_cockpit[static_cast<WORD>(p_wc3_camera_01->view_type)])
                 surface_cockpit[static_cast<WORD>(p_wc3_camera_01->view_type)]->Display();
