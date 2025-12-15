@@ -512,6 +512,13 @@ void Modifications_ObjectRotation() {
     MemWrite8(0x4274A2, 0x04, 0x90);
     //------------------------------------------------------------*/
     
+    //----fix cockpit joystick hand position-----------
+    //yaw divisor used for calculating image frame number.
+    MemWrite32(0x42236D, 0xFFFFFFFA, -96);
+    //pitch divisor used for calculating image frame number.
+    MemWrite32(0x422372, 0x05, 80);
+    //-------------------------------------------------
+    
     //---in function at 0x429470, updating player motion vars--------
     //set keyboard roll 
     MemWrite32(0x429C08, 0xFFFFFFF0, -256);
