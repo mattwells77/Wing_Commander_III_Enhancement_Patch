@@ -42,7 +42,7 @@
     <ClInclude Include="modifications.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="movies_vlclib.h">
+    <ClInclude Include="libvlc_Movies.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="version.h">
@@ -81,6 +81,12 @@
     <ClInclude Include="shaders\compiled_h\PS_Gamma_Tex_32.h">
       <Filter>Shaders\compiled_h</Filter>
     </ClInclude>
+    <ClInclude Include="libvlc_Music.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="libvlc_Common.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
@@ -113,7 +119,7 @@
     <ClCompile Include="Mod_GeneralFixes.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="movies_vlclib.cpp">
+    <ClCompile Include="libvlc_Movies.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="wc3w.cpp">
@@ -126,6 +132,15 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Mod_ObjectRotation.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="libvlc_Music.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="libvlc_Common.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Mod_Music.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -70,6 +70,8 @@ static DWORD Get_Debug_Flags() {
             debug_info_flags |= DEBUG_INFO_MOVIE;
         if (ConfigReadInt(L"DEBUG", L"CONTROLLER", 0))
             debug_info_flags |= DEBUG_INFO_JOY;
+        if (ConfigReadInt(L"DEBUG", L"MUSIC", 0))
+            debug_info_flags |= DEBUG_INFO_MUSIC;
     }
     return debug_info_flags;
 }

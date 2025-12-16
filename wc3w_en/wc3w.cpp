@@ -97,6 +97,7 @@ LONG* p_wc3_joy_y = nullptr;
 LONG* p_wc3_joy_throttle_pos = nullptr;
 
 LONG* p_wc3_ambient_music_volume = nullptr;
+LONG* p_wc3_music_volume_current = nullptr;
 
 BYTE* p_wc3_is_sound_enabled = nullptr;
 void* p_wc3_audio_class = nullptr;
@@ -184,7 +185,10 @@ DWORD* p_wc3_movie_frame_count = nullptr;
 
 char** p_wc3_movie_branch_subtitle;
 
-BOOL(__thiscall* wc3_load_file_handle)(void*, BOOL print_error_flag, BOOL unknown_flag) = nullptr;
+void(__thiscall* wc3_file_init)(void*) = nullptr;
+BOOL(__thiscall* wc3_file_load)(void*, char* path, DWORD dwDesiredAccess, BOOL halt_on_create_file_error, DWORD dwFlagsAndAttributes) = nullptr;
+BOOL(__thiscall* wc3_file_close)(void*) = nullptr;
+size_t(__thiscall* wc3_file_read)(void*, BYTE* buff, size_t len) = nullptr;
 LONG(*wc3_find_file_in_tre)(char* pfile_name) = nullptr;
 
 void (*wc3_copy_rect)(DRAW_BUFFER_MAIN* p_fromBuff, LONG from_x, LONG from_y, DRAW_BUFFER_MAIN* p_toBuff, LONG to_x, LONG to_y, DWORD pal_offset) = nullptr;
@@ -197,6 +201,8 @@ void(*wc3_deallocate_mem_main)(void*) = nullptr;
 void(*wc3_error_message_box)(const char* format, ...) = nullptr;
 
 void(*wc3_draw_text_to_buff)(DRAW_BUFFER* p_toBuff, DWORD x, DWORD y, DWORD unk1, char* text_buff, DWORD unk2) = nullptr;
+
+LONG(*wc3_clear_buffer_colour)(DRAW_BUFFER_MAIN* p_Buff, BYTE pal_offset);
 
 
 //_______________
@@ -336,7 +342,10 @@ void WC3W_Setup() {
 
     wc3_nav_screen_update_position = (void(__thiscall *)(void*))0x430460;
   
-    wc3_load_file_handle = (BOOL(__thiscall*)(void*, BOOL, BOOL))0x483A60;
+    wc3_file_init = (void(__thiscall*)(void*))0x4834E0;
+    wc3_file_load = (BOOL(__thiscall*)(void*, char* path, DWORD, BOOL, DWORD))0x483A00;
+    wc3_file_close = (BOOL(__thiscall*)(void*))0x483B10;
+    wc3_file_read = (size_t(__thiscall*)(void*, BYTE*, size_t))0x483C50;
     wc3_find_file_in_tre = (LONG(*)(char*))0x484CB0;
 
     p_wc3_frequency = (LARGE_INTEGER*)0x4A9768;
@@ -354,6 +363,7 @@ void WC3W_Setup() {
     wc3_set_music_volume = (void(__thiscall*)(void*, LONG))0x439370;
 
     p_wc3_ambient_music_volume = (LONG*)0x4AB7B0;
+    p_wc3_music_volume_current = (LONG*)0x4A3A8C;
     p_wc3_is_sound_enabled = (BYTE*)0x4A3A48;
     p_wc3_audio_class = (void*)0x4A9580;
 

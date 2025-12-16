@@ -1,6 +1,6 @@
 /*
 The MIT License (MIT)
-Copyright © 2024 Matt Wells
+Copyright © 2025 Matt Wells
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this
 software and associated documentation files (the “Software”), to deal in the
@@ -22,10 +22,7 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #pragma once
 
-void Modifications_GeneralFixes();
-void Modifications_Display();
-void Modifications_Joystick();
-void Modifications_ObjectRotation();
-void Modifications_Music();
+#include "vlcpp/vlc.hpp"
 
-void Set_WindowActive_State(BOOL isActive);
+
+extern VLC::Instance vlc_instance;

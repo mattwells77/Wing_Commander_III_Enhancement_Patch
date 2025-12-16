@@ -27,6 +27,7 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #define DEBUG_INFO_FLIGHT   4
 #define DEBUG_INFO_MOVIE    8
 #define DEBUG_INFO_JOY		16
+#define DEBUG_INFO_MUSIC	32
 
 //void Debug_Error(const char* format, ...);
 //void Debug_Info(const char* format, ...);
@@ -37,6 +38,7 @@ void __Debug_Info(DWORD flags, const char* format, ...);
 #define Debug_Info_Flight(...)  __Debug_Info( DEBUG_INFO_FLIGHT, __VA_ARGS__)
 #define Debug_Info_Movie(...)  __Debug_Info( DEBUG_INFO_MOVIE, __VA_ARGS__)
 #define Debug_Info_Joy(...)  __Debug_Info( DEBUG_INFO_JOY, __VA_ARGS__)
+#define Debug_Info_Music(...)  __Debug_Info( DEBUG_INFO_MUSIC, __VA_ARGS__)
 
 
 

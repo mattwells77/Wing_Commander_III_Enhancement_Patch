@@ -22,29 +22,10 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #include "pch.h"
 
-#include "movies_vlclib.h"
+#include "libvlc_Movies.h"
 #include "configTools.h"
 #include "wc3w.h"
 
-//#include <iostream>
-//#include <thread>
-//#include <cstring>
-//using namespace VLC;
-
-/*const char* const vlc_options[] = {
-    "--file-caching=300"//,
-    //"--network-caching=150",
-    //"--clock-jitter=0",
-    //"--live-caching=150",
-    //"--clock-synchro=0",
-    //"-vvv",
-    //"--drop-late-frames",
-    //"--skip-frames"
-     };*/
-//const char* const vlc_options[] = { "--freetype-font=Incised901 Lt BT" };
-
-//VLC::Instance vlc_instance = VLC::Instance(_countof(vlc_options), vlc_options);
-VLC::Instance vlc_instance = VLC::Instance(0, nullptr);
 
 std::string movie_dir;
 std::string movie_ext;
@@ -145,10 +126,10 @@ static BOOL Set_Movie_Settings() {
     if (are_movie_path_setting_set)
         return TRUE;
 
-    char* char_buff = new char[MAX_PATH];
+    char* char_buff = new char[MAX_PATH] {0};
     char* char_ptr = char_buff;
     
-    wchar_t* wchar_buff = new wchar_t[MAX_PATH];
+    wchar_t* wchar_buff = new wchar_t[MAX_PATH] {0};
     size_t num_bytes = 0;
 
     //set the hd movie directory.

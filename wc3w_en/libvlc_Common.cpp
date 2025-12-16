@@ -1,6 +1,6 @@
 /*
 The MIT License (MIT)
-Copyright © 2024 Matt Wells
+Copyright © 2025 Matt Wells
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this
 software and associated documentation files (the “Software”), to deal in the
@@ -20,12 +20,25 @@ CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFT
 OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#pragma once
+#include "pch.h"
+#include "libvlc_common.h"
 
-void Modifications_GeneralFixes();
-void Modifications_Display();
-void Modifications_Joystick();
-void Modifications_ObjectRotation();
-void Modifications_Music();
+//#include <iostream>
+//#include <thread>
+//#include <cstring>
+//using namespace VLC;
 
-void Set_WindowActive_State(BOOL isActive);
+/*const char* const vlc_options[] = {
+    "--file-caching=300"//,
+    //"--network-caching=150",
+    //"--clock-jitter=0",
+    //"--live-caching=150",
+    //"--clock-synchro=0",
+    //"-vvv",
+    //"--drop-late-frames",
+    //"--skip-frames"
+     };*/
+     //const char* const vlc_options[] = { "--freetype-font=Incised901 Lt BT" };
+
+     //VLC::Instance vlc_instance = VLC::Instance(_countof(vlc_options), vlc_options);
+VLC::Instance vlc_instance = VLC::Instance(0, nullptr);

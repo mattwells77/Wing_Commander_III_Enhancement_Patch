@@ -25,6 +25,52 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #define GUI_WIDTH 640
 #define GUI_HEIGHT 480
 
+#define NUM_TUNES   34
+
+
+struct FILE_STRUCT {
+    /*0x00*/char path[80];
+    /*0x50*/DWORD unk50;
+    /*0x54*/DWORD unk54;
+    /*0x58*/DWORD unk58;
+    /*0x5C*/DWORD file_pos1;//?
+    /*0x60*/DWORD file_pos2;//?
+    /*0x64*/DWORD file_size;
+    /*0x68*/DWORD create_file_dwDesiredAccess;// 0 = GENERIC_READ\GENERIC_WRITE + dwCreationDisposition = CREATE_ALWAYS, 1 = GENERIC_READ, 2 = GENERIC_WRITE, 3 = GENERIC_READ\GENERIC_WRITE + dwCreationDisposition = OPEN_EXISTING
+    /*0x6C*/DWORD file_creation_failed;
+    /*0x70*/DWORD create_file_HANDLE;
+    /*0x74*/DWORD unk74;
+    /*0x78*/DWORD unk78;
+    /*0x7C*/DWORD unk7C;
+};
+
+
+struct MUSIC_HEADER {
+    /*0x00*/DWORD flags;
+    /*0x04*/DWORD current_tune;
+    /*0x08*/DWORD previous_tune;
+    /*0x0C*/DWORD requested_tune;
+    /*0x10*/DWORD unk10;
+    /*0x14*/DWORD unk14;//volume?
+};
+
+struct MUSIC_FILE {
+    FILE_STRUCT file;
+    /*0x80*/DWORD unk80;//xanlib ptr ref??
+    /*0x84*/DWORD flags;// DIGM_CDX_02_flag;//(BYTE)(flags<<8)don't interrupt until done
+    /*0x88*/DWORD DIGM_CDX_01_flag;//continuous play
+    /*0x8C*/DWORD DIGM_CDX_03_flag;//continuous play again ???
+    ///*0x90*/DWORD unk90;
+    ///*0x94*/DWORD DIGM_CDX_04_unk;
+};
+
+
+struct MUSIC_CLASS {
+    MUSIC_HEADER header;
+    MUSIC_FILE file[NUM_TUNES];
+};
+
+
 struct DRAW_BUFFER {
     BYTE* buff;
     RECT rc_inv;//rect inverted
@@ -258,6 +304,7 @@ extern MOVIE_CLASS_INFLIGHT_01** pp_movie_class_inflight_01;
 extern MOVIE_CLASS_INFLIGHT_02* p_movie_class_inflight_02;
 
 extern LONG* p_wc3_ambient_music_volume;
+extern LONG* p_wc3_music_volume_current;
 
 extern BYTE* p_wc3_is_sound_enabled;
 extern void* p_wc3_audio_class;
@@ -315,7 +362,10 @@ extern BOOL(*wc3_movie_exit)();
 extern bool (*wc3_message_check_node_add)(bool(*)(HWND, UINT, WPARAM, LPARAM));
 extern bool (*wc3_message_check_node_remove)(bool(*)(HWND, UINT, WPARAM, LPARAM));
 
-extern BOOL(__thiscall* wc3_load_file_handle)(void*, BOOL print_error_flag, BOOL unknown_flag);
+extern void(__thiscall* wc3_file_init)(void*);
+extern BOOL(__thiscall* wc3_file_load)(void*, char* path, DWORD dwDesiredAccess, BOOL halt_on_create_file_error, DWORD dwFlagsAndAttributes);
+extern BOOL(__thiscall* wc3_file_close)(void*);
+extern size_t(__thiscall* wc3_file_read)(void*, BYTE* buff, size_t len);
 extern LONG(*wc3_find_file_in_tre)(char* pfile_name);
 //pal_offset  colour (0-255) for filled rect, if pal_offset above 255 from-buffer is copied to to-buff.
 extern void (*wc3_copy_rect)(DRAW_BUFFER_MAIN* p_fromBuff, LONG from_x, LONG from_y, DRAW_BUFFER_MAIN* p_toBuff, LONG to_x, LONG to_y, DWORD pal_offset);

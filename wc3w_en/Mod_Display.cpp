@@ -26,7 +26,7 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "modifications.h"
 #include "memwrite.h"
 #include "configTools.h"
-#include "movies_vlclib.h"
+#include "libvlc_Movies.h"
 #include "wc3w.h"
 #include "joystick_config.h"
 
@@ -1432,6 +1432,9 @@ static void Check_Optional_Enhancements() {
 
     if (ConfigReadInt(L"MAIN", L"ENABLE_CONTROLLER_ENHANCEMENTS", CONFIG_MAIN_ENABLE_CONTROLLER_ENHANCEMENTS))
         Modifications_Joystick();
+    if (ConfigReadInt(L"MAIN", L"ENABLE_MUSIC_ENHANCEMENTS", CONFIG_MAIN_ENABLE_MUSIC_ENHANCEMENTS))
+        Modifications_Music();
+
     //Joysticks.Update();
 }
 

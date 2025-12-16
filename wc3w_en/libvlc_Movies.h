@@ -23,10 +23,7 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #pragma once
 
 #include "Display_DX11.h"
-#include "vlcpp/vlc.hpp"
-
-
-extern VLC::Instance vlc_instance;
+#include "libvlc_common.h"
 
 //BOOL Create_Movie_Path(const char* mve_path, int branch, std::string* p_retPath);
 
