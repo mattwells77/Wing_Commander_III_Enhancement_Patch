@@ -325,7 +325,7 @@ static void Surfaces_Setup(UINT width, UINT height) {
     }
     if (surface_space3D == nullptr) {
         surface_space3D = new DrawSurface(0, 0, width, height, 8, 0x00000000);
-        surface_space3D->Set_Default_Pixel_Shader(pd3d_PS_Basic_Tex_8_masked);
+        //surface_space3D->Set_Default_Pixel_Shader(pd3d_PS_Basic_Tex_8_masked);
     }
     Debug_Info("Surfaces_Setup Done");
 }
@@ -369,7 +369,7 @@ static void Surfaces_Resize(UINT width, UINT height) {
     if (surface_space3D)
         delete surface_space3D;
     surface_space3D = new DrawSurface(0, 0, width, height, 8, 0x00000000);
-    surface_space3D->Set_Default_Pixel_Shader(pd3d_PS_Basic_Tex_8_masked);
+    //surface_space3D->Set_Default_Pixel_Shader(pd3d_PS_Basic_Tex_8_masked);
 
     Debug_Info("Surfaces_Resize Done - space w:%d, h:%d", surface_space3D->GetWidth(), surface_space3D->GetHeight());
 }
@@ -422,7 +422,7 @@ DrawSurface8_RT* Get_Space2D_Surface() {
     return surface_space2D;
 }
 
-
+/*
 //___________________________________
 void Set_Space3D_Colour(DWORD colour) {
 
@@ -449,7 +449,7 @@ void Set_Space3D_Colour(DWORD colour) {
     }
     Debug_Info("Set_Space3D_Colour: argb: %X,  r: %f, g: %f, b: %f, a: %f", colour, f_space_colour[0], f_space_colour[1], f_space_colour[2], f_space_colour[3]);
 }
-
+*/
 
 //________________________________________________
 void Display_Dx_Present(PRESENT_TYPE present_type) {
@@ -470,7 +470,7 @@ void Display_Dx_Present(PRESENT_TYPE present_type) {
     rt_display->SetRenderTarget(g_d3dDepthStencilView);
     
     if (present_type == PRESENT_TYPE::space) {
-        rt_display->ClearRenderTarget(g_d3dDepthStencilView, f_space_colour);
+
         if (is_nav_view || (space_view_has_BG_image && cockpit_scale_type == SCALE_TYPE::fit && crop_cockpit_rect)) {//when nav screen is up or the cockpit is visible but not streched to fill the screen, clip 3d space view to the cockpit's rect.
             float x_unit = 0;
             float y_unit = 0;
