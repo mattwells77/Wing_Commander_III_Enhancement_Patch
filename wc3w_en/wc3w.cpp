@@ -96,6 +96,10 @@ LONG* p_wc3_joy_y = nullptr;
 
 LONG* p_wc3_joy_throttle_pos = nullptr;
 
+bool* p_wc3_controller_joy = nullptr;
+bool* p_wc3_controller_mouse = nullptr;
+bool* p_wc3_controller_keyboard = nullptr;
+
 LONG* p_wc3_ambient_music_volume = nullptr;
 LONG* p_wc3_music_volume_current = nullptr;
 
@@ -278,6 +282,11 @@ void WC3W_Setup() {
 
     p_wc3_joy_throttle_pos = (LONG*)0x4A7E3C;
     p_wc3_joy_pov = (DWORD*)0x4A7E34;
+
+
+    p_wc3_controller_joy = (bool*)0x4A2DE8;
+    p_wc3_controller_mouse = (bool*)0x4A2DEC;
+    p_wc3_controller_keyboard = (bool*)0x4A2DF0;
 
     pp_wc3_music_thread_class = (void**)0x4A3A74;
     wc3_music_thread_class_destructor = (void(__thiscall*)(void*))0x444B30;

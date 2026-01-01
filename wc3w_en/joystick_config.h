@@ -32,5 +32,5 @@ BOOL JoyConfig_Main();
 
 void JoyConfig_Refresh_JoyList();
 BOOL JoyConfig_Refresh_CurrentAction(WC3_ACTIONS action, BOOL activate);
-
-extern HWND hWin_JoyConfig;
+BOOL JoyConfig_Refresh_CurrentAction_Mouse(WC3_ACTIONS action, BOOL activate);
+extern HWND hWin_Config_Control;

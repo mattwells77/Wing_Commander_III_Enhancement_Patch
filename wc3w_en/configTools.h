@@ -68,6 +68,17 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #define CONFIG_INFLIGHT_MONO_SHADER_CONTRAST					100
 
 
+#define CONFIG_MOUSE_DEAD_ZONE		2
+#define CONFIG_MOUSE_BUTTON_01		1
+#define CONFIG_MOUSE_BUTTON_02		2
+#define CONFIG_MOUSE_BUTTON_03		0
+#define CONFIG_MOUSE_BUTTON_04		0
+#define CONFIG_MOUSE_BUTTON_05		0
+#define CONFIG_MOUSE_WHEEL_UP		0
+#define CONFIG_MOUSE_WHEEL_DOWN		0
+#define CONFIG_MOUSE_WHEEL_LEFT		0
+#define CONFIG_MOUSE_WHEEL_RIGHT	0
+
 
 UINT ConfigReadInt(const wchar_t* lpAppName, const wchar_t* lpKeyName, int nDefault);
 BOOL ConfigWriteInt(const wchar_t* lpAppName, const wchar_t* lpKeyName, int intVal);

@@ -286,6 +286,9 @@ extern LONG* p_wc3_joy_y;
 
 extern LONG* p_wc3_joy_throttle_pos;
 
+extern bool* p_wc3_controller_joy;
+extern bool* p_wc3_controller_mouse;
+extern bool* p_wc3_controller_keyboard;
 
 extern CRITICAL_SECTION* p_wc3_movie_criticalsection;
 extern void* p_wc3_movie_class;

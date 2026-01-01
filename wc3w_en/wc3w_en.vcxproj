@@ -301,6 +301,7 @@
     <ClCompile Include="Mod_Music.cpp" />
     <ClCompile Include="Mod_ObjectRotation.cpp" />
     <ClCompile Include="libvlc_Movies.cpp" />
+    <ClCompile Include="mouse.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

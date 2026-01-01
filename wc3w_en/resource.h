@@ -35,6 +35,7 @@
 #define IDS_ACTION021                   128
 #define IDD_DIALOG_CONFIG               129
 #define IDS_ACTION022                   129
+#define IDD_DIALOG_CONFIG_JOY           129
 #define IDS_ACTION023                   130
 #define IDS_ACTION024                   131
 #define IDS_ACTION025                   132
@@ -60,7 +61,10 @@
 #define IDS_ACTION037                   144
 #define IDD_DIALOG_SAVE_AS_PRESET       144
 #define IDS_ACTION038                   145
+#define IDD_DIALOG_CONFIG_MOUSE         145
 #define IDS_ACTION039                   146
+#define IDD_DIALOG1                     146
+#define IDD_DIALOG_CONFIG_MAIN          146
 #define IDS_ACTION040                   147
 #define IDS_ACTION041                   148
 #define IDS_ACTION042                   149
@@ -112,6 +116,8 @@
 #define IDS_FILE_ALREADY_EXISTS         195
 #define IDS_OVERWRITE                   196
 #define IDS_ACTION063                   197
+#define IDS_TAB_JOYSTICK                198
+#define IDS_TAB_MOUSE                   199
 #define IDC_BUTTON_YAW                  1000
 #define IDC_LIST_BUTTONS                1002
 #define IDC_LIST_ACTIONS                1002
@@ -166,6 +172,27 @@
 #define IDC_BUTTON_CENTRE_ALL           1053
 #define IDC_EDIT_PRESET_NAME            1054
 #define IDC_BUTTON_SAVE_PRESET          1055
+#define IDC_BUTTON1                     1056
+#define IDC_BUTTON2                     1057
+#define IDC_TAB1                        1057
+#define IDC_BUTTON3                     1058
+#define IDC_BUTTON4                     1059
+#define IDC_BUTTON5                     1060
+#define IDC_BUTTON_SCROLL_UP            1061
+#define IDC_BUTTON7_SCROLL_DN           1062
+#define IDC_STATIC_B1                   1065
+#define IDC_STATIC_B2                   1066
+#define IDC_STATIC_B3                   1067
+#define IDC_STATIC_B4                   1068
+#define IDC_STATIC_B5                   1069
+#define IDC_STATIC_SCROLL_UP            1070
+#define IDC_STATIC_SCROLL_DN            1071
+#define IDC_STATIC_SCROLL_LEFT          1072
+#define IDC_STATIC_SCROLL_RIGHT         1073
+#define IDC_COMBO_WHEEL_LEFT_ACTION     1074
+#define IDC_COMBO_WHEEL_RIGHT_ACTION    1075
+#define IDC_COMBO_WHEEL_UP_ACTION       1076
+#define IDC_COMBO_WHEEL_DOWN_ACTION     1077
 #define IDC_STATIC                      -1
 #define IDC_STATIC_XY_BOX               -1
 
@@ -174,9 +201,9 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
-#define _APS_NEXT_RESOURCE_VALUE        145
+#define _APS_NEXT_RESOURCE_VALUE        147
 #define _APS_NEXT_COMMAND_VALUE         32771
-#define _APS_NEXT_CONTROL_VALUE         1056
+#define _APS_NEXT_CONTROL_VALUE         1078
 #define _APS_NEXT_SYMED_VALUE           110
 #endif
 #endif

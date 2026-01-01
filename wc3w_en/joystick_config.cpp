@@ -33,7 +33,10 @@ using namespace winrt;
 using namespace Windows::Gaming::Input;
 
 HWND hWin_SaveAsPreset = nullptr;
-HWND hWin_JoyConfig = nullptr;
+HWND hWin_Config_Joy = nullptr;
+HWND hWin_Config_Control = nullptr;
+HWND hWin_Config_Mouse = nullptr;
+
 BOOL joyList_Updated = 0;
 
 HWND hWin_AxisCalibrate = nullptr;
@@ -154,9 +157,9 @@ const UINT SWITCH_POS_UID[]{
 //_____________________________________________________________________
 BOOL JoyConfig_Refresh_CurrentAction(WC3_ACTIONS action, BOOL activate) {
 
-	if (!hWin_JoyConfig)
+	if (!hWin_Config_Joy)
 		return FALSE;
-	HWND hwnd_sub = GetDlgItem(hWin_JoyConfig, IDC_STATIC_CURRENT_ACTION);
+	HWND hwnd_sub = GetDlgItem(hWin_Config_Joy, IDC_STATIC_CURRENT_ACTION);
 	if (!hwnd_sub)
 		return FALSE;
 	
@@ -1034,7 +1037,7 @@ static bool JoyConfig_Refresh_Presets(HWND hwndDlg) {
 //______________________________
 void JoyConfig_Refresh_JoyList() {
 
-	if (!hWin_JoyConfig)
+	if (!hWin_Config_Joy)
 		return;
 	joyList_Updated++;
 }
@@ -1394,27 +1397,14 @@ static void JoyConfig_Axis_Centre(HWND hwndDlg) {
 //_________________________________________________________________________________________________
 static INT_PTR CALLBACK DialogProc_JoyConfig(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 
-	static HWND hwndParent = nullptr;
-	static bool was_Deactivated = false;
+	//static HWND hwndParent = nullptr;
+	//static bool was_Deactivated = false;
 	switch (uMsg) {
 	case WM_INITDIALOG: {
-		////101 is the wcIII icon
-		SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)LoadIcon(*pp_hinstWC3W, MAKEINTRESOURCE(101)));
+
 		InitCommonControls();
 
-		hWin_JoyConfig = hwndDlg;
-		//hwndParent = (HWND)lParam;
-		hwndParent = GetParent(hwndDlg);
-
-
-		//set position to centre of parent window.
-		RECT rc_Win{ 0,0,0,0 };
-		GetWindowRect(hwndDlg, &rc_Win);
-		RECT rcParent{ 0,0,0,0 };
-		GetWindowRect(hwndParent, &rcParent);
-		SetWindowPos(hwndDlg, nullptr, rcParent.left + ((rcParent.right - rcParent.left) - (rc_Win.right - rc_Win.left)) / 2, rc_Win.top + ((rcParent.bottom - rcParent.top) - (rc_Win.bottom - rc_Win.top)) / 2, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
-
-		EnableWindow(hwndParent, FALSE);
+		hWin_Config_Joy = hwndDlg;
 
 		JoyConfig_Refresh_Presets(hwndDlg);
 		JoyConfig_Refresh_Enabled(hwndDlg);
@@ -1582,14 +1572,403 @@ static INT_PTR CALLBACK DialogProc_JoyConfig(HWND hwndDlg, UINT uMsg, WPARAM wPa
 				JoyConfig_Switch_SetButton(hwndDlg);
 			return TRUE;
 
+		default:
+			break;
+		}
+		break;
+	case WM_DESTROY: {
+		hWin_Config_Joy = nullptr;
+		return FALSE;
+	}
+	default:
+		return FALSE;
+		break;
+	}
+
+	return TRUE;
+}
+
+
+//___________________________________________________________________________
+BOOL JoyConfig_Refresh_CurrentAction_Mouse(WC3_ACTIONS action, BOOL activate) {
+
+	if (!hWin_Config_Mouse)
+		return FALSE;
+
+	HWND hwnd_sub = GetDlgItem(hWin_Config_Mouse, IDC_STATIC_CURRENT_ACTION);
+	if (!hwnd_sub)
+		return FALSE;
+
+	UINT UID = WC3_ACTION_UID[static_cast<int>(WC3_ACTIONS::None)];
+	if (activate)
+		UID = WC3_ACTION_UID[static_cast<int>(action)];
+	LoadString(phinstDLL, UID, general_string_buff, _countof(general_string_buff));
+	SendMessage(hwnd_sub, (UINT)WM_SETTEXT, (WPARAM)0, (LPARAM)general_string_buff);
+	
+	return TRUE;
+}
+
+
+//____________________________________________________
+static void JoyConfig_Refresh_Mouse_Display(HWND hwnd) {
+
+	RedrawWindow(GetDlgItem(hwnd, IDC_STATIC_B1), nullptr, nullptr, RDW_INVALIDATE);
+	RedrawWindow(GetDlgItem(hwnd, IDC_STATIC_B2), nullptr, nullptr, RDW_INVALIDATE);
+	RedrawWindow(GetDlgItem(hwnd, IDC_STATIC_B3), nullptr, nullptr, RDW_INVALIDATE);
+	RedrawWindow(GetDlgItem(hwnd, IDC_STATIC_B4), nullptr, nullptr, RDW_INVALIDATE);
+	RedrawWindow(GetDlgItem(hwnd, IDC_STATIC_B5), nullptr, nullptr, RDW_INVALIDATE);
+	RedrawWindow(GetDlgItem(hwnd, IDC_STATIC_SCROLL_UP), nullptr, nullptr, RDW_INVALIDATE);
+	RedrawWindow(GetDlgItem(hwnd, IDC_STATIC_SCROLL_DN), nullptr, nullptr, RDW_INVALIDATE);
+	RedrawWindow(GetDlgItem(hwnd, IDC_STATIC_SCROLL_LEFT), nullptr, nullptr, RDW_INVALIDATE);
+	RedrawWindow(GetDlgItem(hwnd, IDC_STATIC_SCROLL_RIGHT), nullptr, nullptr, RDW_INVALIDATE);
+}
+
+
+//____________________________________________________________________________________________________
+static INT_PTR CALLBACK DialogProc_Config_Mouse(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+	
+	static HBRUSH hbrush_colour_box = nullptr;
+	static DWORD button_states = 0;
+
+	switch (uMsg) {
+	case WM_INITDIALOG: {
+		hWin_Config_Mouse = hwndDlg;
+		InitCommonControls();
+
+		HWND hwnd_sub = nullptr;
+
+		hwnd_sub = GetDlgItem(hwndDlg, IDC_COMBO_DEAD_ZONE);
+
+		//wc axes have 16 degrees of movement from centre, mark deadzone levels as percentages for easier reading. 6.25% == 1/16 of axis from centre.
+		SendMessage(hwnd_sub, CB_ADDSTRING, (WPARAM)0, (LPARAM)L"0%");
+		SendMessage(hwnd_sub, CB_ADDSTRING, (WPARAM)0, (LPARAM)L"3.125%");
+		SendMessage(hwnd_sub, CB_ADDSTRING, (WPARAM)0, (LPARAM)L"6.25%");
+		SendMessage(hwnd_sub, CB_ADDSTRING, (WPARAM)0, (LPARAM)L"9.375%");
+		SendMessage(hwnd_sub, CB_ADDSTRING, (WPARAM)0, (LPARAM)L"12.5%");
+		SendMessage(hwnd_sub, CB_ADDSTRING, (WPARAM)0, (LPARAM)L"15.625%");
+		SendMessage(hwnd_sub, CB_ADDSTRING, (WPARAM)0, (LPARAM)L"18.75%");
+		SendMessage(hwnd_sub, CB_ADDSTRING, (WPARAM)0, (LPARAM)L"21.875%");
+		SendMessage(hwnd_sub, CB_ADDSTRING, (WPARAM)0, (LPARAM)L"25%");
+		SendMessage(hwnd_sub, CB_ADDSTRING, (WPARAM)0, (LPARAM)L"28.125%");
+		SendMessage(hwnd_sub, CB_ADDSTRING, (WPARAM)0, (LPARAM)L"31.25%");
+
+		SendMessage(hwnd_sub, CB_SETCURSEL, (WPARAM)Mouse.Deadzone_Level(), (LPARAM)0);
+		
+
+		//setup button selection combo.
+		hwnd_sub = GetDlgItem(hwndDlg, IDC_COMBO_SELECT_BUTTONS);
+		wchar_t* msg = new wchar_t[12];
+		LoadString(phinstDLL, IDS_BUTTON, general_string_buff, _countof(general_string_buff));
+		for (int i = 0; i < NUM_MOUSE_BUTTONS; i++) {
+			swprintf_s(msg, 12, L"%s %d", general_string_buff, i+1);
+			SendMessage(hwnd_sub, CB_ADDSTRING, (WPARAM)0, (LPARAM)msg);
+		}
+		delete[] msg;
+		SendMessage(hwnd_sub, CB_SETCURSEL, (WPARAM)0, (LPARAM)0);
+
+		//fill action selection lists.
+		HWND hwnd_button_actions = GetDlgItem(hwndDlg, IDC_COMBO_SELECT_BUTTON_ACTION);
+		HWND hwnd_wheel_up_actions = GetDlgItem(hwndDlg, IDC_COMBO_WHEEL_UP_ACTION);
+		HWND hwnd_wheel_down_actions = GetDlgItem(hwndDlg, IDC_COMBO_WHEEL_DOWN_ACTION);
+		HWND hwnd_wheel_left_actions = GetDlgItem(hwndDlg, IDC_COMBO_WHEEL_LEFT_ACTION);
+		HWND hwnd_wheel_right_actions = GetDlgItem(hwndDlg, IDC_COMBO_WHEEL_RIGHT_ACTION);
+
+		for (int i = 0; i < _countof(WC3_ACTION_UID); i++) {
+			//
+			LoadString(phinstDLL, WC3_ACTION_UID[i], general_string_buff, _countof(general_string_buff));
+			SendMessage(hwnd_button_actions, CB_ADDSTRING, (WPARAM)0, (LPARAM)general_string_buff);
+			SendMessage(hwnd_wheel_up_actions, CB_ADDSTRING, (WPARAM)0, (LPARAM)general_string_buff);
+			SendMessage(hwnd_wheel_down_actions, CB_ADDSTRING, (WPARAM)0, (LPARAM)general_string_buff);
+			SendMessage(hwnd_wheel_left_actions, CB_ADDSTRING, (WPARAM)0, (LPARAM)general_string_buff);
+			SendMessage(hwnd_wheel_right_actions, CB_ADDSTRING, (WPARAM)0, (LPARAM)general_string_buff);
+		}
+		
+		SendMessage(hwnd_button_actions, CB_SETCURSEL, (WPARAM)Mouse.GetAction_Button(0), (LPARAM)0);
+		SendMessage(hwnd_wheel_up_actions, CB_SETCURSEL, (WPARAM)Mouse.GetAction_Wheel_Up(), (LPARAM)0);
+		SendMessage(hwnd_wheel_down_actions, CB_SETCURSEL, (WPARAM)Mouse.GetAction_Wheel_Down(), (LPARAM)0);
+		SendMessage(hwnd_wheel_left_actions, CB_SETCURSEL, (WPARAM)Mouse.GetAction_Wheel_Left(), (LPARAM)0);
+		SendMessage(hwnd_wheel_right_actions, CB_SETCURSEL, (WPARAM)Mouse.GetAction_Wheel_Right(), (LPARAM)0);
+
+		break;
+	}
+	case WM_CTLCOLORSTATIC: {
+		//highlight pressed buttons.
+		if (!hbrush_colour_box)
+			hbrush_colour_box = CreateSolidBrush(RGB(128, 128, 128));
+
+		if (((HWND)lParam == GetDlgItem(hwndDlg, IDC_STATIC_B1) && (button_states & (1 << 0))) ||
+			((HWND)lParam == GetDlgItem(hwndDlg, IDC_STATIC_B2) && (button_states & (1 << 1))) ||
+			((HWND)lParam == GetDlgItem(hwndDlg, IDC_STATIC_B3) && (button_states & (1 << 2))) ||
+			((HWND)lParam == GetDlgItem(hwndDlg, IDC_STATIC_B4) && (button_states & (1 << 3))) ||
+			((HWND)lParam == GetDlgItem(hwndDlg, IDC_STATIC_B5) && (button_states & (1 << 4))) ||
+			((HWND)lParam == GetDlgItem(hwndDlg, IDC_STATIC_SCROLL_UP) && (button_states & (1 << 5))) ||
+			((HWND)lParam == GetDlgItem(hwndDlg, IDC_STATIC_SCROLL_DN) && (button_states & (1 << 6))) ||
+			((HWND)lParam == GetDlgItem(hwndDlg, IDC_STATIC_SCROLL_LEFT) && (button_states & (1 << 7))) ||
+			((HWND)lParam == GetDlgItem(hwndDlg, IDC_STATIC_SCROLL_RIGHT) && (button_states & (1 << 8)))) {
+			HDC hdcStatic = (HDC)wParam;
+			SetTextColor(hdcStatic, RGB(255, 255, 255));
+			SetBkColor(hdcStatic, RGB(128, 128, 128));
+			return (INT_PTR)hbrush_colour_box;
+		}
+		return FALSE;
+	}
+	case WM_COMMAND:
+		switch (LOWORD(wParam)) {
+		case IDC_COMBO_DEAD_ZONE:
+			if (HIWORD(wParam) == CBN_SELCHANGE) {
+				int deadzone = (int)(SendMessage(GetDlgItem(hwndDlg, IDC_COMBO_DEAD_ZONE), CB_GETCURSEL, (WPARAM)0, (LPARAM)0));
+				Mouse.Set_Deadzone_Level(deadzone);
+			}
+			return TRUE;
+		case IDC_COMBO_SELECT_BUTTONS:
+			if (HIWORD(wParam) == CBN_SELCHANGE) {
+				HWND hwnd_button = GetDlgItem(hwndDlg, IDC_COMBO_SELECT_BUTTONS);
+				int button_selected = (int)(SendMessage(hwnd_button, CB_GETCURSEL, (WPARAM)0, (LPARAM)0));
+				HWND hwnd_actions = GetDlgItem(hwndDlg, IDC_COMBO_SELECT_BUTTON_ACTION);
+				SendMessage(hwnd_actions, CB_SETCURSEL, (WPARAM)Mouse.GetAction_Button(button_selected), (LPARAM)0);
+			}
+			return TRUE;
+		case IDC_COMBO_SELECT_BUTTON_ACTION:
+			if (HIWORD(wParam) == CBN_SELCHANGE) {
+				HWND hwnd_button = GetDlgItem(hwndDlg, IDC_COMBO_SELECT_BUTTONS);
+				int button_selected = (int)(SendMessage(hwnd_button, CB_GETCURSEL, (WPARAM)0, (LPARAM)0));
+				HWND hwnd_actions = GetDlgItem(hwndDlg, IDC_COMBO_SELECT_BUTTON_ACTION);
+				int action_selected = (int)(SendMessage(hwnd_actions, CB_GETCURSEL, (WPARAM)0, (LPARAM)0));
+				Mouse.SetAction_Button(button_selected, static_cast<WC3_ACTIONS>(action_selected));
+			}
+			return TRUE;
+		case IDC_COMBO_WHEEL_UP_ACTION:
+			if (HIWORD(wParam) == CBN_SELCHANGE) {
+				HWND hwnd_action = GetDlgItem(hwndDlg, IDC_COMBO_WHEEL_UP_ACTION);
+				int action_selected = (int)(SendMessage(hwnd_action, CB_GETCURSEL, (WPARAM)0, (LPARAM)0));
+				Mouse.SetAction_Wheel_Up(static_cast<WC3_ACTIONS>(action_selected));
+			}
+			return TRUE;
+		case IDC_COMBO_WHEEL_DOWN_ACTION:
+			if (HIWORD(wParam) == CBN_SELCHANGE) {
+				HWND hwnd_action = GetDlgItem(hwndDlg, IDC_COMBO_WHEEL_DOWN_ACTION);
+				int action_selected = (int)(SendMessage(hwnd_action, CB_GETCURSEL, (WPARAM)0, (LPARAM)0));
+				Mouse.SetAction_Wheel_Down(static_cast<WC3_ACTIONS>(action_selected));
+			}
+			return TRUE;
+		case IDC_COMBO_WHEEL_LEFT_ACTION:
+			if (HIWORD(wParam) == CBN_SELCHANGE) {
+				HWND hwnd_action = GetDlgItem(hwndDlg, IDC_COMBO_WHEEL_LEFT_ACTION);
+				int action_selected = (int)(SendMessage(hwnd_action, CB_GETCURSEL, (WPARAM)0, (LPARAM)0));
+				Mouse.SetAction_Wheel_Left(static_cast<WC3_ACTIONS>(action_selected));
+			}
+			return TRUE;
+		case IDC_COMBO_WHEEL_RIGHT_ACTION:
+			if (HIWORD(wParam) == CBN_SELCHANGE) {
+				HWND hwnd_action = GetDlgItem(hwndDlg, IDC_COMBO_WHEEL_RIGHT_ACTION);
+				int action_selected = (int)(SendMessage(hwnd_action, CB_GETCURSEL, (WPARAM)0, (LPARAM)0));
+				Mouse.SetAction_Wheel_Right(static_cast<WC3_ACTIONS>(action_selected));
+			}
+			return TRUE;
+		default:
+			break;
+		}
+		break;
+	case WM_DESTROY: {
+		if (hbrush_colour_box)
+			DeleteObject(hbrush_colour_box);
+		hbrush_colour_box = nullptr;
+
+		hWin_Config_Mouse = nullptr;
+		return FALSE;
+	}
+	case WM_LBUTTONDOWN:
+	case WM_LBUTTONUP:
+	case WM_RBUTTONDOWN:
+	case WM_RBUTTONUP:
+	case WM_MBUTTONDOWN:
+	case WM_MBUTTONUP:
+	case WM_XBUTTONDOWN:
+	case WM_XBUTTONUP: {
+		Mouse.Update_Buttons(wParam);
+
+		int key_state = GET_KEYSTATE_WPARAM(wParam);
+		if (key_state & MK_LBUTTON)
+			button_states |= (1 << 0);
+		else
+			button_states &= ~(1 << 0);
+		if (key_state & MK_RBUTTON)
+			button_states |= (1 << 1);
+		else
+			button_states &= ~(1 << 1);
+		if (key_state & MK_MBUTTON)
+			button_states |= (1 << 2);
+		else
+			button_states &= ~(1 << 2);
+		if (key_state & MK_XBUTTON1)
+			button_states |= (1 << 3);
+		else
+			button_states &= ~(1 << 3);
+		if (key_state & MK_XBUTTON2)
+			button_states |= (1 << 4);
+		else
+			button_states &= ~(1 << 4);
+
+		//clear scroll wheel states
+		button_states &= ~(1 << 5);
+		button_states &= ~(1 << 6);
+		button_states &= ~(1 << 7);
+		button_states &= ~(1 << 8);
+
+		JoyConfig_Refresh_Mouse_Display(hwndDlg);
+		break;
+	}
+	case WM_MOUSEWHEEL: {
+		Mouse.Update_Wheel_Vertical(wParam);
+		short zDelta = GET_WHEEL_DELTA_WPARAM(wParam);
+		if (zDelta > 0) {
+			button_states |= (1 << 5);
+			button_states &= ~(1 << 6);
+		}
+		else if (zDelta < 0) {
+			button_states |= (1 << 6);
+			button_states &= ~(1 << 5);
+		}
+		JoyConfig_Refresh_Mouse_Display(hwndDlg);
+		break;
+	}
+	case WM_MOUSEHWHEEL: {
+		Mouse.Update_Wheel_Horizontal(wParam);
+		short zDelta = GET_WHEEL_DELTA_WPARAM(wParam);
+		if (zDelta > 0) {
+			button_states |= (1 << 7);
+			button_states &= ~(1 << 8);
+		}
+		else if (zDelta < 0) {
+			button_states |= (1 << 8);
+			button_states &= ~(1 << 7);
+		}
+		JoyConfig_Refresh_Mouse_Display(hwndDlg);
+		break;
+	}
+	default:
+		return FALSE;
+		break;
+	}
+	return TRUE;
+}
+
+
+//______________________________________________________________________________________________________
+static INT_PTR CALLBACK DialogProc_Config_Control(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+	static HWND hwndParent = nullptr;
+	static bool was_Deactivated = false;
+	
+	switch (uMsg) {
+	case WM_INITDIALOG: {
+		hWin_Config_Control = hwndDlg;
+		
+		////101 is the wcIII icon
+		SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)LoadIcon(*pp_hinstWC3W, MAKEINTRESOURCE(101)));
+		InitCommonControls();
+
+		hwndParent = GetParent(hwndDlg);
+
+		INITCOMMONCONTROLSEX iccex{ 0 };
+		//initialize common controls.
+		iccex.dwSize = sizeof(INITCOMMONCONTROLSEX);
+		iccex.dwICC = ICC_TAB_CLASSES;
+		InitCommonControlsEx(&iccex);
+
+		TCITEM tie{ 0 };
+
+		HWND hwndTab = GetDlgItem(hwndDlg, IDC_TAB1);
+		//add a tab for each of the child dialog boxes.
+		tie.mask = TCIF_TEXT | TCIF_IMAGE;
+		tie.iImage = -1;
+
+		LoadString(phinstDLL, IDS_TAB_JOYSTICK, general_string_buff, _countof(general_string_buff));
+		tie.pszText = general_string_buff;
+		TabCtrl_InsertItem(hwndTab, 0, &tie);
+
+		LoadString(phinstDLL, IDS_TAB_MOUSE, general_string_buff, _countof(general_string_buff));
+		tie.pszText = general_string_buff;
+		TabCtrl_InsertItem(hwndTab, 1, &tie);
+
+
+		//set position to centre of parent window.
+		RECT rc_Win{ 0,0,0,0 };
+		GetWindowRect(hwndDlg, &rc_Win);
+		RECT rcParent{ 0,0,0,0 };
+		GetWindowRect(hwndParent, &rcParent);
+		SetWindowPos(hwndDlg, nullptr, rcParent.left + ((rcParent.right - rcParent.left) - (rc_Win.right - rc_Win.left)) / 2, rc_Win.top + ((rcParent.bottom - rcParent.top) - (rc_Win.bottom - rc_Win.top)) / 2, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
+
+		//disable main window while this dialog is running.
+		EnableWindow(hwndParent, FALSE);
+		
+		//create tab windows.
+		hWin_Config_Joy = CreateDialogParam(phinstDLL, MAKEINTRESOURCE(IDD_DIALOG_CONFIG_JOY), hwndDlg, &DialogProc_JoyConfig, 0);
+		hWin_Config_Mouse = CreateDialogParam(phinstDLL, MAKEINTRESOURCE(IDD_DIALOG_CONFIG_MOUSE), hwndDlg, &DialogProc_Config_Mouse, 0);
+
+		//set the position of tab windows, adjusting for the height of the tabs.
+		RECT rcTab;
+		GetClientRect(hwndDlg, &rcTab);
+		TabCtrl_AdjustRect(hwndTab, FALSE, &rcTab);
+
+		SetWindowPos(hWin_Config_Joy, nullptr, rcTab.left, rcTab.top, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
+		SetWindowPos(hWin_Config_Mouse, nullptr, rcTab.left, rcTab.top, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
+
+		//set initial focus tab.
+		if (*p_wc3_controller_mouse == 1) {
+			TabCtrl_SetCurFocus(hwndTab, 1);
+			ShowWindow(hWin_Config_Joy, SW_HIDE);
+			ShowWindow(hWin_Config_Mouse, SW_SHOW);
+		}
+		else {
+			TabCtrl_SetCurFocus(hwndTab, 0);
+			ShowWindow(hWin_Config_Joy, SW_SHOW);
+			ShowWindow(hWin_Config_Mouse, SW_HIDE);
+		}
+		break;
+	}
+	case WM_NOTIFY:
+		switch (((LPNMHDR)lParam)->code) {
+		case TCN_SELCHANGE: {
+			HWND hwndTab = GetDlgItem(hwndDlg, IDC_TAB1);
+			int tabNum = TabCtrl_GetCurSel(hwndTab);
+			if (tabNum == 1) {
+				ShowWindow(hWin_Config_Joy, SW_HIDE);
+				ShowWindow(hWin_Config_Mouse, SW_SHOW);
+			}
+			else if (tabNum == 0) {
+				ShowWindow(hWin_Config_Joy, SW_SHOW);
+				ShowWindow(hWin_Config_Mouse, SW_HIDE);
+			}
+			break;
+		}
+		default:
+			break;
+		}
+		break;
+	case WM_MOVE: {
+		HWND hwndTab = GetDlgItem(hwndDlg, IDC_TAB1);
+		//move tab windows with the main window, adjusting for the height of the tabs.
+		RECT rcTab;
+		GetClientRect(hwndDlg, &rcTab);
+		TabCtrl_AdjustRect(hwndTab, FALSE, &rcTab);
+
+		SetWindowPos(hWin_Config_Joy, nullptr, rcTab.left, rcTab.top, 0,0, SWP_NOZORDER| SWP_NOSIZE);
+		SetWindowPos(hWin_Config_Mouse, nullptr, rcTab.left, rcTab.top, 0,0, SWP_NOZORDER | SWP_NOSIZE);
+
+		return TRUE;
+	}
+	case WM_COMMAND:
+		switch (LOWORD(wParam)) {
 		case IDOK: {
 			Joysticks.Save();
+			Mouse.Save();
 			EnableWindow(hwndParent, TRUE);
 			DestroyWindow(hwndDlg);
 			return FALSE;
 		}
 		case IDCANCEL: {
 			Joysticks.Load();
+			Mouse.Load();
 			EnableWindow(hwndParent, TRUE);
 			DestroyWindow(hwndDlg);
 			return FALSE;
@@ -1599,12 +1978,14 @@ static INT_PTR CALLBACK DialogProc_JoyConfig(HWND hwndDlg, UINT uMsg, WPARAM wPa
 		}
 		break;
 	case WM_CLOSE:
+		Joysticks.Load();
+		Mouse.Load();
 		EnableWindow(hwndParent, TRUE);
 		DestroyWindow(hwndDlg);
 		return FALSE;
 	case WM_DESTROY: {
-		hWin_JoyConfig = nullptr;
-		if(was_Deactivated)
+		hWin_Config_Control = nullptr;
+		if (was_Deactivated)
 			Set_WindowActive_State(TRUE);
 		return FALSE;
 	}
@@ -1628,10 +2009,10 @@ static INT_PTR CALLBACK DialogProc_JoyConfig(HWND hwndDlg, UINT uMsg, WPARAM wPa
 //__________________________________________________________
 static HWND JoyConfig_Create(HWND hwnd, HINSTANCE hinstance) {
 
-	if (hWin_JoyConfig)
-		return hWin_JoyConfig;
+	if (hWin_Config_Control)
+		return hWin_Config_Control;
 
-	HWND hwndDlg = CreateDialog(hinstance, MAKEINTRESOURCE(IDD_DIALOG_CONFIG), hwnd, (DLGPROC)DialogProc_JoyConfig);
+	HWND hwndDlg = CreateDialog(hinstance, MAKEINTRESOURCE(IDD_DIALOG_CONFIG_MAIN), hwnd, (DLGPROC)DialogProc_Config_Control);
 	if (!hwndDlg)
 		return hwndDlg;
 	JoyConfig_Refresh_JoyList();
@@ -1649,17 +2030,18 @@ BOOL JoyConfig_Main() {
 		return FALSE;
 
 	ShowCursor(TRUE);
-	while (hWin_JoyConfig != nullptr) {
+	while (hWin_Config_Control != nullptr) {
 		Sleep(16);
 		MSG message;
 		while (PeekMessage(&message, 0, 0, 0, true)) {
-			if (!hWin_JoyConfig || !IsDialogMessage(hWin_JoyConfig, &message)) {
+			if (!hWin_Config_Control || !IsDialogMessage(hWin_Config_Control, &message)) {
 				TranslateMessage(&message);
 				DispatchMessage(&message);
 			}
 		}
 		Joysticks.Update();
-		JoyConfig_Refresh(hWin_JoyConfig);
+		if(hWin_Config_Joy)
+		JoyConfig_Refresh(hWin_Config_Joy);
 	}
 
 
