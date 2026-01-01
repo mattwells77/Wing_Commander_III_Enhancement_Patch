@@ -2413,8 +2413,12 @@ static void __declspec(naked) check_gamma_high(void) {
 
 //________________________________________________________________________
 static void Modify_Space_Colour(DRAW_BUFFER_MAIN* p_Buff, BYTE pal_offset) {
+
     static BYTE space_colour_pal_off = ConfigReadInt(L"SPACE", L"SPACE_COLOUR_PALETTE_OFFSET", CONFIG_SPACE_COLOUR_PALETTE_OFFSET);
-    if (space_colour_pal_off > 255)
+    
+    DWORD colour = Palette_Get_Colour(pal_offset);
+    //only adjust the colour when the usual space colour argb is found at pal offset 0x11. To avoid messing up missions where a different palette is in use.
+    if (colour != 0xFF081024 || space_colour_pal_off > 255)
         space_colour_pal_off = pal_offset;
     //clear the space scene colour. 
     wc3_clear_buffer_colour(p_Buff, space_colour_pal_off);
