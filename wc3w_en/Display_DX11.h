@@ -1109,6 +1109,13 @@ private:
 extern UINT clientWidth;
 extern UINT clientHeight;
 
+extern UINT spaceWidth;
+extern UINT spaceHeight;
+
+extern BOOL is_space_scaled;
+extern UINT space_scaled_width;
+extern UINT space_scaled_height;
+
 extern DrawSurface8_RT* surface_gui;
 extern DrawSurface* surface_space3D;
 extern DrawSurface8_RT* surface_space2D;

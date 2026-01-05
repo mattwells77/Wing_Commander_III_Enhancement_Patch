@@ -50,6 +50,13 @@ LibVlc_Movie* pMovie_vlc = nullptr;
 UINT clientWidth = 0;
 UINT clientHeight = 0;
 
+UINT spaceWidth = 0;
+UINT spaceHeight = 0;
+
+BOOL is_space_scaled = FALSE;
+UINT space_scaled_width = 640;
+UINT space_scaled_height = 480;
+
 //WORD mouse_state_true[3];
 WORD mouse_state_space[3]{0};
 WORD* p_mouse_button_space = &mouse_state_space[0];
@@ -107,10 +114,10 @@ static BOOL ClipMouseCursor() {
 
 //________________________________________________________________________________
 static void SetWindowTitle(HWND hwnd, const wchar_t* msg, UINT width, UINT height) {
+
     wchar_t winText[64];
     swprintf_s(winText, 64, L"%S  @%ix%i   %s", p_wc3_szAppName, width, height, msg);
     SendMessage(hwnd, WM_SETTEXT, (WPARAM)0, (LPARAM)winText);
-
 }
 
 
@@ -224,6 +231,14 @@ static BOOL Window_Setup(HWND hwnd) {
     else if (COCKPIT_MAINTAIN_ASPECT_RATIO < 0)
         crop_cockpit_rect = FALSE;
 
+    if (ConfigReadInt(L"SPACE", L"IS_SPACE_SCALED", CONFIG_SPACE_IS_SPACE_SCALED)) {
+        is_space_scaled = TRUE;
+        space_scaled_height = ConfigReadInt(L"SPACE", L"SCALED_SPACE_HEIGHT", CONFIG_SPACE_SCALED_SPACE_HEIGHT);
+        if (space_scaled_height < 3)
+            space_scaled_height = 3;
+        space_scaled_width = (UINT)(space_scaled_height * (4.0f / 3.0f));
+    }
+
     if (*p_wc3_is_windowed) {
         Debug_Info("Window Setup: Windowed");
         WINDOWPLACEMENT winPlace{ 0 };
@@ -261,11 +276,13 @@ static BOOL Window_Setup(HWND hwnd) {
     clientWidth = clientRect.right - clientRect.left;
     clientHeight = clientRect.bottom - clientRect.top;
 
-    *p_wc3_mouse_centre_x = (LONG)clientWidth / 2;
-    *p_wc3_mouse_centre_y = (LONG)clientHeight / 2;
+
 
     Display_Dx_Setup(hwnd, clientWidth, clientHeight);
     
+    *p_wc3_mouse_centre_x = (LONG)spaceWidth / 2;
+    *p_wc3_mouse_centre_y = (LONG)spaceHeight / 2;
+
     //QueryPerformanceFrequency(&Frequency);
 
     //Set the movement update time for Navigation screen, which was unregulated and way to fast on modern computers.
@@ -306,11 +323,11 @@ static void Window_Resized() {
     clientWidth = clientRect.right - clientRect.left;
     clientHeight = clientRect.bottom - clientRect.top;
 
-    *p_wc3_mouse_centre_x = (LONG)clientWidth / 2;
-    *p_wc3_mouse_centre_y = (LONG)clientHeight / 2;
 
     Display_Dx_Resize(clientWidth, clientHeight);
 
+    *p_wc3_mouse_centre_x = (LONG)spaceWidth / 2;
+    *p_wc3_mouse_centre_y = (LONG)spaceHeight / 2;
 
     if (is_cursor_clipped) {
         //Debug_Info("Window_Resized - is_cursor_clipped");
@@ -514,8 +531,8 @@ static void __fastcall Set_Space_View_POV1(void* p_space_class) {
     SCALE_TYPE scale_type = SCALE_TYPE::fit;
 
 
-    WORD width = (WORD)clientWidth;
-    WORD height = (WORD)clientHeight;
+    WORD width = (WORD)spaceWidth;
+    WORD height = (WORD)spaceHeight;
 
     p_view_vars[4] = width;
     p_view_vars[5] = height;
@@ -611,8 +628,8 @@ static void __fastcall Set_Space_View_POV3(void* p_space_class, DRAW_BUFFER_MAIN
     //    p_view_vars[8], p_view_vars[9], p_view_vars[10], p_view_vars[11], p_view_vars[12], p_view_vars[13], p_view_vars[14], p_view_vars[15]);
     space_view_has_BG_image = FALSE;
 
-    WORD width = (WORD)clientWidth;
-    WORD height = (WORD)clientHeight;
+    WORD width = (WORD)spaceWidth;
+    WORD height = (WORD)spaceHeight;
 
     //rear view vdu screen is 122*100, check for it here to prevent it being resized.
     if (p_db && p_db->rc.right == 121 && p_db->rc.bottom == 99) {
@@ -702,11 +719,11 @@ static void Lock_3DSpace_Surface() {
     //set buffer for drawing 3d space elements
     (**pp_wc3_db_game).buff = pbuffer_space_3D;
 
-    (**pp_wc3_db_game_main).rc.right = clientWidth - 1;
-    (**pp_wc3_db_game_main).rc.bottom = clientHeight - 1;
+    (**pp_wc3_db_game_main).rc.right = spaceWidth - 1;
+    (**pp_wc3_db_game_main).rc.bottom = spaceHeight - 1;
 
     (**pp_wc3_db_game).rc_inv.left = buffer_space_3D_pitch - 1;
-    (**pp_wc3_db_game).rc_inv.top = clientHeight - 1;
+    (**pp_wc3_db_game).rc_inv.top = spaceHeight - 1;
 
 }
 
@@ -714,7 +731,7 @@ static void Lock_3DSpace_Surface() {
 //_________________________________________________________
 static void Lock_3DSpace_Surface_POV1(void* p_space_class) {
 
-    if (((WORD*)p_space_class)[4] != (WORD)clientWidth || ((WORD*)p_space_class)[5] != (WORD)clientHeight) {
+    if (((WORD*)p_space_class)[4] != (WORD)spaceWidth || ((WORD*)p_space_class)[5] != (WORD)spaceHeight) {
         //Debug_Info("RESIZING SPACE VIEW POV1");
         DWORD* p_cockpit_class = ((DWORD**)p_space_class)[67];
         //Debug_Info("RESIZING SPACE VIEW POV1: %d", p_cockpit_class[8]);
@@ -747,7 +764,7 @@ static void __declspec(naked) lock_3dspace_surface_pov1(void) {
 //_________________________________________________________
 static void Lock_3DSpace_Surface_POV3(void* p_space_struct) {
     //Debug_Info("Lock_3DSpace_Surface_POV3");
-    if (((WORD*)p_space_struct)[4] != (WORD)clientWidth || ((WORD*)p_space_struct)[5] != (WORD)clientHeight) {
+    if (((WORD*)p_space_struct)[4] != (WORD)spaceWidth || ((WORD*)p_space_struct)[5] != (WORD)spaceHeight) {
         //Debug_Info("RESIZING SPACE VIEW POV3");
         Set_Space_View_POV3((WORD*)p_space_struct, nullptr);
     }
@@ -948,6 +965,15 @@ static void Fix_CockpitViewTargetRect() {
     float y = 0;
     surface_space2D->GetPosition(&x, &y);
     surface_space2D->GetScaledPixelDimensions(&x_unit, &y_unit);
+    
+    if (is_space_scaled) {
+        float space_scale_x = (float)spaceWidth / clientWidth;
+        float space_scale_y = (float)spaceHeight / clientHeight;
+        x *= space_scale_x;
+        y *= space_scale_y;
+        x_unit *= space_scale_x;
+        y_unit *= space_scale_y;
+    }
     (**pp_wc3_db_game_main).rc.left = (LONG)((**pp_wc3_db_game_main).rc.left * x_unit + x);
     (**pp_wc3_db_game_main).rc.top = (LONG)((**pp_wc3_db_game_main).rc.top * y_unit + y);
     (**pp_wc3_db_game_main).rc.right = (LONG)((**pp_wc3_db_game_main).rc.right * x_unit + x);
@@ -1000,9 +1026,9 @@ static void __declspec(naked) draw_hud_targeting_elements(void) {
 //___________________________________________
 static LONG Fix_Hud_Targeting_Rect_Max_Size() {
 
-    float length = (float)clientHeight;
-    if (clientWidth < clientHeight)
-        length = (float)clientWidth;
+    float length = (float)spaceHeight;
+    if (spaceWidth < spaceHeight)
+        length = (float)spaceWidth;
     //28 was the original max value.
     return (LONG)(length / 480.0f * 28.0f);
 }
@@ -1490,8 +1516,8 @@ static LRESULT Update_Mouse_State(HWND hwnd, UINT Message, WPARAM wParam, LPARAM
         LONG x = GET_X_LPARAM(lParam);
         LONG y = GET_Y_LPARAM(lParam);
 
-        *p_mouse_x_space = (WORD)x;
-        *p_mouse_y_space = (WORD)y;
+        *p_mouse_x_space = (WORD)(x * spaceWidth / clientWidth);
+        *p_mouse_y_space = (WORD)(y * spaceHeight / clientHeight);
         if (surface_gui) {
             float fx = 0;
             float fy = 0;
@@ -1555,14 +1581,14 @@ static BOOL Set_Mouse_Position(LONG x, LONG y) {
             LONG ix = (LONG)fx;
             if ((float)ix != fx)
                 ix++;
-            *p_mouse_x_space = (WORD)ix;
+            *p_mouse_x_space = (WORD)(ix * spaceWidth / clientWidth);
             ix += client.x;
 
             fy += y * fheight / GUI_HEIGHT;
             LONG iy = (LONG)fy;
             if ((float)iy != fy)
                 iy++;
-            *p_mouse_y_space = (WORD)iy;
+            *p_mouse_y_space = (WORD)(iy * spaceHeight / clientHeight);
             iy += client.y;
 
             SetCursorPos(ix, iy);
@@ -1604,8 +1630,8 @@ static BOOL Update_Cursor_Position(LONG x, LONG y) {
             x = (m.x - p.x);
             y = (m.y - p.y);
 
-            *p_mouse_x_space = (WORD)x;
-            *p_mouse_y_space = (WORD)y;
+            *p_mouse_x_space = (WORD)(x * spaceWidth / clientWidth);
+            *p_mouse_y_space = (WORD)(y * spaceHeight / clientHeight);
 
             if (surface_gui) {
                 float fx = 0;
@@ -1721,7 +1747,7 @@ static void __declspec(naked) nav_screen_movement_speed_fix(void) {
 static void __declspec(naked) fix_movement_diamond_x(void) {
 
     __asm {
-        mov esi, clientWidth
+        mov esi, spaceWidth
         ret
     }
 }
@@ -1731,7 +1757,7 @@ static void __declspec(naked) fix_movement_diamond_x(void) {
 static void __declspec(naked) fix_movement_diamond_y(void) {
 
     __asm {
-        mov esi, clientHeight
+        mov esi, spaceHeight
         ret
     }
 }
@@ -2208,6 +2234,14 @@ static void Fix_Space_Mouse_Movement(LONG* p_x, LONG* p_y) {
         range = 320;
 
     int dead_zone = Mouse.Deadzone();
+    float mouse_unit = 1.25f;
+
+    if (range < 320) {
+        dead_zone = range / 320 * dead_zone;
+        mouse_unit = (float)range / 256;
+    }
+
+
     //apply a small dead zone (320 / 32 = 10).
     if (x < dead_zone && x > -dead_zone)
         x = 0;
@@ -2225,8 +2259,8 @@ static void Fix_Space_Mouse_Movement(LONG* p_x, LONG* p_y) {
         y = -range;
 
     //convert mouse movement value to the ships axis range between -256 and 256 (320 / 256 = 1.25).
-    *p_x = (LONG)(x / 1.25f);
-    *p_y = (LONG)(y / 1.25f);
+    *p_x = (LONG)(x / mouse_unit);
+    *p_y = (LONG)(y / mouse_unit);
 }
 
 

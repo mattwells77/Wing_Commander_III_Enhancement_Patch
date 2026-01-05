@@ -324,7 +324,30 @@ static void Surfaces_Setup(UINT width, UINT height) {
             surface_space2D->Set_Default_SamplerState(pd3dPS_SamplerState_Point);
     }
     if (surface_space3D == nullptr) {
-        surface_space3D = new DrawSurface(0, 0, width, height, 8, 0x00000000);
+        //only scale the space view if window dimensions are greater than scaled space dimensions. 
+        if (is_space_scaled && (clientWidth >= space_scaled_width && clientHeight >= space_scaled_height)) {
+            Debug_Info("Surfaces_Setup: space view is scaled.");
+            float originalRO = 4.0f / 3.0f;
+            float clientRO = clientWidth / (float)clientHeight;
+            
+            if (clientRO >= originalRO) {
+                spaceHeight = space_scaled_height;
+                spaceWidth = (UINT)(spaceHeight * clientRO);
+            }
+            else {
+                spaceWidth = (UINT)space_scaled_width;
+                spaceHeight = (UINT)(spaceWidth / clientRO);
+            }
+
+            surface_space3D = new DrawSurface(0, 0, spaceWidth, spaceHeight, 8, 0x00000000);
+            surface_space3D->ScaleTo((float)width, (float)height, SCALE_TYPE::fill);
+        }
+        else {
+            Debug_Info("Surfaces_Setup: space view is not scaled.");
+            spaceWidth = width;
+            spaceHeight = height;
+            surface_space3D = new DrawSurface(0, 0, width, height, 8, 0x00000000);
+        }
         //surface_space3D->Set_Default_Pixel_Shader(pd3d_PS_Basic_Tex_8_masked);
     }
     Debug_Info("Surfaces_Setup Done");
@@ -368,7 +391,31 @@ static void Surfaces_Resize(UINT width, UINT height) {
 
     if (surface_space3D)
         delete surface_space3D;
-    surface_space3D = new DrawSurface(0, 0, width, height, 8, 0x00000000);
+    surface_space3D = nullptr;
+
+    //only scale the space view if window dimensions are greater than scaled space dimensions. 
+    if (is_space_scaled && (clientWidth >= space_scaled_width && clientHeight >= space_scaled_height)) {
+        Debug_Info("Surfaces_Resize: space view is scaled.");
+        float originalRO = 4.0f / 3.0f;
+        float clientRO = clientWidth / (float)clientHeight;
+
+        if (clientRO >= originalRO) {
+            spaceHeight = space_scaled_height;
+            spaceWidth = (UINT)(spaceHeight * clientRO);
+        }
+        else {
+            spaceWidth = (UINT)space_scaled_width;
+            spaceHeight = (UINT)(spaceWidth / clientRO);
+        }
+        surface_space3D = new DrawSurface(0, 0, spaceWidth, spaceHeight, 8, 0x00000000);
+        surface_space3D->ScaleTo((float)width, (float)height, SCALE_TYPE::fill);
+    }
+    else {
+        Debug_Info("Surfaces_Resize: space view is not scaled.");
+        spaceWidth = width;
+        spaceHeight = height;
+        surface_space3D = new DrawSurface(0, 0, width, height, 8, 0x00000000);
+    }
     //surface_space3D->Set_Default_Pixel_Shader(pd3d_PS_Basic_Tex_8_masked);
 
     Debug_Info("Surfaces_Resize Done - space w:%d, h:%d", surface_space3D->GetWidth(), surface_space3D->GetHeight());
