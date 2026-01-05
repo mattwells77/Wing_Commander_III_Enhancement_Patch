@@ -457,18 +457,21 @@ static void __declspec(naked) pc_rotation_calulations(void) {
     __asm {
         
         mov ecx, dword ptr ss:[esp+0x2C]
-        pushad
+        push edi
 
         push ecx
         push edi
         call PC_Rotation_Calulations
         add esp, 0x8
 
-        popad
+        pop edi
 
+        mov ebp, dword ptr ds : [edi + 0x68]//pitch
+        mov esi, dword ptr ds : [edi + 0x6C]//yaw
         ret
     }
 }
+
 
 
 //_________________________________
