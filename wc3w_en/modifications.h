@@ -27,5 +27,6 @@ void Modifications_Display();
 void Modifications_Joystick();
 void Modifications_ObjectRotation();
 void Modifications_Music();
+void Modifications_Space_Background_Colour();
 
 void Set_WindowActive_State(BOOL isActive);

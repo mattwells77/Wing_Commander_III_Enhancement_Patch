@@ -187,7 +187,9 @@ bool* p_wc3_movie_halt_flag = nullptr;
 
 DWORD* p_wc3_movie_frame_count = nullptr;
 
-char** p_wc3_movie_branch_subtitle;
+char** p_wc3_movie_branch_subtitle = nullptr;
+
+BYTE* p_wc3_space_background_pal_offset = nullptr;
 
 void(__thiscall* wc3_file_init)(void*) = nullptr;
 BOOL(__thiscall* wc3_file_load)(void*, char* path, DWORD dwDesiredAccess, BOOL halt_on_create_file_error, DWORD dwFlagsAndAttributes) = nullptr;
@@ -402,4 +404,6 @@ void WC3W_Setup() {
     wc3_draw_text_to_buff = (void(*)(DRAW_BUFFER*, DWORD, DWORD, DWORD, char*, DWORD)) 0x4753E1;
 
     wc3_clear_buffer_colour = (LONG(*)(DRAW_BUFFER_MAIN*, BYTE))0x4735A8;
+
+    p_wc3_space_background_pal_offset = (BYTE*)0x4A26F8;
 }

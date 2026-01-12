@@ -335,6 +335,8 @@ extern const char* p_save_game_text_fre;
 
 extern char** p_wc3_movie_branch_subtitle;
 
+extern BYTE* p_wc3_space_background_pal_offset;
+
 extern void(__thiscall* wc3_draw_hud_targeting_elements)(void*);
 extern void(__thiscall* wc3_draw_hud_view_text)(void*);
 

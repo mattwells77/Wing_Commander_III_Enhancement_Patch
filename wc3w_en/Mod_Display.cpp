@@ -68,6 +68,7 @@ LONG mouse_y_current = 0;
 
 LARGE_INTEGER nav_update_time{ 0 };
 
+BYTE alternate_space_colour_pal_off = 0x11;
 
 //___________________________
 static BOOL IsMouseInClient() {
@@ -1462,6 +1463,9 @@ static void Check_Optional_Enhancements() {
     if (ConfigReadInt(L"MAIN", L"ENABLE_MUSIC_ENHANCEMENTS", CONFIG_MAIN_ENABLE_MUSIC_ENHANCEMENTS))
         Modifications_Music();
 
+    if (ConfigReadInt(L"SPACE", L"ENABLE_SPACE_COLOUR_CHANGE", CONFIG_SPACE_ENABLE_SPACE_COLOUR_CHANGE))
+        Modifications_Space_Background_Colour();
+
     //Joysticks.Update();
 }
 
@@ -2445,45 +2449,25 @@ static void __declspec(naked) check_gamma_high(void) {
 }
 
 
-//________________________________________________________________________
-static void Modify_Space_Colour(DRAW_BUFFER_MAIN* p_Buff, BYTE pal_offset) {
-
-    static BYTE space_colour_pal_off = ConfigReadInt(L"SPACE", L"SPACE_COLOUR_PALETTE_OFFSET", CONFIG_SPACE_COLOUR_PALETTE_OFFSET);
-    
-    DWORD colour = Palette_Get_Colour(pal_offset);
-    //only adjust the colour when the usual space colour argb is found at pal offset 0x11. To avoid messing up missions where a different palette is in use.
-    if (colour != 0xFF081024 || space_colour_pal_off > 255)
-        space_colour_pal_off = pal_offset;
-    //clear the space scene colour. 
-    wc3_clear_buffer_colour(p_Buff, space_colour_pal_off);
-
-    //Space BG colour will now be set in Display_Dx_Present function.
-    //DWORD colour = Palette_Get_Colour(pal_offset);
-    //Set_Space3D_Colour(colour);
-}
-
-
 //_____________________________________________________
 static void __declspec(naked) modify_space_colour(void) {
 
     __asm {
-        push ebx
-        push edi
-        push esi
-        push ebp
+        mov al, alternate_space_colour_pal_off
 
-        push eax
-        push ecx
-        call Modify_Space_Colour
-        add esp, 0x8
-
-        pop ebp
-        pop esi
-        pop edi
-        pop ebx
-
+        mov edx, p_wc3_space_background_pal_offset
+        mov byte ptr ds:[edx], al
         ret
     }
+}
+
+
+//__________________________________________
+void Modifications_Space_Background_Colour() {
+
+    alternate_space_colour_pal_off = ConfigReadInt(L"SPACE", L"SPACE_COLOUR_PALETTE_OFFSET", CONFIG_SPACE_COLOUR_PALETTE_OFFSET);
+    MemWrite8(0x41FC35, 0xA2, 0xE8);
+    FuncWrite32(0x41FC36, 0x4A26F8, (DWORD)&modify_space_colour);
 }
 
 
@@ -2850,12 +2834,6 @@ void Modifications_Display() {
     //Set the default Gamma setting to it's lowest level.
     MemWrite8(0x49F744, 0x50, 100);
     //------------------------------------------------------------------------------------------
-
-
-    MemWrite16(0x42EAFD, 0x5150, 0x9090);
-    FuncReplace32(0x42EB00, 0x044AA4, (DWORD)&modify_space_colour);
-    MemWrite16(0x42EB04, 0xC483, 0x9090);
-    MemWrite8(0x42EB06, 0x08, 0x90);
 }
 
 
