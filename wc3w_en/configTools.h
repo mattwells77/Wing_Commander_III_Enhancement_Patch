@@ -82,6 +82,8 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #define CONFIG_MOUSE_WHEEL_LEFT		0
 #define CONFIG_MOUSE_WHEEL_RIGHT	0
 
+#define CONFIG_DEBUG_REPLACE_ALT_X_MSG_WITH_ROOM_SCENE_ID	0
+
 
 UINT ConfigReadInt(const wchar_t* lpAppName, const wchar_t* lpKeyName, int nDefault);
 BOOL ConfigWriteInt(const wchar_t* lpAppName, const wchar_t* lpKeyName, int intVal);

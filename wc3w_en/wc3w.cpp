@@ -191,6 +191,9 @@ char** p_wc3_movie_branch_subtitle = nullptr;
 
 BYTE* p_wc3_space_background_pal_offset = nullptr;
 
+LONG* p_wc3_current_room_id = nullptr;
+LONG* p_wc3_current_scene_id = nullptr;
+
 void(__thiscall* wc3_file_init)(void*) = nullptr;
 BOOL(__thiscall* wc3_file_load)(void*, char* path, DWORD dwDesiredAccess, BOOL halt_on_create_file_error, DWORD dwFlagsAndAttributes) = nullptr;
 BOOL(__thiscall* wc3_file_close)(void*) = nullptr;
@@ -406,4 +409,7 @@ void WC3W_Setup() {
     wc3_clear_buffer_colour = (LONG(*)(DRAW_BUFFER_MAIN*, BYTE))0x4735A8;
 
     p_wc3_space_background_pal_offset = (BYTE*)0x4A26F8;
+
+    p_wc3_current_room_id = (LONG*)0x4AB84C;
+    p_wc3_current_scene_id = (LONG*)0x4A3584;
 }

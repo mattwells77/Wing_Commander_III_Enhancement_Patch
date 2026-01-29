@@ -28,5 +28,6 @@ void Modifications_Joystick();
 void Modifications_ObjectRotation();
 void Modifications_Music();
 void Modifications_Space_Background_Colour();
+void Modifications_Replace_Alt_X_Msg_With_Room_Scene_ID();
 
 void Set_WindowActive_State(BOOL isActive);
