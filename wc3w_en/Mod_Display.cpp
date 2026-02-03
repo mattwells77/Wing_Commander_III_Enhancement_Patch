@@ -1913,6 +1913,159 @@ static void __declspec(naked) movie_fade_out(void) {
 }
 
 
+//________________________________________________
+static BOOL Play_HD_Movie_Sequence(char* mve_path) {
+
+    Debug_Info_Movie("Play_HD_Movie_Sequence: main_path: %s", mve_path);
+    Debug_Info_Movie("Play_HD_Movie_Sequence: current_list_num: %d", *p_wc3_movie_branch_current_list_num);
+    Debug_Info_Movie("Play_HD_Movie_Sequence: first branch: %d", *p_wc3_movie_branch_list);
+
+    if (pMovie_vlc)
+        delete pMovie_vlc;
+    std::string movie_name;
+    Get_Movie_Name_From_Path(mve_path, &movie_name);
+    pMovie_vlc = new LibVlc_Movie(movie_name, p_wc3_movie_branch_list, *p_wc3_movie_branch_current_list_num);
+
+    if (pMovie_vlc->IsError()) {
+        delete pMovie_vlc;
+        pMovie_vlc = nullptr;
+        Debug_Info("Play_HD_Movie_Sequence: Failed");
+        return FALSE;
+    }
+
+    BOOL exit_flag = FALSE;
+    BOOL play_successfull = FALSE;
+    MOVIE_STATE movie_state{ 0 };
+
+    if (pMovie_vlc->Play()) {
+        play_successfull = TRUE;
+        while (!exit_flag) {
+            wc3_translate_messages_keys();
+            wc3_movie_update_joystick_double_click_exit();
+            exit_flag = wc3_movie_exit();
+
+            if (!pMovie_vlc->IsPlaying(&movie_state)) {
+                *p_wc3_movie_branch_current_list_num = movie_state.list_num;
+                if (!movie_state.hasPlayed) {
+                    Debug_Info_Movie("Play_HD_Movie_Sequence: ended BAD, branch:%d, listnum:%d", movie_state.branch, movie_state.list_num);
+                    play_successfull = FALSE;
+                }
+                else
+                    Debug_Info_Movie("Play_HD_Movie_Sequence: ended OK, branch:%d, listnum:%d", movie_state.branch, movie_state.list_num);
+                exit_flag = TRUE;
+            }
+        }
+        pMovie_vlc->Stop();
+    }
+
+    Sleep(150);//add a small delay to reduce unintended button clicks after ending a movie by double-clicking.
+
+    Debug_Info_Movie("Play_HD_Movie_Sequence: Done:%d", play_successfull);
+    return play_successfull;
+}
+
+
+//__________________________________________________
+static void Set_Conversation_Decision_Text_Colours() {
+
+    static BYTE text_colour[]{ 255, 255, 255, 80, 80, 80 };
+    Palette_Update(text_colour, 252, 2);
+}
+
+
+//______________________________________________________
+static BOOL Play_HD_Movie(char* mve_path, BYTE fade_out) {
+
+    DXGI_RATIONAL refreshRate{};
+    refreshRate.Denominator = 1;
+    refreshRate.Numerator = 3;
+    p_wc3_movie_click_time->QuadPart = p_wc3_frequency->QuadPart * refreshRate.Denominator / refreshRate.Numerator;
+    *p_wc3_movie_frame_count = 0;
+    wc3_message_check_node_add(wc3_movie_messages);
+
+    if (surface_gui)
+        surface_gui->Clear_Texture(0x00);
+
+    //set colour values used by dialogue choice text.
+    Set_Conversation_Decision_Text_Colours();
+
+    Debug_Info_Movie("Play_HD_Movie");
+    BOOL play_successfull = TRUE;
+    BOOL exit_flag = FALSE;
+    while (!exit_flag) {
+        wc3_translate_messages_keys();
+        wc3_movie_update_joystick_double_click_exit();
+        exit_flag = wc3_movie_exit();
+
+        if (Play_HD_Movie_Sequence(mve_path)) {
+            //wc3_draw_movie_frame();
+
+            wc3_handle_movie(0);
+
+            *p_wc3_movie_branch_current_list_num = 0;
+            if (p_wc3_movie_branch_list[*p_wc3_movie_branch_current_list_num] == -1)
+                exit_flag = TRUE;
+        }
+        else
+            exit_flag = TRUE, play_successfull = FALSE;
+    }
+
+    wc3_message_check_node_remove(wc3_movie_messages);
+
+    if (surface_gui)
+        surface_gui->Clear_Texture(0);
+    if (fade_out && play_successfull)
+        Movie_Fade_Out();
+
+    Debug_Info_Movie("Play_HD_Movie: Done");
+    return play_successfull;
+}
+
+
+//_______________________________________________
+static void __declspec(naked) play_hd_movie(void) {
+
+    __asm {
+        push ebx
+        push ecx
+        push edx
+        push edi
+        push esi
+        push ebp
+
+        mov edx, dword ptr ss : [esp + 0x30]//fade_out flag
+        mov ecx, dword ptr ss : [esp + 0x20]//path
+        push edx
+        push ecx
+        call Play_HD_Movie
+        add esp, 0x8
+
+        pop ebp
+        pop esi
+        pop edi
+        pop edx
+        pop ecx
+        pop ebx
+
+        cmp eax, FALSE
+        je hd_movie_error
+        //hd movie played without error.
+        add esp, 0x04 //ditch ret address for this function.
+        //The next address on the stack is the ret address for the regular movie play back function.
+        ret
+
+        hd_movie_error :
+
+        // hd movie had errors, return to wc3 play_movie function to play regular movie.
+        pop ecx  //store ret address for this function
+        sub esp, 0x17C//start prologue code for return to regular movie play back function.
+        push ecx //re-insert address for this function
+
+        ret
+    }
+}
+
+
 //Finds the number of frames between two SMPTE timecode's, these timecodes are 30 fps.
 //SMPTE timecode format hh/mm/ss/frames 30fps
 //________________________________________________________________________________________
@@ -2736,6 +2889,23 @@ void Modifications_Display() {
     //-----------------------------------------------
     
     // HD Movies-----------------------------------------------
+    FuncReplace32(0x414940, 0x765C, (DWORD)&Set_Conversation_Decision_Text_Colours);
+    //jump over other  
+    MemWrite16(0x414944, 0xE850, 0x17EB);//JMP SHORT 0041495D
+    MemWrite32(0x414946, 0xFFFFCAB6, 0x90909090);
+
+    //Light and dark offsets set to match those in wc4 for convenience.
+    //Set conversation decision text colour palette offset: Light
+    MemWrite8(0x414974, 0xA0, 0xB8);
+    MemWrite32(0x414975, 0x4AA74E, 0xFC);
+    //Set conversation decision text colour palette offset: Dark
+    MemWrite16(0x414981, 0x0D8A, 0xB990);
+    MemWrite32(0x414983, 0x4AA84E, 0xFD);
+
+    //Attempt to play HD movie
+    MemWrite16(0x41C240, 0xEC81, 0xE890);
+    FuncWrite32(0x41C242, 0x017C, (DWORD)&play_hd_movie);
+
     //play alternate hires movies
     FuncReplace32(0x41C59E, 0x03A1FE, (DWORD)&play_movie_sequence);
 

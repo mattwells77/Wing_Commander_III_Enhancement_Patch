@@ -78,6 +78,7 @@ LARGE_INTEGER* p_wc3_space_time_max = nullptr;
 LARGE_INTEGER* p_wc3_space_time_min = nullptr;
 LARGE_INTEGER* p_wc3_space_time_current = nullptr;
 LARGE_INTEGER* p_wc3_space_time4 = nullptr;
+LARGE_INTEGER* p_wc3_movie_click_time = nullptr;
 
 LONG* p_wc3_joy_dead_zone = nullptr;
 
@@ -210,6 +211,8 @@ void(*wc3_deallocate_mem_main)(void*) = nullptr;
 void(*wc3_error_message_box)(const char* format, ...) = nullptr;
 
 void(*wc3_draw_text_to_buff)(DRAW_BUFFER* p_toBuff, DWORD x, DWORD y, DWORD unk1, char* text_buff, DWORD unk2) = nullptr;
+
+void(*wc3_draw_movie_frame)() = nullptr;
 
 LONG(*wc3_clear_buffer_colour)(DRAW_BUFFER_MAIN* p_Buff, BYTE pal_offset);
 
@@ -367,7 +370,7 @@ void WC3W_Setup() {
     p_wc3_space_time_min = (LARGE_INTEGER*)0x4A9760;
     p_wc3_space_time_current = (LARGE_INTEGER*)0x4A26E8;
     p_wc3_space_time4 = (LARGE_INTEGER*)0x4A2750;
-
+    p_wc3_movie_click_time = (LARGE_INTEGER*)0x4AABF0;
 
     p_movie_class_inflight_02 = (MOVIE_CLASS_INFLIGHT_02*)0x4AB340;
     pp_movie_class_inflight_01 = (MOVIE_CLASS_INFLIGHT_01**)0x4A3358;
@@ -412,4 +415,6 @@ void WC3W_Setup() {
 
     p_wc3_current_room_id = (LONG*)0x4AB84C;
     p_wc3_current_scene_id = (LONG*)0x4A3584;
+
+    wc3_draw_movie_frame = (void(*)())0x41C9A0;
 }

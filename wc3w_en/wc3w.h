@@ -238,7 +238,7 @@ extern DWORD* p_wc3_gamma_val;
 
 extern LARGE_INTEGER* p_wc3_frequency;
 extern LARGE_INTEGER* p_wc3_space_time_max;
-
+extern LARGE_INTEGER* p_wc3_movie_click_time;
 
 extern LONG* p_wc3_x_centre_cockpit;
 extern LONG* p_wc3_y_centre_cockpit;
@@ -356,7 +356,8 @@ extern BYTE(*wc3_translate_messages)(BOOL is_flight_mode, BOOL wait_for_message)
 extern void (*wc3_translate_messages_keys)();
 extern void (*wc3_conversation_decision_loop)();
 extern void(*wc3_draw_choice_text_buff)(DWORD* ptr, BYTE* buff);
-
+extern void(*wc3_draw_movie_frame)();
+extern void(*wc3_handle_movie)(BOOL flag);
 
 extern void(__thiscall* wc3_nav_screen_update_position)(void*);
 
@@ -369,6 +370,8 @@ extern BOOL(*wc3_movie_exit)();
 
 extern bool (*wc3_message_check_node_add)(bool(*)(HWND, UINT, WPARAM, LPARAM));
 extern bool (*wc3_message_check_node_remove)(bool(*)(HWND, UINT, WPARAM, LPARAM));
+
+extern bool(*wc3_movie_messages)(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam);
 
 extern void(__thiscall* wc3_file_init)(void*);
 extern BOOL(__thiscall* wc3_file_load)(void*, char* path, DWORD dwDesiredAccess, BOOL halt_on_create_file_error, DWORD dwFlagsAndAttributes);
