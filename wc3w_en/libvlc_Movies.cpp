@@ -649,6 +649,7 @@ void LibVlc_Movie::Initialise_Subtitles() {
             if (name.find(language) != std::string::npos) {
                 Debug_Info_Movie("LibVlc_Movie: Subtitle track selected ID: %d, name: %s", p_sub->i_id, name.c_str());
                 libvlc_media_player_select_track(mediaPlayer, p_sub);
+                break;
             }
 
         }
@@ -661,6 +662,7 @@ void LibVlc_Movie::Initialise_Subtitles() {
             if (description.name().find(language) != std::string::npos) {
                 Debug_Info_Movie("LibVlc_Movie: Subtitle track selected ID: %d, name: %s", description.id(), description.name().c_str());
                 mediaPlayer.setSpu(description.id());
+                break;
             }
         }
 #endif
