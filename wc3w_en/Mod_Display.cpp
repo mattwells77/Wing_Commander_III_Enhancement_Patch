@@ -284,6 +284,8 @@ static BOOL Window_Setup(HWND hwnd) {
     *p_wc3_mouse_centre_x = (LONG)spaceWidth / 2;
     *p_wc3_mouse_centre_y = (LONG)spaceHeight / 2;
 
+    Set_Gamma_Offset(*p_wc3_gamma_val);
+
     //QueryPerformanceFrequency(&Frequency);
 
     //Set the movement update time for Navigation screen, which was unregulated and way to fast on modern computers.
