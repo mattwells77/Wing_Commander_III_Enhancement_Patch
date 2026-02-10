@@ -108,6 +108,13 @@ enum class WC3_ACTIONS {
 	Camera_Track,// 	F10
 
 	Disable_Video_In_Left_VDU,// 	Ctrl - V
+
+	WingMan_Break_And_Attack,//Alt - B
+	WingMan_Form_On_Wing,//Alt - F
+	WingMan_Request_Status,//Alt - D
+	WingMan_Help_Me_Out,//Alt - H
+	WingMan_Attack_My_Target,//Alt - A
+	Enemy_Taunt,//Alt - T
 };
 
 

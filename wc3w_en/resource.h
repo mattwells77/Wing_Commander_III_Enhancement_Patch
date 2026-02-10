@@ -118,6 +118,12 @@
 #define IDS_ACTION063                   197
 #define IDS_TAB_JOYSTICK                198
 #define IDS_TAB_MOUSE                   199
+#define IDS_ACTION064                   200
+#define IDS_ACTION065                   201
+#define IDS_ACTION066                   202
+#define IDS_ACTION067                   203
+#define IDS_ACTION068                   204
+#define IDS_ACTION069                   205
 #define IDC_BUTTON_YAW                  1000
 #define IDC_LIST_BUTTONS                1002
 #define IDC_LIST_ACTIONS                1002
