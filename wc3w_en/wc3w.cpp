@@ -184,6 +184,19 @@ void(*wc3_draw_choice_text_buff)(DWORD* ptr, BYTE* buff) = nullptr;
 
 DWORD* p_wc3_key_scancode = nullptr;
 
+int8_t* p_wc3_vdu_focus = nullptr;//0=sheilds, 1=, 2=, 3=weapons, 4=comms, 5=damage, 6=power, 7=, 8=rear_view, 9=.
+LONG* p_wc3_vdu_comms_list_size = nullptr;
+
+BYTE* p_wc3_pal_offsets_01 = nullptr;
+BYTE* p_wc3_pal_offsets_02 = nullptr;
+BYTE* p_wc3_pal_offsets_03 = nullptr;
+BYTE* p_wc3_pal_offsets_04 = nullptr;
+BYTE* p_wc3_pal_offsets_05 = nullptr;
+BYTE* p_wc3_pal_offsets_06 = nullptr;
+BYTE* p_wc3_pal_offsets_07 = nullptr;
+BYTE* p_wc3_pal_offsets_08 = nullptr;
+
+
 bool* p_wc3_movie_halt_flag = nullptr;
 
 DWORD* p_wc3_movie_frame_count = nullptr;
@@ -210,7 +223,7 @@ void(*wc3_deallocate_mem_main)(void*) = nullptr;
 
 void(*wc3_error_message_box)(const char* format, ...) = nullptr;
 
-void(*wc3_draw_text_to_buff)(DRAW_BUFFER* p_toBuff, DWORD x, DWORD y, DWORD unk1, char* text_buff, DWORD unk2) = nullptr;
+void(*wc3_draw_text_to_buff)(DRAW_BUFFER* p_toBuff, DWORD x, DWORD y, DWORD unk1, char* text_buff, BYTE* p_pal_offsets) = nullptr;
 
 void(*wc3_draw_movie_frame)() = nullptr;
 
@@ -344,6 +357,10 @@ void WC3W_Setup() {
 
     p_wc3_key_scancode = (DWORD*)0x4A9B80;
 
+    p_wc3_vdu_focus = (int8_t*)0x4B15BC;
+
+    p_wc3_vdu_comms_list_size = (LONG*)0x4B16F0;
+
     p_wc3_movie_halt_flag = (bool*)0x4A24C4;
 
     p_wc3_movie_frame_count = (DWORD*)0x4A24BC;
@@ -407,7 +424,7 @@ void WC3W_Setup() {
 
     wc3_error_message_box = (void(*)(const char*, ...))0x4702B0;
 
-    wc3_draw_text_to_buff = (void(*)(DRAW_BUFFER*, DWORD, DWORD, DWORD, char*, DWORD)) 0x4753E1;
+    wc3_draw_text_to_buff = (void(*)(DRAW_BUFFER*, DWORD, DWORD, DWORD, char*, BYTE*)) 0x4753E1;
 
     wc3_clear_buffer_colour = (LONG(*)(DRAW_BUFFER_MAIN*, BYTE))0x4735A8;
 
@@ -417,4 +434,13 @@ void WC3W_Setup() {
     p_wc3_current_scene_id = (LONG*)0x4A3584;
 
     wc3_draw_movie_frame = (void(*)())0x41C9A0;
+
+    p_wc3_pal_offsets_04 = (BYTE*)0x4A9C20;
+    p_wc3_pal_offsets_06 = (BYTE*)0x4A9D20;
+    p_wc3_pal_offsets_01 = (BYTE*)0x4A9F88;
+    p_wc3_pal_offsets_05 = (BYTE*)0x4AA1A8;
+    p_wc3_pal_offsets_07 = (BYTE*)0x4AA650;
+    p_wc3_pal_offsets_08 = (BYTE*)0x4AA750;
+    p_wc3_pal_offsets_02 = (BYTE*)0x4AA850;
+    p_wc3_pal_offsets_03 = (BYTE*)0x4AA950;
 }

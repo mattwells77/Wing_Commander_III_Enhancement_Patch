@@ -576,20 +576,20 @@ static void Debug_Info_WC3(const char* format, ...) {
 
 /*
 //_______________________________________________________________________________________________________________
-static void Display_Debug_Info_1(DRAW_BUFFER* p_toBuff, DWORD x, DWORD y, DWORD unk1, char* text_buff, DWORD unk2) {
+static void Display_Debug_Info_1(DRAW_BUFFER* p_toBuff, DWORD x, DWORD y, DWORD unk1, char* text_buff, BYTE* p_pal_offsets) {
 
-    wc3_draw_text_to_buff(p_toBuff, x, y, unk1, text_buff, unk2);
+    wc3_draw_text_to_buff(p_toBuff, x, y, unk1, text_buff, p_pal_offsets);
     y += 10;
 
     sprintf_s(text_buff, 240, "yaw axis: %d", *p_wc3_joy_move_x_256);
     y += 10;
-    wc3_draw_text_to_buff(p_toBuff, x, y, unk1, text_buff, unk2);
+    wc3_draw_text_to_buff(p_toBuff, x, y, unk1, text_buff, p_pal_offsets);
     sprintf_s(text_buff, 240, "pitch axis: %d", *p_wc3_joy_move_y_256);
     y += 10;
-    wc3_draw_text_to_buff(p_toBuff, x, y, unk1, text_buff, unk2);
+    wc3_draw_text_to_buff(p_toBuff, x, y, unk1, text_buff, p_pal_offsets);
     sprintf_s(text_buff, 240, "roll axis: %d", *p_wc3_joy_move_r);
     y += 10;
-    wc3_draw_text_to_buff(p_toBuff, x, y, unk1, text_buff, unk2);
+    wc3_draw_text_to_buff(p_toBuff, x, y, unk1, text_buff, p_pal_offsets);
 }
 */
 
@@ -735,11 +735,11 @@ static void __declspec(naked) num_watchers_overide(void) {
 
 
 
-//___________________________________________________________________________________________________________________
-static void Display_Alt_X_Msg_Room_Scene_ID(DRAW_BUFFER* p_toBuff, DWORD x, DWORD y, DWORD unk1, char* text_buff, DWORD unk2) {
+//____________________________________________________________________________________________________________________________________
+static void Display_Alt_X_Msg_Room_Scene_ID(DRAW_BUFFER* p_toBuff, DWORD x, DWORD y, DWORD unk1, char* text_buff, BYTE* p_pal_offsets) {
 
     sprintf_s(text_buff, 240, "Room: %d, Scene: %d", *p_wc3_current_room_id, *p_wc3_current_scene_id);
-    wc3_draw_text_to_buff(p_toBuff, x, y, unk1, text_buff, unk2);
+    wc3_draw_text_to_buff(p_toBuff, x, y, unk1, text_buff, p_pal_offsets);
 }
 
 
@@ -747,6 +747,127 @@ static void Display_Alt_X_Msg_Room_Scene_ID(DRAW_BUFFER* p_toBuff, DWORD x, DWOR
 void Modifications_Replace_Alt_X_Msg_With_Room_Scene_ID() {
 
     FuncReplace32(0x4129FA, 0x0629E3, (DWORD)&Display_Alt_X_Msg_Room_Scene_ID);
+}
+
+
+LONG vdu_comms_selected_line = 0;
+BOOL vdu_comms_had_focus = FALSE;
+
+//________________________________
+static LONG VDU_Comms_Check_Keys() {
+
+    LONG key = (LONG)*p_wc3_key_scancode;
+
+    switch (key) {
+    case 0x2E://'C'
+        if(vdu_comms_had_focus)
+            vdu_comms_selected_line++;
+        if (vdu_comms_selected_line >= *p_wc3_vdu_comms_list_size)
+            vdu_comms_selected_line = 0;
+        //Debug_Info("Num Comms: %d %d", comms_lst_current, num_options);
+        break;
+
+    case 1://esc
+        vdu_comms_selected_line = 0;
+        break;
+    case 2://1
+    case 3://2
+    case 4://3
+    case 5://4
+    case 6://5
+    case 7://6
+    case 8://7
+    case 9://8
+    case 10://9
+        if(key-2 >= *p_wc3_vdu_comms_list_size)
+            vdu_comms_selected_line = 0;
+        break;
+    case 0x1B:
+        key = vdu_comms_selected_line + 2;
+        if(vdu_comms_selected_line>0)
+        vdu_comms_selected_line = 0;
+        break;
+    case 0x1A:
+        key = 1;
+        vdu_comms_selected_line = 0;
+        break;
+    default:
+        break;
+    }
+
+    vdu_comms_had_focus = TRUE;
+    return key;
+}
+
+
+//______________________________________________________
+static void __declspec(naked) vdu_comms_check_keys(void) {
+
+    __asm {
+
+        push ebx
+        push ecx
+        push edi
+        push esi
+        push ebp
+
+        call VDU_Comms_Check_Keys
+    
+        pop ebp
+        pop esi
+        pop edi
+        pop ecx
+        pop ebx
+
+        mov edx, eax
+        ret
+    }
+}
+
+
+//____________________________________________________________________________________________________________________________________________
+static void VDU_Comms_Draw_Menu_Text(LONG line_num, DRAW_BUFFER* p_toBuff, DWORD x, DWORD y, DWORD unk1, char* text_buff, BYTE* p_pal_offsets) {
+
+    //highlight menu text if line is selected.
+    if (line_num - 1 == vdu_comms_selected_line)
+        p_pal_offsets = p_wc3_pal_offsets_07;
+    wc3_draw_text_to_buff(p_toBuff, x, y, unk1, text_buff, p_pal_offsets);
+}
+
+
+//__________________________________________________________
+static void __declspec(naked) vdu_comms_draw_menu_text(void) {
+
+    __asm {
+        push [esp + 0x18]
+        push [esp + 0x18]
+        push [esp + 0x18]
+        push [esp + 0x18]
+        push [esp + 0x18]
+        push [esp + 0x18]
+        push ebx
+        call VDU_Comms_Draw_Menu_Text
+        add esp, 0x1C
+
+        ret
+    }
+}
+
+
+//______________________________________________________________
+static void __declspec(naked) vdu_check_if_comms_had_focus(void) {
+
+    __asm {
+        mov edx, p_wc3_vdu_focus
+        cmp byte ptr ds:[edx], 0x4 //4 == comms
+        je exit_func
+
+        mov vdu_comms_had_focus, FALSE
+        exit_func:
+        //insert original code
+        cmp byte ptr ds : [edx] , 0xFF
+        ret
+    }
 }
 
 
@@ -850,4 +971,18 @@ void Modifications_GeneralFixes() {
     //Increase the max number of watchers at a nav point. (max number of active ships and turrets)
     MemWrite8(0x48C9E5, 0x89, 0xE8);
     FuncWrite32(0x48C9E6, 0xF18B0441, (DWORD)&num_watchers_overide);
+
+
+    //-----scrollable comms------------------------------------------------
+    MemWrite16(0x446BA8, 0x3D80, 0xE890);
+    FuncWrite32(0x446BAA, 0x4B15BC, (DWORD)&vdu_check_if_comms_had_focus);
+    MemWrite8(0x446BAE, 0xFF, 0x90);
+
+    MemWrite16(0x44756E, 0x158B, 0xE890);
+    FuncWrite32(0x447570, 0x4A9B80, (DWORD)&vdu_comms_check_keys);
+    //0x2D == key 'C' - 1// allow for 'C' key to be used as menu selector
+    MemWrite8(0x447579, 0x2D, 0x2C); 
+
+    FuncReplace32(0x41129E, 0x06413F, (DWORD)&vdu_comms_draw_menu_text);
+    //---------------------------------------------------------------------
 }

@@ -340,6 +340,22 @@ extern BYTE* p_wc3_space_background_pal_offset;
 extern LONG* p_wc3_current_room_id;
 extern LONG* p_wc3_current_scene_id;
 
+extern DWORD* p_wc3_key_scancode;
+
+extern int8_t* p_wc3_vdu_focus;//-1=none, 0=sheilds, 1=, 2=, 3=weapons, 4=comms, 5=damage, 6=power, 7=, 8=rear_view, 9=.
+extern LONG* p_wc3_vdu_comms_list_size;
+
+
+extern BYTE* p_wc3_pal_offsets_01;
+extern BYTE* p_wc3_pal_offsets_02;
+extern BYTE* p_wc3_pal_offsets_03;
+extern BYTE* p_wc3_pal_offsets_04;
+extern BYTE* p_wc3_pal_offsets_05;
+extern BYTE* p_wc3_pal_offsets_06;
+extern BYTE* p_wc3_pal_offsets_07;
+extern BYTE* p_wc3_pal_offsets_08;
+
+
 extern void(__thiscall* wc3_draw_hud_targeting_elements)(void*);
 extern void(__thiscall* wc3_draw_hud_view_text)(void*);
 
@@ -389,6 +405,6 @@ extern void(*wc3_deallocate_mem_main)(void*);
 
 extern void(*wc3_error_message_box)(const char* format, ...);
 
-extern void(*wc3_draw_text_to_buff)(DRAW_BUFFER* p_toBuff, DWORD x, DWORD y, DWORD unk1, char* text_buff, DWORD unk2);
+extern void(*wc3_draw_text_to_buff)(DRAW_BUFFER* p_toBuff, DWORD x, DWORD y, DWORD unk1, char* text_buff, BYTE* p_pal_offsets);
 
 extern LONG (*wc3_clear_buffer_colour)(DRAW_BUFFER_MAIN* p_Buff, BYTE pal_offset);
