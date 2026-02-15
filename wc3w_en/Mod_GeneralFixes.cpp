@@ -750,8 +750,9 @@ void Modifications_Replace_Alt_X_Msg_With_Room_Scene_ID() {
 }
 
 
-LONG vdu_comms_selected_line = 0;
+LONG vdu_comms_selected_line = -1;
 BOOL vdu_comms_had_focus = FALSE;
+BYTE vdu_comms_highlight[256]{ 0x0 };
 
 //________________________________
 static LONG VDU_Comms_Check_Keys() {
@@ -759,37 +760,44 @@ static LONG VDU_Comms_Check_Keys() {
     LONG key = (LONG)*p_wc3_key_scancode;
 
     switch (key) {
-    case 0x2E://'C'
-        if(vdu_comms_had_focus)
+    case 0x2E://[C] key pressed. cycle though comms list.
+        if (vdu_comms_had_focus)
             vdu_comms_selected_line++;
         if (vdu_comms_selected_line >= *p_wc3_vdu_comms_list_size)
             vdu_comms_selected_line = 0;
         //Debug_Info("Num Comms: %d %d", comms_lst_current, num_options);
         break;
 
-    case 1://esc
-        vdu_comms_selected_line = 0;
-        break;
-    case 2://1
-    case 3://2
-    case 4://3
-    case 5://4
-    case 6://5
-    case 7://6
-    case 8://7
-    case 9://8
-    case 10://9
-        if(key-2 >= *p_wc3_vdu_comms_list_size)
+    case 1://   [esc] key pressed. return to previous list or exit.
+        if (vdu_comms_selected_line > 0)
             vdu_comms_selected_line = 0;
         break;
-    case 0x1B:
-        key = vdu_comms_selected_line + 2;
-        if(vdu_comms_selected_line>0)
-        vdu_comms_selected_line = 0;
+    //number key pressed.
+    case 2://   [1] key press
+    case 3://   [2]
+    case 4://   [3]
+    case 5://   [4]
+    case 6://   [5]
+    case 7://   [6]
+    case 8://   [7]
+    case 9://   [8]
+    case 10://  [9]
+        if (vdu_comms_selected_line < 0)//exit if no item is currently selected(-1).
+            break;
+        if (key - 2 >= *p_wc3_vdu_comms_list_size)
+            vdu_comms_selected_line = 0;
         break;
-    case 0x1A:
-        key = 1;
-        vdu_comms_selected_line = 0;
+    case 0x1B://']' key pressed. select highlighted list item.
+        if (vdu_comms_selected_line < 0)//exit if no item is currently selected(-1).
+            break;
+        key = vdu_comms_selected_line + 2;// add 2 to set a number key, as their codes start at '2' which equals the [1] key.
+        if (vdu_comms_selected_line > 0)
+            vdu_comms_selected_line = 0;
+        break;
+    case 0x1A://'[' key pressed. return to previous list or exit.
+        key = 1;//[esc]
+        if (vdu_comms_selected_line > 0)
+            vdu_comms_selected_line = 0;
         break;
     default:
         break;
@@ -825,12 +833,30 @@ static void __declspec(naked) vdu_comms_check_keys(void) {
 }
 
 
+//___________________________________________________________________
+static BYTE* VDU_Comms_Get_Pal_Highlight_Offsets(BYTE* p_pal_offsets) {
+
+    static bool run_once = false;
+
+    if (run_once)
+        return vdu_comms_highlight;
+
+    run_once = true;//run setup once
+    //vdu_comms_highlight is an 256 byte array of pal offsets, with 0-254 filled with the same pal offset and 255 set to the value 255 as mask colour.
+    //green
+    memset(vdu_comms_highlight, 0x3B, sizeof(vdu_comms_highlight));
+    vdu_comms_highlight[255] = 0xFF;
+
+    return vdu_comms_highlight;
+}
+
+
 //____________________________________________________________________________________________________________________________________________
 static void VDU_Comms_Draw_Menu_Text(LONG line_num, DRAW_BUFFER* p_toBuff, DWORD x, DWORD y, DWORD unk1, char* text_buff, BYTE* p_pal_offsets) {
 
     //highlight menu text if line is selected.
     if (line_num - 1 == vdu_comms_selected_line)
-        p_pal_offsets = p_wc3_pal_offsets_07;
+        p_pal_offsets = VDU_Comms_Get_Pal_Highlight_Offsets( p_pal_offsets);
     wc3_draw_text_to_buff(p_toBuff, x, y, unk1, text_buff, p_pal_offsets);
 }
 
@@ -845,7 +871,7 @@ static void __declspec(naked) vdu_comms_draw_menu_text(void) {
         push [esp + 0x18]
         push [esp + 0x18]
         push [esp + 0x18]
-        push ebx
+        push ebx //current line num
         call VDU_Comms_Draw_Menu_Text
         add esp, 0x1C
 
