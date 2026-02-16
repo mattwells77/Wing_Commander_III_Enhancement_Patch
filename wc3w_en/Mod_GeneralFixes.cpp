@@ -897,6 +897,71 @@ static void __declspec(naked) vdu_check_if_comms_had_focus(void) {
 }
 
 
+//__________________________________
+//Regulate how often mouse position is sampled for adjusting ship speed.
+static BOOL Is_Mouse_Throttle_Time() {
+
+    static LARGE_INTEGER last_throttle_time = { 0 };
+    static LARGE_INTEGER update_time{ 0 };
+    static bool run_once = false;
+
+    if (!run_once)
+        update_time.QuadPart = p_wc3_frequency->QuadPart / 16LL;
+    
+    LARGE_INTEGER time = { 0 };
+    LARGE_INTEGER ElapsedMicroseconds = { 0 };
+
+    QueryPerformanceCounter(&time);
+
+    ElapsedMicroseconds.QuadPart = time.QuadPart - last_throttle_time.QuadPart;
+    if (ElapsedMicroseconds.QuadPart < 0 || ElapsedMicroseconds.QuadPart > update_time.QuadPart) {
+        last_throttle_time.QuadPart = time.QuadPart;
+        return TRUE;
+    }
+    return FALSE;
+}
+
+
+//______________________________________________________
+static void __declspec(naked) mouse_decrease_speed(void) {
+
+    __asm {
+        pushad
+        call Is_Mouse_Throttle_Time
+        cmp eax, 0
+        popad
+        je exit_func
+
+        //divide mouse y position from centre by 32 for greater precision. this was formerly a division by 4.
+        shr eax, 0x5
+        sub dword ptr ds:[edx+0x8], eax
+
+        exit_func:
+        ret
+    }
+}
+
+
+//______________________________________________________
+static void __declspec(naked) mouse_increase_speed(void) {
+
+    __asm {
+        pushad
+        call Is_Mouse_Throttle_Time
+        cmp eax, 0
+        popad
+        je exit_func
+
+        //divide mouse y position from centre by 32 for greater precision. this was formerly a division by 4.
+        shr eax, 0x5
+        add dword ptr ds : [edx + 0x8] , eax
+
+        exit_func :
+        ret
+    }
+}
+
+
 //_______________________________
 void Modifications_GeneralFixes() {
 
@@ -1010,5 +1075,14 @@ void Modifications_GeneralFixes() {
     MemWrite8(0x447579, 0x2D, 0x2C); 
 
     FuncReplace32(0x41129E, 0x06413F, (DWORD)&vdu_comms_draw_menu_text);
+    //---------------------------------------------------------------------
+
+
+    //----better-throttle-regulation-when-using-the-mouse------------------
+    MemWrite16(0x42A07B, 0xE8C1, 0xE890);
+    FuncWrite32(0x42A07D, 0x08422902, (DWORD)&mouse_decrease_speed);
+
+    MemWrite16(0x42A099, 0xE8C1, 0xE890);
+    FuncWrite32(0x42A09B, 0x08420102, (DWORD)&mouse_increase_speed);
     //---------------------------------------------------------------------
 }
