@@ -377,25 +377,140 @@ struct AUDIO_DATA_STRUCT {
 };
 
 
+//_______________________________________________
+static BYTE* Get_Wav_Data_Chunk(BYTE* p_wav_data) {
+
+    DWORD code = *(DWORD*)p_wav_data;
+    if (code != 0x46464952)// FOURCC [RIFF]
+        return nullptr;
+
+    p_wav_data += 4;
+    DWORD file_size = *(DWORD*)p_wav_data;
+    LONGLONG remaining_size = (LONGLONG)file_size;
+
+    p_wav_data += 4;
+    remaining_size -= 4;
+
+    code = *(DWORD*)p_wav_data;
+    if (code != 0x45564157) {// FOURCC [WAVE]
+        Debug_Info("Get_Wav_Data_Chunk: Wav RIFF has No WAVE");
+        return nullptr;
+    }
+
+    p_wav_data += 4;
+    remaining_size -= 4;
+
+    DWORD sec_size = 0;
+
+    while (remaining_size > 0) {
+        code = *(DWORD*)p_wav_data;
+        p_wav_data += 4;
+        remaining_size -= 4;
+        sec_size = *(DWORD*)p_wav_data;
+        if (code == 0x61746164)// FOURCC [data]
+            break;
+
+        p_wav_data += 4;
+        remaining_size -= 4;
+        p_wav_data += sec_size;
+        remaining_size -= sec_size;
+    }
+    if (code == 0x61746164) // FOURCC [data]
+        return p_wav_data;
+
+    Debug_Info("Get_Wav_Data_Chunk: data chunk NOT found");
+    return nullptr;
+
+}
+
+
+//_________________________________________________
+static BYTE* Get_Wav_Format_Chunk(BYTE* p_wav_data) {
+
+    DWORD code = *(DWORD*)p_wav_data;
+    if (code != 0x46464952)// FOURCC [RIFF]
+        return nullptr;
+
+    p_wav_data += 4;
+    DWORD file_size = *(DWORD*)p_wav_data;
+    LONGLONG remaining_size = (LONGLONG)file_size;
+
+    p_wav_data += 4;
+    remaining_size -= 4;
+
+    code = *(DWORD*)p_wav_data;
+    if (code != 0x45564157) {// FOURCC [WAVE]
+        Debug_Info("Get_Wav_Format_Chunk: Wav RIFF has No WAVE");
+        return nullptr;
+    }
+
+    p_wav_data += 4;
+    remaining_size -= 4;
+
+    DWORD sec_size = 0;
+
+    while (remaining_size > 0) {
+        code = *(DWORD*)p_wav_data;
+        p_wav_data += 4;
+        remaining_size -= 4;
+        sec_size = *(DWORD*)p_wav_data;
+        if (code == 0x20746D66)// FOURCC [fmt ]
+            break;
+
+        p_wav_data += 4;
+        remaining_size -= 4;
+        p_wav_data += sec_size;
+        remaining_size -= sec_size;
+    }
+    if (code == 0x20746D66) // FOURCC [fmt ]
+        return p_wav_data;
+
+    Debug_Info("Get_Wav_Format_Chunk: data chunk NOT found");
+    return nullptr;
+
+}
+
+
 //____________________________________________________________________________________________________________________
 static void Check_And_Set_Wav_Audio_Data(void* file_struct, AUDIO_DATA_STRUCT* data_struct, void* audio_format_struct) {
 
     //DWORD file_size = ((DWORD*)file_struct)[0];
     void* p_file_data = (void*)((DWORD*)file_struct)[5];
 
-    if (((DWORD*)p_file_data)[0] == 0x46464952) { //RIFF
+    if (((DWORD*)p_file_data)[0] == 0x46464952) { // FOURCC [RIFF]
 
-        data_struct->p_data_ptr = (BYTE*)p_file_data + 44;
+        BYTE* p_wave_data = Get_Wav_Data_Chunk((BYTE*)p_file_data);
+        if (p_wave_data) {
+            data_struct->data_size = *(DWORD*)p_wave_data;
+            data_struct->p_data_ptr = p_wave_data + 4;
+            //Debug_Info("Check_And_Set_Wav_Audio_Data: Wav data size:%X, off:%X", data_struct->data_size, data_struct->p_data_ptr);
+
+            //Fix for the second sound(ref 0x15) in the German version of the file "VICD2.IFF. Check if ACM tail is present within the wav data and subtract it from the data size.
+            DWORD check_ACM = *(DWORD*)((BYTE*)data_struct->p_data_ptr + data_struct->data_size - 0x22);
+            if (check_ACM == 0x214D4341) {//ACM!
+                data_struct->data_size -= 0x22;
+                Debug_Info("Check_And_Set_Wav_Audio_Data: ACM Tail DETECTED in Wav data re-sized:%X", data_struct->data_size);
+            }
+        }
+        else
+            wc3_error_message_box("WAV data NOT found: 0x%x", ((DWORD*)file_struct)[1]);
+        
         //copy the wav format structure.
-        memcpy(audio_format_struct, (BYTE*)p_file_data + 20, 16);
-
+        BYTE* p_wave_format = Get_Wav_Format_Chunk((BYTE*)p_file_data);
+        if (p_wave_format)
+            memcpy(audio_format_struct, p_wave_format + 4, ((DWORD*)p_wave_format)[0]);
+        else
+            wc3_error_message_box("WAV format NOT found: 0x%x", ((DWORD*)file_struct)[1]);
         //Debug_Info("sound has WAV format - sample rate:%dHz, bits per sample:%d, num channels:%d", ((DWORD*)audio_format_struct)[1], ((WORD*)audio_format_struct)[7], ((WORD*)audio_format_struct)[1]);
     }
     else if (((DWORD*)p_file_data)[0] == 0x61657243 && ((DWORD*)p_file_data)[1] == 0x65766974 && ((DWORD*)p_file_data)[2] == 0x696F5620 &&
         ((DWORD*)p_file_data)[3] == 0x46206563 && ((DWORD*)p_file_data)[4] == 0x1A656C69) {//"Creative Voice File(0x1A)"
         
+        data_struct->data_size = (*(DWORD*)((BYTE*)p_file_data + 0x1B)) & 0x00FFFFFF;///data size 3 bytes, mask out 4th byte, Frequency divisor 
+        data_struct->data_size -= 2;//subtract Frequency divisor and codec flag from data size.
         data_struct->p_data_ptr = (BYTE*)p_file_data + 0x20;
-        
+        //Debug_Info("Check_And_Set_Wav_Audio_Data: VOC data size:%X, off:%X", data_struct->data_size, data_struct->p_data_ptr);
+
         //file_data ptr's
         WORD* p_version = (WORD*)((BYTE*)p_file_data + 0x16);
         WORD* p_check = (WORD*)((BYTE*)p_file_data + 0x18);
@@ -429,7 +544,6 @@ static void Check_And_Set_Wav_Audio_Data(void* file_struct, AUDIO_DATA_STRUCT* d
     else
         wc3_error_message_box("Neither ACM! tail, VOC or WAV header info were found: 0x%x", ((DWORD*)file_struct)[1]);
     //Debug_Info("audio_format_struct %d, %d, %d, %d, %d, %d", ((WORD*)audio_format_struct)[0], ((WORD*)audio_format_struct)[1], ((DWORD*)audio_format_struct)[1], ((DWORD*)audio_format_struct)[2], ((WORD*)audio_format_struct)[6], ((WORD*)audio_format_struct)[7]);
-
 }
 
 
@@ -462,12 +576,12 @@ static void __declspec(naked) check_audio_format(void) {
     __asm {
         xor eax, eax
         mov edx, dword ptr ss:[ebp+0x14]
-        cmp dword ptr ds:[edx], 0x46464952//RIFF
+        cmp dword ptr ds:[edx], 0x46464952//// FOURCC [RIFF]
         jne check_voc
 
-        //sub ebx, 0x2C   //adjust data size to exclude size of wav header
-        mov ebx, dword ptr ds : [edx + 0x28]
-        mov eax, -1     //set format as NOT an ACM, but still check is ACM tail is present to fix the second sound(ref 0x15) in the German version of the file "VICD2.IFF". Which has both a WAV header and ACM tail.
+        mov eax, -1// return -1 if not an ACM.
+        ret
+
 
         check_voc:
         cmp dword ptr ds : [edx + 0x00] , 0x61657243//"Crea" (voc header first 4 bytes of "Creative Voice File")
@@ -481,25 +595,22 @@ static void __declspec(naked) check_audio_format(void) {
         cmp dword ptr ds : [edx + 0x10] , 0x1A656C69//"ile(0x1A)" (voc header next 4 bytes of "Creative Voice File")
         jne check_acm
 
-        mov ebx, dword ptr ds : [edx + 0x1B]//data size 3 bytes
-        and ebx, 0x00FFFFFF//mask out 4th byte, Frequency divisor 
-        sub ebx, 0x2//subtract Frequency divisor and codec flag from data size.
+        mov eax, -1// return -1 if not an ACM.
+        ret
 
-        mov eax, -1
 
         check_acm:
-        cmp dword ptr ds:[edi], 0x214D4341//ACM!
+        cmp dword ptr ds:[edi], 0x214D4341//// FOURCC [ACM!]
         je is_acm
 
         //fix for the third sound(ref 0x1A) in the German version of the file "VICD2.IFF". The header position is off by one.  
         //retry the acm check after subtracting the pointer position by one.
         sub edi, 1
         sub ebx, 1
-        cmp dword ptr ds:[edi], 0x214D4341//ACM!
+        cmp dword ptr ds:[edi], 0x214D4341//// FOURCC [ACM!]
         je is_acm
 
-        add ebx, 0x23   //add the size of the ACM tail back to the data size, as it was not found.
-        mov eax, -1     //set format as NOT an ACM.
+        mov eax, -1// return -1 if not an ACM.
 
         is_acm:
         ret
