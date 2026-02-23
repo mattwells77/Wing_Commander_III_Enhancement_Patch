@@ -472,14 +472,23 @@ static void DXBlt_Movie(BYTE* fBuff, DWORD subY, DWORD subHeight) {
 //_____________________________________________________________________________________
 static BOOL DrawVideoFrame(VIDframe* vidFrame, RGBQUAD* tBuff, UINT tWidth, DWORD flag) {
     
+    static SCALE_TYPE scale_type = SCALE_TYPE::fit;
+    static bool linear_upscaling = false;
+    static bool run_once = false;
+    if (!run_once) {
+        run_once = true;
+        if (ConfigReadInt(L"MOVIES", L"ENABLE_ORIGINAL_MOVIES_LIMITED_SCALING", CONFIG_MOVIES_ENABLE_ORIGINAL_MOVIES_LIMITED_SCALING))
+            scale_type = SCALE_TYPE::fit_best;
+        if (ConfigReadInt(L"MOVIES", L"ENABLE_ORIGINAL_MOVIES_LINEAR_UPSCALING", CONFIG_MOVIES_ENABLE_ORIGINAL_MOVIES_LINEAR_UPSCALING))
+            linear_upscaling = true;
+    }
+
     DWORD height = vidFrame->height;
     DWORD width = vidFrame->width;
-    SCALE_TYPE scale_type = SCALE_TYPE::fit;
 
     if (!*p_wc3_movie_no_interlace) {
         height += height;
         width += width;
-        scale_type = SCALE_TYPE::fit_best;
     }
 
     if (!surface_movieXAN || width != surface_movieXAN->GetWidth() || height != surface_movieXAN->GetHeight()) {
@@ -487,7 +496,7 @@ static BOOL DrawVideoFrame(VIDframe* vidFrame, RGBQUAD* tBuff, UINT tWidth, DWOR
             delete surface_movieXAN;
         surface_movieXAN = new DrawSurface8_RT(0, 0, width, height, 32, 0x00000000, false, 0);
         surface_movieXAN->ScaleTo((float)clientWidth, (float)clientHeight, scale_type);
-        if (!*p_wc3_movie_no_interlace)
+        if (!linear_upscaling)
             surface_movieXAN->Set_Default_SamplerState(pd3dPS_SamplerState_Point);
         Debug_Info("surface_movieXAN created");
     }
