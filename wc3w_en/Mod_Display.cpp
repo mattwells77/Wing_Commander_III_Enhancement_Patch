@@ -53,6 +53,8 @@ UINT clientHeight = 0;
 UINT spaceWidth = 0;
 UINT spaceHeight = 0;
 
+BOOL space_use_original_aspect = FALSE;
+
 BOOL is_space_scaled = FALSE;
 UINT space_scaled_width = 640;
 UINT space_scaled_height = 480;
@@ -226,6 +228,9 @@ static BOOL Window_Setup(HWND hwnd) {
 
     *p_wc3_gamma_val = ConfigReadInt_InGame(L"MAIN", L"GAMMA_LEVEL", CONFIG_MAIN_GAMMA_LEVEL);
 
+    if (ConfigReadInt(L"SPACE", L"USE_ORIGINAL_ASPECT_RATIO", CONFIG_SPACE_USE_ORIGINAL_ASPECT_RATIO))
+        space_use_original_aspect = TRUE;
+    
     int COCKPIT_MAINTAIN_ASPECT_RATIO = ConfigReadInt(L"SPACE", L"COCKPIT_MAINTAIN_ASPECT_RATIO", CONFIG_SPACE_COCKPIT_MAINTAIN_ASPECT_RATIO);
     if (COCKPIT_MAINTAIN_ASPECT_RATIO == 0)
         cockpit_scale_type = SCALE_TYPE::fill;

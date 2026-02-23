@@ -1112,6 +1112,7 @@ extern UINT clientHeight;
 extern UINT spaceWidth;
 extern UINT spaceHeight;
 
+extern BOOL space_use_original_aspect;
 extern BOOL is_space_scaled;
 extern UINT space_scaled_width;
 extern UINT space_scaled_height;
