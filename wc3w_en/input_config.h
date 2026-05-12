@@ -25,7 +25,7 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #pragma comment(lib, "Comctl32.lib")
 #pragma comment(lib, "Shlwapi.lib")
 
-#include "joystick.h"
+#include "input.h"
 
 
 BOOL JoyConfig_Main();

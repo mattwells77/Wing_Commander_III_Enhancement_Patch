@@ -265,8 +265,8 @@
     <ClInclude Include="Display_DX11.h" />
     <ClInclude Include="errors.h" />
     <ClInclude Include="framework.h" />
-    <ClInclude Include="joystick.h" />
-    <ClInclude Include="joystick_config.h" />
+    <ClInclude Include="input.h" />
+    <ClInclude Include="input_config.h" />
     <ClInclude Include="libvlc_Common.h" />
     <ClInclude Include="libvlc_Music.h" />
     <ClInclude Include="memwrite.h" />
@@ -291,17 +291,22 @@
     <ClCompile Include="Display_DX11_Functions.cpp" />
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="errors.cpp" />
-    <ClCompile Include="joystick.cpp" />
-    <ClCompile Include="joystick_config.cpp" />
+    <ClCompile Include="input_keyboard.cpp" />
+    <ClCompile Include="input_joystick.cpp" />
+    <ClCompile Include="input_config.cpp" />
     <ClCompile Include="libvlc_Common.cpp" />
     <ClCompile Include="libvlc_Music.cpp" />
     <ClCompile Include="memwrite.cpp" />
+    <ClCompile Include="Mod_Controller.cpp" />
     <ClCompile Include="Mod_Display.cpp" />
     <ClCompile Include="Mod_GeneralFixes.cpp" />
+    <ClCompile Include="Mod_Keyboard.cpp" />
+    <ClCompile Include="Mod_Mouse.cpp" />
+    <ClCompile Include="Mod_Movies.cpp" />
     <ClCompile Include="Mod_Music.cpp" />
     <ClCompile Include="Mod_ObjectRotation.cpp" />
     <ClCompile Include="libvlc_Movies.cpp" />
-    <ClCompile Include="mouse.cpp" />
+    <ClCompile Include="input_mouse.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

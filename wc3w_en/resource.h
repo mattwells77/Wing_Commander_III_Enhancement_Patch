@@ -67,9 +67,12 @@
 #define IDD_DIALOG_CONFIG_MAIN          146
 #define IDS_ACTION040                   147
 #define IDS_ACTION041                   148
+#define IDD_DIALOG_JOY_CONTROLS         148
 #define IDS_ACTION042                   149
 #define IDS_ACTION043                   150
+#define IDD_DIALOG_MOUSE_CONTROLS       150
 #define IDS_ACTION044                   151
+#define IDD_DIALOG_CONFIG_JOY_OFF       151
 #define IDS_ACTION045                   152
 #define IDS_ACTION046                   153
 #define IDS_ACTION047                   154
@@ -124,6 +127,48 @@
 #define IDS_ACTION067                   203
 #define IDS_ACTION068                   204
 #define IDS_ACTION069                   205
+#define IDS_ACTION070                   206
+#define IDS_ACTION071                   207
+#define IDS_ACTION072                   208
+#define IDS_AXIS_TYPE013                209
+#define IDS_AXIS_TYPE014                210
+#define IDS_AXIS_TYPE015                211
+#define IDS_AXIS_TYPE016                212
+#define IDS_AXIS_TYPE017                213
+#define IDS_AXIS_TYPE018                214
+#define IDS_TAB_GUI                     215
+#define IDS_TAB_SPACE                   216
+#define IDS_TAB_REMAP_1                 217
+#define IDS_TAB_REMAP_2                 218
+#define IDS_TAB_REMAP_3                 219
+#define IDS_ACTION073                   220
+#define IDS_ACTION074                   221
+#define IDS_ACTION075                   222
+#define IDS_ACTION076                   223
+#define IDS_ACTION077                   224
+#define IDS_ACTION078                   225
+#define IDS_ACTION079                   226
+#define IDS_ACTION080                   227
+#define IDS_ACTION081                   228
+#define IDS_ACTION082                   229
+#define IDS_ACTION083                   230
+#define IDS_ACTION084                   231
+#define IDS_ACTION085                   232
+#define IDS_ACTION086                   233
+#define IDS_ACTION087                   234
+#define IDS_ACTION088                   235
+#define IDS_ACTION089                   236
+#define IDS_ACTION090                   237
+#define IDS_ACTION091                   238
+#define IDS_ACTION092                   239
+#define IDS_ACTION093                   240
+#define IDS_ACTION094                   241
+#define IDS_ACTION095                   242
+#define IDS_ACTION096                   243
+#define IDS_TAB_NAV                     244
+#define IDS_ACTION097                   245
+#define IDS_ACTION098                   246
+#define IDS_ACTION099                   247
 #define IDC_BUTTON_YAW                  1000
 #define IDC_LIST_BUTTONS                1002
 #define IDC_LIST_ACTIONS                1002
@@ -199,6 +244,9 @@
 #define IDC_COMBO_WHEEL_RIGHT_ACTION    1075
 #define IDC_COMBO_WHEEL_UP_ACTION       1076
 #define IDC_COMBO_WHEEL_DOWN_ACTION     1077
+#define IDC_TAB_JOY_CONTROL             1078
+#define IDC_TAB_MOUSE_CONTROL           1079
+#define IDC_STATIC_INSTRUCTIONS         1080
 #define IDC_STATIC                      -1
 #define IDC_STATIC_XY_BOX               -1
 
@@ -207,9 +255,9 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
-#define _APS_NEXT_RESOURCE_VALUE        147
+#define _APS_NEXT_RESOURCE_VALUE        152
 #define _APS_NEXT_COMMAND_VALUE         32771
-#define _APS_NEXT_CONTROL_VALUE         1078
+#define _APS_NEXT_CONTROL_VALUE         1081
 #define _APS_NEXT_SYMED_VALUE           110
 #endif
 #endif

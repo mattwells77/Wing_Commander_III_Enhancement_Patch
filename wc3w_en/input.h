@@ -25,18 +25,44 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <winrt/Windows.Gaming.Input.h>
 #include <winrt/Windows.Foundation.h>
 
+//#define KEYS_DAT_CODE	'K' + ('E' << 8) + ('Y' << 16) + ('S' << 24)
+#define GAME_CODE		'W' + ('C' << 8) + ('3' << 16) + ('W' << 24)
 
-#define JOYSTICK_PROFILE_VERSION	2
+#define JOYSTICK_PROFILE_VERSION	3
 #define JOYSTICK_CONFIG_PATH			L"controllers"
 
 #define NUM_MOUSE_BUTTONS	5
 
+enum class PROFILE_TYPE {
+	GUI,
+	NAV,
+	Space,
+	ReMap_1,
+	ReMap_2,
+	ReMap_3,
+	End,
+};
+
+#define NUM_JOY_PROFILES	static_cast<int>(PROFILE_TYPE::End)
+
+#define PROFILE_GUI		0; 
+#define PROFILE_NAV		1; 
+#define PROFILE_SPACE	2; 
+
+extern PROFILE_TYPE current_pro_type;
+
+extern PROFILE_TYPE current_pro_type_map;
+
+extern int profile_space;
+extern int profile_gui;
+
+
 enum class WC3_ACTIONS {
 	None,
-	B1_Trigger,
+	B1_Fire_Guns,
 	B2_Modifier,
-	B3_Missile,
-	B4_Lock_Closest_Enemy_And_Match_Speed,
+	Fire_Missile,
+	Lock_Closest_Enemy_And_Match_Speed,
 
 	Pitch_Down, // arrow up
 	Pitch_Up,	// arrow down
@@ -53,10 +79,10 @@ enum class WC3_ACTIONS {
 
 	Auto_slide,// 	Caps Lock
 	Toggle_Auto_slide,// /
-	Accelerate,// +
-	Decelerate,// -
-	Full_stop,// 	Backspace
-	Full_speed,// 	'\'
+	Speed_Increase,// +
+	Speed_Decrease,// -
+	Speed_Zero,// 	Backspace
+	Speed_Max,// 	'\'
 	//Match_target_speed,// 	Y
 	Afterburner,// 	Tab
 	Toggle_Afterburner,// 	~
@@ -66,24 +92,24 @@ enum class WC3_ACTIONS {
 	Eject,// 	Ctrl - E
 	Pause,// Alt - P
 	//Calibrate_Joystick,	// Ctrl - C
-	Options_Menu,// 	Alt - O
+	Game_Options,// 	Alt - O
 	Nav_Map,// 	N
 
-	Cycle_targets,// 	T
-	Cycle_turrets,// 	R
+	Cycle_Targets,// 	T
+	Cycle_Turrets,// 	R
 	Lock_target,// 	L
 	Toggle_Smart_Targeting,// 	Ctrl - S
-	Cycle_guns,// 	G
-	Full_guns,// 	F
+	Cycle_Guns,// 	G
+	Full_Guns,// 	F
 	Synchronize_guns,// 	Ctrl - G
 	Toggle_Auto_Tracking,// 	Ctrl - A
 	Config_Cycle_Missile,// 	M
-	Change_Missile__Increase_power_to_selected_component,// ]
-	Select_Missile__Decrease_power_to_selected_component,// [
+	VDU_Option_Key_1,// ]
+	VDU_Option_Key_2,// [
 	Select_All_Missiles,// 	B
 	//Fire_guns,// 	Space
 	//Fire_missile,// 	Enter
-	Drop_decoy,// 	E
+	Drop_Decoy,// 	E
 
 	Cycle_VDUs, //0
 	VDU_Shield,// 	S
@@ -99,7 +125,7 @@ enum class WC3_ACTIONS {
 	View_Left,			// F2
 	View_Right,			// F3
 	View_Rear_Turret,	// F4
-	View_Rear_Turret_VDU,// 	Ctrl - F4
+	VDU_View_Rear_Turret,// 	Ctrl - F4
 	Camera_Chase,// F5
 	Camera_Object,// 	F6
 	//Tactical_view,// 	F7
@@ -115,6 +141,47 @@ enum class WC3_ACTIONS {
 	WingMan_Help_Me_Out,//Alt - H
 	WingMan_Attack_My_Target,//Alt - A
 	Enemy_Taunt,//Alt - T
+
+	ReMap_1,
+	ReMap_2,
+	ReMap_3,
+
+	B1_Select,
+	B2_Cycle_Hotspots,
+	Cycle_Hotspots_Reverse,
+
+	Gamma_Increase,
+	Gamma_Decrease,
+
+	Toggle_Sound_Effects,
+	Sound_Effects_Volume_Increase,
+	Sound_Effects_Volume_Decrease,
+
+	Toggle_Music,
+	Music_Volume_Increase,
+	Music_Volume_Decrease,
+
+	Save_Load_Up,
+	Save_Load_Down,
+	Save_Load_Page_Up,
+	Save_Load_Page_Down,
+
+	Exit_Game,
+	Exit_Game_Yes,
+	Exit_Game_No,
+
+	Zoom_In,
+	Zoom_Out,
+	NAV_Centre_View,
+	NAV_Toggle_Starfield,
+	NAV_Toggle_Grid,
+	NAV_Toggle_Background,
+	NAV_Cycle_Points,
+	NAV_Cycle_Points_Reverse,
+
+	Escape,
+
+	End,
 };
 
 
@@ -134,6 +201,12 @@ enum class AXIS_TYPE {
 	Roll_Right,
 	//Throttle_Up,
 	//Throttle_Down,
+	Pointer_X,
+	Pointer_Y,
+	Pointer_Left,
+	Pointer_Right,
+	Pointer_Up,
+	Pointer_Down,
 };
 
 
@@ -154,19 +227,24 @@ enum class SWITCH_POS {
 class ACTION_KEY_MOUSE {
 public:
 	ACTION_KEY_MOUSE() {
-		button = WC3_ACTIONS::None;
+		for (int i = 0; i < NUM_JOY_PROFILES; i++)
+			button[i] = WC3_ACTIONS::None;
 		pressed = false;
+		active_profile = PROFILE_TYPE::GUI;
+		active_profile_num = 0;
 	};
 	bool Is_Pressed() const { return pressed; };
-	void SetAction(WC3_ACTIONS wc3_action) {
-		button = wc3_action;
+	void SetAction(WC3_ACTIONS in_action) {
+		button[static_cast<int>(current_pro_type)] = in_action;
 	};
 	bool SetButton(bool new_state);
-	void SetButton_Instant() const;
-	WC3_ACTIONS GetAction() const { return button; };
+	void SetButton_Instant(LONG duration_ms) const;
+	WC3_ACTIONS GetAction() const { return button[static_cast<int>(current_pro_type)]; };
 protected:
 private:
-	WC3_ACTIONS button;
+	WC3_ACTIONS button[NUM_JOY_PROFILES];
+	PROFILE_TYPE active_profile;
+	int active_profile_num;
 	bool pressed;
 };
 
@@ -175,22 +253,29 @@ private:
 class ACTION_KEY {
 public:
 	ACTION_KEY() {
-		button = WC3_ACTIONS::None;
+		for (int i = 0; i < NUM_JOY_PROFILES; i++)
+			button[i] = WC3_ACTIONS::None;
 		pressed = false;
+		active_profile = PROFILE_TYPE::GUI;
+		active_profile_num = 0;
 	};
 	bool Is_Pressed() const { return pressed; };
-	void Set_Action(WC3_ACTIONS wc3_action) {
-		button = wc3_action;
+	void Set_Action(WC3_ACTIONS in_action) {
+		button[static_cast<int>(current_pro_type)] = in_action;
 	};
 	bool SetButton(bool new_state);
-	WC3_ACTIONS GetAction() const { return button; };
+	WC3_ACTIONS GetAction() const { return button[static_cast<int>(current_pro_type)]; };
+	PROFILE_TYPE GetActiveProfile() const { return active_profile; };
 protected:
 private:
-	WC3_ACTIONS button;
+	WC3_ACTIONS button[NUM_JOY_PROFILES];
+	PROFILE_TYPE active_profile;
+	int active_profile_num;
 	bool pressed;
 };
 
 
+//_______________
 class AXIS_LIMITS {
 public:
 	AXIS_LIMITS() {
@@ -219,27 +304,31 @@ public:
 	ACTION_AXIS() {
 		current_val = 0;
 		current_centred_val = 0;
-		assiged_to = AXIS_TYPE::None;
-		rev_axis = FALSE;
-		is_centred = FALSE;
+		for (int i = 0; i < NUM_JOY_PROFILES; i++) {
+			assiged_to[i] = AXIS_TYPE::None;
+			rev_axis[i] = FALSE;
+			is_centred[i] = FALSE;
+		}
 		calibrating = FALSE;
 	};
 	AXIS_LIMITS* Get_Axis_Limits() { return &limits; };
-	AXIS_TYPE Get_Axis_As() const { return assiged_to; };
-	BOOL Is_Axis_Reversed() const { return rev_axis; };
+	AXIS_TYPE Get_Axis_As() const { return assiged_to[static_cast<int>(current_pro_type)]; };
+	BOOL Is_Axis_Reversed() const { return rev_axis[static_cast<int>(current_pro_type)]; };
 	WC3_ACTIONS Get_Button_Action_Min() const { return button_min.GetAction(); };
 	WC3_ACTIONS Get_Button_Action_Max() const { return button_max.GetAction(); };
 	double Get_Current_Val() const { return current_val; };
-	void Set_Axis_As(AXIS_TYPE axis_type) { assiged_to = axis_type;
-	if (assiged_to == AXIS_TYPE::Yaw || assiged_to == AXIS_TYPE::Pitch || assiged_to == AXIS_TYPE::Roll || assiged_to == AXIS_TYPE::AsTwoButtons)
-		is_centred = TRUE;
-	else
-		is_centred = FALSE;
+	void Set_Axis_As(AXIS_TYPE axis_type) {
+		assiged_to[static_cast<int>(current_pro_type)] = axis_type;
+		int pro_int = static_cast<int>(current_pro_type);
+		if (assiged_to[pro_int] == AXIS_TYPE::Pointer_X || assiged_to[pro_int] == AXIS_TYPE::Pointer_Y || assiged_to[pro_int] == AXIS_TYPE::Yaw || assiged_to[pro_int] == AXIS_TYPE::Pitch || assiged_to[pro_int] == AXIS_TYPE::Roll || assiged_to[pro_int] == AXIS_TYPE::AsTwoButtons)
+			is_centred[static_cast<int>(current_pro_type)] = TRUE;
+		else
+			is_centred[static_cast<int>(current_pro_type)] = FALSE;
 	};
-	void Set_Axis_Reversed(BOOL is_rev_axis) { rev_axis = is_rev_axis; };
+	void Set_Axis_Reversed(BOOL is_rev_axis) { rev_axis[static_cast<int>(current_pro_type)] = is_rev_axis; };
 	void Set_Button_Action_Min(WC3_ACTIONS wc3_action_min) { button_min.Set_Action(wc3_action_min); };
 	void Set_Button_Action_Max(WC3_ACTIONS wc3_action_max) { button_max.Set_Action(wc3_action_max); };
-	void Set_State(double axis_val);
+	void Set_State(double axis_val, bool ignore_space_remap_profiles);
 	void Calibrate(BOOL state);
 	void Centre() {
 		if (calibrating)
@@ -252,13 +341,12 @@ private:
 	double current_val;
 	double current_centred_val;
 	AXIS_LIMITS limits;
-	AXIS_TYPE assiged_to;
-	BOOL rev_axis;
-	BOOL is_centred;
+	AXIS_TYPE assiged_to[NUM_JOY_PROFILES];
+	BOOL rev_axis[NUM_JOY_PROFILES];
+	BOOL is_centred[NUM_JOY_PROFILES];
 	BOOL calibrating;
 	ACTION_KEY button_min;
 	ACTION_KEY button_max;
-
 };
 
 
@@ -267,40 +355,49 @@ class ACTION_SWITCH {
 public:
 	ACTION_SWITCH() {
 		num_positions = 0;
-		action = nullptr;
+		for (int i = 0; i < NUM_JOY_PROFILES; i++)
+			action[i] = nullptr;
 		current_position = 0;
+		active_profile = PROFILE_TYPE::GUI;
 	};
 	~ACTION_SWITCH() {
-		if (action)
-			delete[] action;
-		action = nullptr;
+		for (int i = 0; i < NUM_JOY_PROFILES; i++) {
+			if (action[i])
+				delete action[i];
+			action[i] = nullptr;
+		}
 	}
 	void Set_Num_Positions(int in_num_positions) {
-		if (action)
-			delete[] action;
+		for (int i = 0; i < NUM_JOY_PROFILES; i++) {
+			if (action[i])
+				delete action[i];
+		}
 		num_positions = in_num_positions + 1;
-		action = new WC3_ACTIONS[num_positions]{ WC3_ACTIONS::None };
+		for (int i = 0; i < NUM_JOY_PROFILES; i++)
+			action[i] = new WC3_ACTIONS[num_positions]{ WC3_ACTIONS::None };
+
 		current_position = 0;
 	}
 	int Switch_Position(int new_pos);
-	bool Set_Action(int pos, WC3_ACTIONS wc3_action) {
-		if (!action || pos < 0 || pos >= num_positions)
+	bool Set_Action(int pos, WC3_ACTIONS in_action) {
+		if (!action[static_cast<int>(current_pro_type)] || pos < 0 || pos >= num_positions)
 			return false;
-		action[pos] = wc3_action;
+		action[static_cast<int>(current_pro_type)][pos] = in_action;
 		return true;
 	}
-	WC3_ACTIONS GetAction(int pos) {
+	WC3_ACTIONS GetAction(int pos) const{
 		if (pos < 0 || pos >= num_positions)
 			return WC3_ACTIONS::None;
-		return action[pos];
+		return action[static_cast<int>(current_pro_type)][pos];
 	}
 	int Get_Num_Positions() const { return num_positions; };
 	int Get_Current_Position() const { return current_position; };
 protected:
 private:
-	WC3_ACTIONS* action;
+	WC3_ACTIONS* action[NUM_JOY_PROFILES];
 	int current_position;
 	int num_positions;
+	PROFILE_TYPE active_profile;
 };
 
 
@@ -541,10 +638,22 @@ extern WC3_JOY_AXES wc3_joy_axes;
 
 extern JOYSTICKS Joysticks;
 
-
 bool Get_Joystick_Config_Path(std::wstring* p_ret_string);
 
+void Simulate_Key_Press(WC3_ACTIONS action);
+void Simulate_Key_Release(WC3_ACTIONS action);
+void Simulate_Key_Pressed(WC3_ACTIONS action, LONG duration_ms);
+void Check_Simulated_Key_For_Release();
 
 extern MOUSE Mouse;
-extern WORD mouse_state_space[3];
+extern bool mouse_double_click_left;
+void Check_Mouse_Double_Click();
+
+extern BYTE WC3_ACTIONS_KEYS[][2];
+bool Get_Key_State(BYTE key, BYTE mod_key_flags, BYTE run_once);
+void Set_Key_State(BYTE key, BYTE state);
+void Clear_Key_States();
+BYTE Get_Pressed_Key();
+
+extern bool controller_enhancements_enabled;
 

@@ -24,9 +24,15 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 void Modifications_GeneralFixes();
 void Modifications_Display();
+
 void Modifications_Joystick();
+void Modifications_Mouse();
+void Modifications_Keyboard();
+void Modifications_Controller_Enhancements();
+
 void Modifications_ObjectRotation();
 void Modifications_Music();
+void Modifications_Movies();
 void Modifications_Space_Background_Colour();
 void Modifications_Replace_Alt_X_Msg_With_Room_Scene_ID();
 

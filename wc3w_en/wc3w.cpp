@@ -138,12 +138,10 @@ void(*wc3_unknown_func01)() = nullptr;
 void(*wc3_update_input_states)() = nullptr;
 
 
-BYTE* p_wc3_key_pressed_scancode = nullptr;
-
-
 void(__thiscall* wc3_draw_hud_targeting_elements)(void*) = nullptr;
 void(__thiscall* wc3_draw_hud_view_text)(void*) = nullptr;
 
+void(__thiscall* wc3_options_screen)(void*) = nullptr;
 void(__thiscall* wc3_nav_screen)(void*) = nullptr;
 void(__thiscall* wc3_nav_screen_update_position)(void*) = nullptr;
 
@@ -183,6 +181,7 @@ LONG* p_wc3_language_ref = nullptr;
 void(*wc3_draw_choice_text_buff)(DWORD* ptr, BYTE* buff) = nullptr;
 
 DWORD* p_wc3_key_scancode = nullptr;
+DWORD* p_wc3_key_modifier = nullptr;
 
 int8_t* p_wc3_vdu_focus = nullptr;//0=sheilds, 1=, 2=, 3=weapons, 4=comms, 5=damage, 6=power, 7=, 8=rear_view, 9=.
 LONG* p_wc3_vdu_comms_list_size = nullptr;
@@ -196,6 +195,11 @@ BYTE* p_wc3_pal_offsets_06 = nullptr;
 BYTE* p_wc3_pal_offsets_07 = nullptr;
 BYTE* p_wc3_pal_offsets_08 = nullptr;
 
+BYTE* p_wc3_keyboard_state_main = nullptr;
+BYTE* p_wc3_key_pressed_character_code = nullptr;
+
+BYTE* p_wc3_space_exit_game_option_flag = nullptr;
+BYTE* p_wc3_space_pause_game_option_flag = nullptr;
 
 bool* p_wc3_movie_halt_flag = nullptr;
 
@@ -227,8 +231,18 @@ void(*wc3_draw_text_to_buff)(DRAW_BUFFER* p_toBuff, DWORD x, DWORD y, DWORD unk1
 
 void(*wc3_draw_movie_frame)() = nullptr;
 
-LONG(*wc3_clear_buffer_colour)(DRAW_BUFFER_MAIN* p_Buff, BYTE pal_offset);
+LONG(*wc3_clear_buffer_colour)(DRAW_BUFFER_MAIN* p_Buff, BYTE pal_offset) = nullptr;
 
+void(*wc3_process_key)(BYTE scan_code, BYTE is_ext_key, BYTE state) = nullptr;
+
+void(*wc3_space_simulator)() = nullptr;
+void(*wc3_space_mission)() = nullptr;
+
+void(__thiscall* wc3_replay_screen_main)(void*) = nullptr;
+
+void(*wc3_update_joystick)() = nullptr;
+void(*wc3_proccess_joystick_data)() = nullptr;
+void(__stdcall* wc3_setup_joystick)(LONG flag) = nullptr;
 
 //_______________
 void WC3W_Setup() {
@@ -318,9 +332,10 @@ void WC3W_Setup() {
 
     wc3_update_input_states = (void(*)())0x4083F0;
 
-    p_wc3_key_pressed_scancode = (BYTE*)0x4A7E2C;
-
-
+    wc3_process_key = (void(*)(BYTE, BYTE, BYTE))0x4827F0;
+    p_wc3_keyboard_state_main = (BYTE*)0x4B2180;
+    p_wc3_key_pressed_character_code = (BYTE*)0x4A7E2C;
+    
     wc3_translate_messages = (BYTE(*)(BOOL, BOOL))0x482FB0;
 
     wc3_translate_messages_keys = (void(*)())0x482920;
@@ -356,6 +371,7 @@ void WC3W_Setup() {
 
 
     p_wc3_key_scancode = (DWORD*)0x4A9B80;
+    p_wc3_key_modifier = (DWORD*)0x4A9B84;
 
     p_wc3_vdu_focus = (int8_t*)0x4B15BC;
 
@@ -372,6 +388,7 @@ void WC3W_Setup() {
 
     wc3_draw_hud_view_text = (void(__thiscall*)(void*))0x459500;
 
+    wc3_options_screen = (void(__thiscall*)(void*))0x437CA0;
     wc3_nav_screen = (void(__thiscall*)(void*))0x445150;
 
     wc3_nav_screen_update_position = (void(__thiscall *)(void*))0x430460;
@@ -443,4 +460,16 @@ void WC3W_Setup() {
     p_wc3_pal_offsets_08 = (BYTE*)0x4AA750;
     p_wc3_pal_offsets_02 = (BYTE*)0x4AA850;
     p_wc3_pal_offsets_03 = (BYTE*)0x4AA950;
+
+    p_wc3_space_exit_game_option_flag = (BYTE*)0x4B17E8;
+    p_wc3_space_pause_game_option_flag = (BYTE*)0x4B17CC;
+
+    wc3_space_simulator = (void(*)())0x435F20;
+    wc3_space_mission = (void(*)())0x436080;
+
+    wc3_replay_screen_main = (void(__thiscall*)(void*))0x430040;
+
+    wc3_update_joystick = (void(*)())0x482A90;
+    wc3_proccess_joystick_data = (void(*)())0x482DF0;
+    wc3_setup_joystick = (void(__stdcall*)(LONG))0x407F90;
 }

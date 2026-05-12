@@ -1,6 +1,6 @@
 /*
 The MIT License (MIT)
-Copyright © 2024 Matt Wells
+Copyright © 2024-2026 Matt Wells
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this
 software and associated documentation files (the “Software”), to deal in the
@@ -28,12 +28,9 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "configTools.h"
 #include "libvlc_Movies.h"
 #include "wc3w.h"
-#include "joystick_config.h"
+#include "input_config.h"
 
 #define WIN_MODE_STYLE  WS_CAPTION | WS_SYSMENU | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX
-
-
-
 
 BOOL space_view_has_BG_image = FALSE;
 
@@ -43,9 +40,6 @@ BOOL is_nav_view = FALSE;
 
 BOOL clip_cursor = FALSE;
 static bool is_cursor_clipped = false;
-
-LibVlc_Movie* pMovie_vlc = nullptr;
-
 
 UINT clientWidth = 0;
 UINT clientHeight = 0;
@@ -59,18 +53,31 @@ BOOL is_space_scaled = FALSE;
 UINT space_scaled_width = 640;
 UINT space_scaled_height = 480;
 
-//WORD mouse_state_true[3];
-WORD mouse_state_space[3]{0};
-WORD* p_mouse_button_space = &mouse_state_space[0];
-WORD* p_mouse_x_space = &mouse_state_space[1];
-WORD* p_mouse_y_space = &mouse_state_space[2];
-
-LONG mouse_x_current = 0;
-LONG mouse_y_current = 0;
-
 LARGE_INTEGER nav_update_time{ 0 };
 
 BYTE alternate_space_colour_pal_off = 0x11;
+
+
+//_______________________________________________________
+static void Change_Profile_Type(PROFILE_TYPE new_profile) {
+
+    static PROFILE_TYPE last_profile_type = current_pro_type;
+
+    current_pro_type = new_profile;
+
+    //clear keyboard on profile change incase button is down during transition.
+    if (last_profile_type != current_pro_type) {
+        Clear_Key_States();
+        last_profile_type = current_pro_type;
+        if (last_profile_type == PROFILE_TYPE::Space)
+            Debug_Info("Change_Profile_Type SPACE");
+        else if (last_profile_type == PROFILE_TYPE::GUI)
+            Debug_Info("Change_Profile_Type GUI");
+        else if (last_profile_type == PROFILE_TYPE::NAV)
+            Debug_Info("Change_Profile_Type NAV");
+    }
+}
+
 
 //___________________________
 static BOOL IsMouseInClient() {
@@ -377,16 +384,6 @@ static void UnlockShowSurface() {
 }
 
 
-//__________________________________
-static void UnlockShowMovieSurface() {
-
-    if (surface_gui == nullptr)
-        return;
-    surface_gui->Unlock();
-    Display_Dx_Present(PRESENT_TYPE::movie);
-}
-
-
 //_____________________________
 static void Clear_GUI_Surface() {
     if (surface_gui)
@@ -428,108 +425,6 @@ static void DXBlt(BYTE* fBuff, DWORD subY, DWORD subHeight) {
     surface_gui->Unlock();
     Display_Dx_Present(PRESENT_TYPE::gui);
 
-}
-
-
-//_______________________________________________________________
-static void DXBlt_Movie(BYTE* fBuff, DWORD subY, DWORD subHeight) {
-
-    if (surface_gui == nullptr)
-        return;
-
-    LONG fWidth = GUI_WIDTH;
-
-    if (fBuff == NULL || fBuff == (BYTE*)*pp_wc3_DIB_vBits) {
-        fBuff = (BYTE*)*pp_wc3_DIB_vBits;
-        fWidth = (*pp_wc3_DIB_Bitmapinfo)->bmiHeader.biWidth;
-        //Debug_Info("DXBlt - db w=%d, h =%d", fWidth, -(*pp_wc3_DIB_Bitmapinfo)->bmiHeader.biHeight);
-    }
-    //else
-        //Debug_Info("DXBlt - buffer provided");
-
-    BYTE* pSurface = nullptr;
-
-    if (surface_gui->Lock((VOID**)&pSurface, p_wc3_main_surface_pitch) != S_OK)
-        return;
-
-    fBuff += subY * fWidth;
-    pSurface += subY * *p_wc3_main_surface_pitch;
-    for (UINT y = 0; y < subHeight; y++) {
-        for (LONG x = 0; x < fWidth; x++)
-            pSurface[x] = fBuff[x];
-
-        pSurface += *p_wc3_main_surface_pitch;
-        fBuff += fWidth;
-    }
-
-    surface_gui->Unlock();
-
-    Display_Dx_Present(PRESENT_TYPE::movie);
-
-}
-
-
-//_____________________________________________________________________________________
-static BOOL DrawVideoFrame(VIDframe* vidFrame, RGBQUAD* tBuff, UINT tWidth, DWORD flag) {
-    
-    static SCALE_TYPE scale_type = SCALE_TYPE::fit;
-    static bool linear_upscaling = false;
-    static bool run_once = false;
-    if (!run_once) {
-        run_once = true;
-        if (ConfigReadInt(L"MOVIES", L"ENABLE_ORIGINAL_MOVIES_LIMITED_SCALING", CONFIG_MOVIES_ENABLE_ORIGINAL_MOVIES_LIMITED_SCALING))
-            scale_type = SCALE_TYPE::fit_best;
-        if (ConfigReadInt(L"MOVIES", L"ENABLE_ORIGINAL_MOVIES_LINEAR_UPSCALING", CONFIG_MOVIES_ENABLE_ORIGINAL_MOVIES_LINEAR_UPSCALING))
-            linear_upscaling = true;
-    }
-
-    DWORD height = vidFrame->height;
-    DWORD width = vidFrame->width;
-
-    if (!*p_wc3_movie_no_interlace) {
-        height += height;
-        width += width;
-    }
-
-    if (!surface_movieXAN || width != surface_movieXAN->GetWidth() || height != surface_movieXAN->GetHeight()) {
-        if (surface_movieXAN)
-            delete surface_movieXAN;
-        surface_movieXAN = new DrawSurface8_RT(0, 0, width, height, 32, 0x00000000, false, 0);
-        surface_movieXAN->ScaleTo((float)clientWidth, (float)clientHeight, scale_type);
-        if (!linear_upscaling)
-            surface_movieXAN->Set_Default_SamplerState(pd3dPS_SamplerState_Point);
-        Debug_Info("surface_movieXAN created");
-    }
-    //Debug_Info("%X,%X,%X,%X,%X,%X,%X,%X,%X,%X,%X", vidFrame->unknown00, vidFrame->unknown04, vidFrame->unknown08, vidFrame->width, vidFrame->height, vidFrame->unknown14, vidFrame->bitFlag, vidFrame->unknown1C, vidFrame->unknown20, vidFrame->unknown24);
-
-    BYTE* pSurface = nullptr;
-    LONG pitch = 0;
-
-    if (surface_movieXAN->Lock((VOID**)&pSurface, &pitch) != S_OK)
-        return FALSE;
-
-    BYTE* fBuff = vidFrame->buff;
-
-    for (UINT y = 0; y < height; y++) {
-        if (*p_wc3_movie_no_interlace || y % 2) {
-            UINT x2 = 0;
-            for (UINT x = 0; x < vidFrame->width; x++) {
-                pSurface[x2] = fBuff[x];
-                if (*p_wc3_movie_no_interlace)
-                    x2++;
-                else {
-                    pSurface[x2+1] = fBuff[x];
-                    x2 += 2;
-                }
-            }
-            fBuff += vidFrame->width;
-        }
-            pSurface += pitch;
-    }
-
-    surface_movieXAN->Unlock();
-
-    return TRUE;
 }
 
 
@@ -1064,10 +959,15 @@ static void __declspec(naked) fix_hud_targeting_rect_max_size(void) {
 }
 
 
-//______________________________________________________
-static void __declspec(naked) fix_nav_scrn_display(void) {
+//___________________________________________________________________
+static void __declspec(naked) set_input_profile_nav_map_3d_draw(void) {
 
     __asm {
+        pushad
+        push PROFILE_NAV
+        call Change_Profile_Type
+        add esp, 0x4
+        popad
 
         push ebp
         push edi
@@ -1083,6 +983,12 @@ static void __declspec(naked) fix_nav_scrn_display(void) {
 
         pop edi
         pop ebp
+
+        pushad
+        push PROFILE_SPACE
+        call Change_Profile_Type
+        add esp, 0x4
+        popad
         ret
     }
 }
@@ -1208,7 +1114,7 @@ static bool WinProc_Main(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam) 
     static bool is_in_sizemove = false;
 
     switch (Message) {
-    case WM_KEYDOWN:
+    /*case WM_KEYDOWN:
         if (!(lParam & 0x40000000)) { //The previous key state. The value is 1 if the key is down before the message is sent, or it is zero if the key is up.
             if (wParam == VK_F11) { //Use F11 key to toggle windowed mode.
                 if (pMovie_vlc)
@@ -1218,7 +1124,7 @@ static bool WinProc_Main(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam) 
                 Toggle_WindowMode(hwnd);
             }
         }
-        break;
+        break;*/
     case WM_WINDOWPOSCHANGING: {
         WINDOWPOS* winpos = (WINDOWPOS*)lParam;
         //Debug_Info("WM_WINDOWPOSCHANGING size adjusting");
@@ -1445,7 +1351,7 @@ static void __declspec(naked) winproc_movie_message_check(void) {
             mov cl, 1
             ret
             check3 :
-        cmp eax, WM_LBUTTONDBLCLK
+        /*cmp eax, WM_LBUTTONDBLCLK
             jne check4
             mov cl, 2
             ret
@@ -1454,7 +1360,7 @@ static void __declspec(naked) winproc_movie_message_check(void) {
             jne check5
             mov cl, 3
             ret
-            check5 :
+            check5 :*/
         cmp eax, WM_ENTERSIZEMOVE
             jne check6
             mov cl, 1
@@ -1475,7 +1381,7 @@ static void __declspec(naked) winproc_movie_message_check(void) {
 static void Check_Optional_Enhancements() {
 
     if (ConfigReadInt(L"MAIN", L"ENABLE_CONTROLLER_ENHANCEMENTS", CONFIG_MAIN_ENABLE_CONTROLLER_ENHANCEMENTS))
-        Modifications_Joystick();
+        Modifications_Controller_Enhancements(); //Modifications_Joystick();
     if (ConfigReadInt(L"MAIN", L"ENABLE_MUSIC_ENHANCEMENTS", CONFIG_MAIN_ENABLE_MUSIC_ENHANCEMENTS))
         Modifications_Music();
 
@@ -1511,182 +1417,6 @@ static void __declspec(naked) check_no_full_screen(void) {
 }
 
 
-//______________________________________________________________________________________
-static LRESULT Update_Mouse_State(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam) {
-
-    switch (Message) {
-
-    case WM_MOUSEMOVE:
-    case WM_LBUTTONDOWN:
-    case WM_LBUTTONUP:
-    case WM_RBUTTONDOWN:
-    case WM_RBUTTONUP: 
-    case WM_MBUTTONDOWN:
-    case WM_MBUTTONUP:
-    case WM_XBUTTONDOWN:
-    case WM_XBUTTONUP: {
-        Mouse.Update_Buttons(wParam);
-
-        *p_wc3_mouse_button = 0;
-        if (wParam & MK_LBUTTON)
-            *p_wc3_mouse_button |= 0x1;
-        if (wParam & MK_RBUTTON)
-            *p_wc3_mouse_button |= 0x2;
-        if (wParam & MK_MBUTTON)
-            *p_wc3_mouse_button |= 0x4;
-        //*p_mouse_button_true = *p_wc3_mouse_button;
-        
-        LONG x = GET_X_LPARAM(lParam);
-        LONG y = GET_Y_LPARAM(lParam);
-
-        *p_mouse_x_space = (WORD)(x * spaceWidth / clientWidth);
-        *p_mouse_y_space = (WORD)(y * spaceHeight / clientHeight);
-        if (surface_gui) {
-            float fx = 0;
-            float fy = 0;
-            surface_gui->GetPosition(&fx, &fy);
-            x = (LONG)((x - fx) * GUI_WIDTH / surface_gui->GetScaledWidth());
-            y = (LONG)((y - fy) * GUI_HEIGHT / surface_gui->GetScaledHeight());
-        }
-        else {
-            x = x * GUI_WIDTH / clientWidth;
-            y = y * GUI_HEIGHT / clientHeight;
-        }
-
-        if (x < 0)
-            x = 0;
-        else if (x >= GUI_WIDTH)
-            x = GUI_WIDTH - 1;
-        if (y < 0)
-            y = 0;
-        else if (y >= GUI_HEIGHT)
-            y = GUI_HEIGHT - 1;
-
-        mouse_x_current = x;
-        mouse_y_current = y;
-        *p_wc3_mouse_x = (WORD)x;
-        *p_wc3_mouse_y = (WORD)y;
-
-        break;
-    }
-    case WM_MOUSEWHEEL:
-        Mouse.Update_Wheel_Vertical(wParam);
-        break;
-    case WM_MOUSEHWHEEL:
-        Mouse.Update_Wheel_Horizontal(wParam);
-        break;
-    default:
-        break;
-    }
-
-    return 0;
-}
-
-
-//____________________________________________
-static BOOL Set_Mouse_Position(LONG x, LONG y) {
-
-    if (*p_wc3_is_mouse_present) {
-        POINT client{ 0,0 };
-        if (ClientToScreen(*p_wc3_hWinMain, &client)) {
-
-            float fx = 0;
-            float fy = 0;
-            float fwidth = (float)clientWidth;
-            float fheight = (float)clientHeight;
-            if (surface_gui) {
-                surface_gui->GetPosition(&fx, &fy);
-                fwidth = surface_gui->GetScaledWidth();
-                fheight = surface_gui->GetScaledHeight();
-            }
-
-            fx += x * fwidth / GUI_WIDTH;
-            LONG ix = (LONG)fx;
-            if ((float)ix != fx)
-                ix++;
-            *p_mouse_x_space = (WORD)(ix * spaceWidth / clientWidth);
-            ix += client.x;
-
-            fy += y * fheight / GUI_HEIGHT;
-            LONG iy = (LONG)fy;
-            if ((float)iy != fy)
-                iy++;
-            *p_mouse_y_space = (WORD)(iy * spaceHeight / clientHeight);
-            iy += client.y;
-
-            SetCursorPos(ix, iy);
-        }
-
-        if (x < 0)
-            x = 0;
-        else if (x >= GUI_WIDTH)
-            x = GUI_WIDTH - 1;
-        if (y < 0)
-            y = 0;
-        else if (y >= GUI_HEIGHT)
-            y = GUI_HEIGHT - 1;
-
-        mouse_x_current = x;
-        mouse_y_current = y;
-        *p_wc3_mouse_x = (WORD)x;
-        *p_wc3_mouse_y = (WORD)y;
-    }
-    return *p_wc3_is_mouse_present;
-}
-
-
-// Replaces a function which was moving the cursor when it strayed beyond the client rect.
-// This function allows the mouse to move freely as well as update it's position when outside the client rect.
-//________________________________________________
-static BOOL Update_Cursor_Position(LONG x, LONG y) {
-
-    //if cursor position is modified by somthing other than the mouse 
-    if (x != mouse_x_current || y != mouse_y_current)
-        return Set_Mouse_Position(x, y);
-
-    if (*p_wc3_is_mouse_present) {
-        POINT p{ 0,0 };
-        if (ClientToScreen(*p_wc3_hWinMain, &p)) {
-            POINT m{ 0,0 };
-            GetCursorPos(&m);
-
-            x = (m.x - p.x);
-            y = (m.y - p.y);
-
-            *p_mouse_x_space = (WORD)(x * spaceWidth / clientWidth);
-            *p_mouse_y_space = (WORD)(y * spaceHeight / clientHeight);
-
-            if (surface_gui) {
-                float fx = 0;
-                float fy = 0;
-                surface_gui->GetPosition(&fx, &fy);
-                x = (LONG)((x - fx) * GUI_WIDTH / surface_gui->GetScaledWidth());
-                y = (LONG)((y - fy) * GUI_HEIGHT / surface_gui->GetScaledHeight());
-            }
-            else {
-                x = x * GUI_WIDTH / clientWidth;
-                y = y * GUI_HEIGHT / clientHeight;
-            }
-        }
-
-        if (x < 0)
-            x = 0;
-        else if (x >= GUI_WIDTH)
-            x = GUI_WIDTH - 1;
-        if (y < 0)
-            y = 0;
-        else if (y >= GUI_HEIGHT)
-            y = GUI_HEIGHT - 1;
-
-        mouse_x_current = x;
-        mouse_y_current = y;
-        *p_wc3_mouse_x = (WORD)x;
-        *p_wc3_mouse_y = (WORD)y;
-    }
-    return *p_wc3_is_mouse_present;
-}
-
-
 //____________________________________________
 static void Conversation_Decision_ClipCursor() {
     clip_cursor = TRUE;
@@ -1700,7 +1430,7 @@ static WORD* Translate_Messages_Mouse_ClipCursor_Space() {
     clip_cursor = TRUE;
     wc3_translate_messages(TRUE, FALSE);
     clip_cursor = FALSE;
-    return p_mouse_button_space;
+    return p_wc3_mouse_button_space;
 }
 
 
@@ -1714,6 +1444,168 @@ static void __declspec(naked) overide_cursor_clipping(void) {
         mov clip_cursor, TRUE
         call wc3_update_input_states
         mov clip_cursor, FALSE
+        ret
+    }
+}
+
+
+//___________________________________________________________________
+static void __declspec(naked) set_input_profile_space_simulator(void) {
+
+    __asm {
+        pushad
+        push PROFILE_SPACE
+        call Change_Profile_Type
+        add esp, 0x4
+        popad
+
+        call wc3_space_simulator
+
+        pushad
+        push PROFILE_GUI
+        call Change_Profile_Type
+        add esp, 0x4
+        popad
+
+        ret
+    }
+}
+
+
+//_________________________________________________________________
+static void __declspec(naked) set_input_profile_space_mission(void) {
+
+    __asm {
+        pushad
+        push PROFILE_SPACE
+        call Change_Profile_Type
+        add esp, 0x4
+        popad
+
+        call wc3_space_mission
+
+        pushad
+        push PROFILE_GUI
+        call Change_Profile_Type
+        add esp, 0x4
+        popad
+
+        ret
+    }
+}
+
+
+//__________________________________________________________________
+static void __declspec(naked) options_screen_set_input_profile(void) {
+
+    __asm {
+        pushad
+        push PROFILE_GUI
+        call Change_Profile_Type
+        add esp, 0x4
+        popad
+
+        call wc3_options_screen
+
+        pushad
+        push PROFILE_SPACE
+        call Change_Profile_Type
+        add esp, 0x4
+        popad
+        ret
+    }
+}
+
+
+//__________________________________________________________________
+static void __declspec(naked) replay_screen_set_input_profile(void) {
+
+    __asm {
+        pushad
+        push PROFILE_GUI
+        call Change_Profile_Type
+        add esp, 0x4
+        popad
+
+        call wc3_replay_screen_main
+
+        pushad
+        push PROFILE_SPACE
+        call Change_Profile_Type
+        add esp, 0x4
+        popad
+        ret
+    }
+}
+
+
+//_________________________________________________________________________
+static void __declspec(naked) set_input_profile_space_exit_game_start(void) {
+
+    __asm {
+        mov eax, p_wc3_space_exit_game_option_flag
+        cmp byte ptr ds:[eax], 0 
+        je exit_func
+        pushad
+        push PROFILE_GUI
+        call Change_Profile_Type
+        add esp, 0x4
+        popad
+
+        exit_func:
+        ret
+    }
+}
+
+
+//_______________________________________________________________________
+static void __declspec(naked) set_input_profile_space_exit_game_end(void) {
+
+    __asm {
+        mov edx, p_wc3_space_exit_game_option_flag
+        mov byte ptr ds:[edx], al
+
+        pushad
+        push PROFILE_SPACE
+        call Change_Profile_Type
+        add esp, 0x4
+        popad
+        ret
+    }
+}
+
+
+//__________________________________________________________________________
+static void __declspec(naked) set_input_profile_space_pause_game_start(void) {
+
+    __asm {
+        mov eax, p_wc3_space_pause_game_option_flag
+        cmp byte ptr ds : [eax] , 0
+        je exit_func
+        pushad
+        push PROFILE_GUI
+        call Change_Profile_Type
+        add esp, 0x4
+        popad
+
+        exit_func :
+        ret
+    }
+}
+
+
+//________________________________________________________________________
+static void __declspec(naked) set_input_profile_space_pause_game_end(void) {
+
+    __asm {
+        mov edx, p_wc3_space_pause_game_option_flag
+        mov byte ptr ds : [edx] , al
+
+        pushad
+        push PROFILE_SPACE
+        call Change_Profile_Type
+        add esp, 0x4
+        popad
         ret
     }
 }
@@ -1760,746 +1652,6 @@ static void __declspec(naked) nav_screen_movement_speed_fix(void) {
         pop edx
         pop ecx
         pop ebx
-
-        ret
-    }
-}
-
-
-//________________________________________________________
-static void __declspec(naked) fix_movement_diamond_x(void) {
-
-    __asm {
-        mov esi, spaceWidth
-        ret
-    }
-}
-
-
-//________________________________________________________
-static void __declspec(naked) fix_movement_diamond_y(void) {
-
-    __asm {
-        mov esi, spaceHeight
-        ret
-    }
-}
-
-
-//____________________________________________________
-static void __declspec(naked) update_space_mouse(void) {
-
-    __asm {
-        mov eax, p_mouse_button_space
-        mov edx, p_wc3_mouse_button_space
-        ret
-    }
-}
-
-
-//______________________________________________________________________________________________________
-static BOOL Play_Movie_Sequence(void* p_wc3_movie_class, void* p_sig_movie_class, DWORD sig_movie_flags) {
-
-    char* mve_path = (char*)((DWORD*)p_wc3_movie_class)[28];
-    //Debug_Info("Play_Movie_Loop:  sig_movie_flags:%X", sig_movie_flags);
-    Debug_Info_Movie("Play_Movie_Sequence: main_path: %s", mve_path);
-    Debug_Info_Movie("Play_Movie_Sequence: current_list_num: %d", *p_wc3_movie_branch_current_list_num);
-    Debug_Info_Movie("Play_Movie_Sequence: first branch: %d", *p_wc3_movie_branch_list);
-    //Debug_Info("max branches:%d", ((LONG*)p_wc3_movie_class)[21]);
-
-    if (pMovie_vlc)
-        delete pMovie_vlc;
-    std::string movie_name;
-    Get_Movie_Name_From_Path(mve_path, &movie_name);
-    pMovie_vlc = new LibVlc_Movie(movie_name, p_wc3_movie_branch_list, *p_wc3_movie_branch_current_list_num);
-
-    BOOL exit_flag = FALSE;
-    BOOL play_successfull = FALSE;
-    MOVIE_STATE movie_state{ 0 };
-
-    if (pMovie_vlc->Play()) {
-        play_successfull = TRUE;
-        while (!exit_flag) {
-            wc3_translate_messages_keys();
-            wc3_movie_update_joystick_double_click_exit();
-            exit_flag = wc3_movie_exit();
-
-            if (!pMovie_vlc->IsPlaying(&movie_state)) {
-                *p_wc3_movie_branch_current_list_num = movie_state.list_num;
-                if (!movie_state.hasPlayed) {
-                    Debug_Info_Error("Play_Movie_Sequence: ended BAD, branch:%d, listnum:%d", movie_state.branch, movie_state.list_num);
-                    //if branch failed to play, shift to the current branch position so the rest of the movie can be played out using the original player.
-                    if (wc3_movie_set_position(p_wc3_movie_class, p_wc3_movie_branch_list[movie_state.list_num]) == FALSE) 
-                        Debug_Info_Error("Play_Movie_Sequence: wc3_movie_set_position Failed, branch:%d", p_wc3_movie_branch_list[movie_state.list_num]);
-                    else
-                        play_successfull = FALSE;//Only set false if wc3_movie_set_position succeeds. 
-                }
-                else
-                    Debug_Info_Movie("Play_Movie_Sequence: ended OK, branch:%d, listnum:%d", movie_state.branch, movie_state.list_num);
-
-                exit_flag = TRUE;
-            }
-        }
-        pMovie_vlc->Stop();
-    }
-
-    //if alternate movie failed to play, continue movie using original player.
-    if (!play_successfull) {
-        delete pMovie_vlc;
-        pMovie_vlc = nullptr;
-        play_successfull = wc3_sig_movie_play_sequence(p_sig_movie_class, sig_movie_flags);
-    }
-    else
-        *p_wc3_movie_frame_count += 1;//this global needs to be set to evoke the movie fade out function.
-
-    Sleep(150);//add a small delay to reduce unintended button clicks after ending a movie by double-clicking.
-
-    Debug_Info_Movie("Play_Movie_Sequence: Done");
-    return play_successfull;
-}
-
-
-//_____________________________________________________
-static void __declspec(naked) play_movie_sequence(void) {
-
-    __asm {
-        push ebx
-        push ebp
-
-        push [esp+0xC]//sig movie flags? 0x7FFFFFFF
-        push ecx
-        push ebp
-        call Play_Movie_Sequence
-        add esp, 0xC
-
-        pop ebp
-        pop ebx
-
-        ret 0x4
-    }
-}
-
-
-//__________________________
-static void Movie_Fade_Out() {
-
-    LARGE_INTEGER thisTime = { 0LL };
-    LARGE_INTEGER nextTime = { 0LL };
-    LARGE_INTEGER update_offset{ 0LL };
-    update_offset.QuadPart = p_wc3_frequency->QuadPart / 32;
-    QueryPerformanceCounter(&thisTime);
-    nextTime.QuadPart = thisTime.QuadPart + update_offset.QuadPart;
-
-    int count = 0;
-
-    while (count < 16) {
-        QueryPerformanceCounter(&thisTime);
-        if (thisTime.QuadPart >= nextTime.QuadPart) {
-            nextTime.QuadPart = thisTime.QuadPart + update_offset.QuadPart;
-            count++;
-            Set_Movie_Fade_Level(count);
-            Display_Dx_Present();
-        }
-    }
-
-    //clear movie buffers before resetting fade level.
-    if (pMovie_vlc) {
-        DrawSurface* surface = pMovie_vlc->Get_Currently_Playing_Surface();
-        if (surface)
-            surface->Clear_Texture(0);
-    }
-    if (surface_movieXAN)
-        surface_movieXAN->Clear_Texture(0);
-    //set level to 0 to end fade out.
-    Set_Movie_Fade_Level(0);
-    Display_Dx_Present();
-}
-
-
-//________________________________________________
-static void __declspec(naked) movie_fade_out(void) {
-
-    __asm {
-        pushad
-        call Movie_Fade_Out
-        popad
-
-        ret
-    }
-}
-
-
-//________________________________________________
-static BOOL Play_HD_Movie_Sequence(char* mve_path) {
-
-    Debug_Info_Movie("Play_HD_Movie_Sequence: main_path: %s", mve_path);
-    Debug_Info_Movie("Play_HD_Movie_Sequence: current_list_num: %d", *p_wc3_movie_branch_current_list_num);
-    Debug_Info_Movie("Play_HD_Movie_Sequence: first branch: %d", *p_wc3_movie_branch_list);
-
-    if (pMovie_vlc)
-        delete pMovie_vlc;
-    std::string movie_name;
-    Get_Movie_Name_From_Path(mve_path, &movie_name);
-    pMovie_vlc = new LibVlc_Movie(movie_name, p_wc3_movie_branch_list, *p_wc3_movie_branch_current_list_num);
-
-    if (pMovie_vlc->IsError()) {
-        delete pMovie_vlc;
-        pMovie_vlc = nullptr;
-        Debug_Info("Play_HD_Movie_Sequence: Failed");
-        return FALSE;
-    }
-
-    BOOL exit_flag = FALSE;
-    BOOL play_successfull = FALSE;
-    MOVIE_STATE movie_state{ 0 };
-
-    if (pMovie_vlc->Play()) {
-        play_successfull = TRUE;
-        while (!exit_flag) {
-            wc3_translate_messages_keys();
-            wc3_movie_update_joystick_double_click_exit();
-            exit_flag = wc3_movie_exit();
-
-            if (!pMovie_vlc->IsPlaying(&movie_state)) {
-                *p_wc3_movie_branch_current_list_num = movie_state.list_num;
-                if (!movie_state.hasPlayed) {
-                    Debug_Info_Movie("Play_HD_Movie_Sequence: ended BAD, branch:%d, listnum:%d", movie_state.branch, movie_state.list_num);
-                    play_successfull = FALSE;
-                }
-                else
-                    Debug_Info_Movie("Play_HD_Movie_Sequence: ended OK, branch:%d, listnum:%d", movie_state.branch, movie_state.list_num);
-                exit_flag = TRUE;
-            }
-        }
-        pMovie_vlc->Stop();
-    }
-
-    Sleep(150);//add a small delay to reduce unintended button clicks after ending a movie by double-clicking.
-
-    Debug_Info_Movie("Play_HD_Movie_Sequence: Done:%d", play_successfull);
-    return play_successfull;
-}
-
-
-//__________________________________________________
-static void Set_Conversation_Decision_Text_Colours() {
-
-    static BYTE text_colour[]{ 255, 255, 255, 80, 80, 80 };
-    Palette_Update(text_colour, 252, 2);
-}
-
-
-//______________________________________________________
-static BOOL Play_HD_Movie(char* mve_path, BYTE fade_out) {
-
-    DXGI_RATIONAL refreshRate{};
-    refreshRate.Denominator = 1;
-    refreshRate.Numerator = 3;
-    p_wc3_movie_click_time->QuadPart = p_wc3_frequency->QuadPart * refreshRate.Denominator / refreshRate.Numerator;
-    *p_wc3_movie_frame_count = 0;
-    wc3_message_check_node_add(wc3_movie_messages);
-
-    if (surface_gui)
-        surface_gui->Clear_Texture(0x00);
-
-    //set colour values used by dialogue choice text.
-    Set_Conversation_Decision_Text_Colours();
-
-    Debug_Info_Movie("Play_HD_Movie");
-    BOOL play_successfull = TRUE;
-    BOOL exit_flag = FALSE;
-    while (!exit_flag) {
-        wc3_translate_messages_keys();
-        wc3_movie_update_joystick_double_click_exit();
-        exit_flag = wc3_movie_exit();
-
-        if (Play_HD_Movie_Sequence(mve_path)) {
-            //wc3_draw_movie_frame();
-
-            wc3_handle_movie(0);
-
-            *p_wc3_movie_branch_current_list_num = 0;
-            if (p_wc3_movie_branch_list[*p_wc3_movie_branch_current_list_num] == -1)
-                exit_flag = TRUE;
-        }
-        else
-            exit_flag = TRUE, play_successfull = FALSE;
-    }
-
-    wc3_message_check_node_remove(wc3_movie_messages);
-
-    if (surface_gui)
-        surface_gui->Clear_Texture(0);
-    if (fade_out && play_successfull)
-        Movie_Fade_Out();
-
-    Debug_Info_Movie("Play_HD_Movie: Done");
-    return play_successfull;
-}
-
-
-//_______________________________________________
-static void __declspec(naked) play_hd_movie(void) {
-
-    __asm {
-        push ebx
-        push ecx
-        push edx
-        push edi
-        push esi
-        push ebp
-
-        mov edx, dword ptr ss : [esp + 0x30]//fade_out flag
-        mov ecx, dword ptr ss : [esp + 0x20]//path
-        push edx
-        push ecx
-        call Play_HD_Movie
-        add esp, 0x8
-
-        pop ebp
-        pop esi
-        pop edi
-        pop edx
-        pop ecx
-        pop ebx
-
-        cmp eax, FALSE
-        je hd_movie_error
-        //hd movie played without error.
-        add esp, 0x04 //ditch ret address for this function.
-        //The next address on the stack is the ret address for the regular movie play back function.
-        ret
-
-        hd_movie_error :
-
-        // hd movie had errors, return to wc3 play_movie function to play regular movie.
-        pop ecx  //store ret address for this function
-        sub esp, 0x17C//start prologue code for return to regular movie play back function.
-        push ecx //re-insert address for this function
-
-        ret
-    }
-}
-
-
-//Finds the number of frames between two SMPTE timecode's, these timecodes are 30 fps.
-//SMPTE timecode format hh/mm/ss/frames 30fps
-//________________________________________________________________________________________
-static LONG Get_Num_Frames_Between_Timecodes_30fps(DWORD timecode_start, DWORD timecode_end) {
-
-    DWORD temp = 0;
-    DWORD seconds_30fps = 0;
-    DWORD minuts_30fps = 0;
-    DWORD hours_30fps = 0;
-
-    DWORD start = timecode_start % 100;
-    temp = timecode_start / 100;
-
-    seconds_30fps = temp % 100;
-    seconds_30fps *= 30;
-
-    temp /= 100;
-    minuts_30fps = temp % 100;
-    minuts_30fps *= 1800;
-
-    temp /= 100;
-    hours_30fps = temp % 100;
-    hours_30fps *= 108000;
-
-
-    
-    start = start + seconds_30fps + minuts_30fps + hours_30fps;
-    //Debug_Info("Get_Time_Position: start frames: %d", start);
-
-    DWORD end = timecode_end % 100;
-    temp = timecode_end / 100;
-
-    seconds_30fps = temp % 100;
-    seconds_30fps *= 30;
-
-    temp /= 100;
-    minuts_30fps = temp % 100;
-    minuts_30fps *= 1800;
-
-    temp /= 100;
-    hours_30fps = temp % 100;
-    hours_30fps *= 108000;
-
-    end = end + seconds_30fps + minuts_30fps + hours_30fps;
-    //Debug_Info("Get_Time_Position: end frames: %d", end);
-    if (end < start)
-        return 0;
-
-    return (end - start);
-}
-
-
-// The below function makes use of data that has it's origin in inflight profile iff files. These are located on the path "\DATA\PROFILE\" within the games ".tre" files.
-// Internally they contain an inflight profile form labelled "PROF" and within that a form labelled "RADI" which contains the communication data.
-// The relevant sections are:
-//
-// "FMV " section.
-// format structure for eace listed mve file:
-// BYTE     ref;                //number reference within the MSGx sections
-// BYTE     flag;               //?
-// DWORD    tc_start_of_file;   //SMPTE time-code 30fps for the start of file.
-// char     file_name[13];      //mve movie file name
-//
-// "MSGS", "MSGG" and "MSGF" sections for each language.
-// format structure for each listed scene:
-// BYTE     sond_ref;           //reference to the played audio in the "SOND" section.
-// BYTE     fmv_ref;            //reference to a movie in the FMV " section.
-// DWORD    tc_start_30fps;     //SMPTE time-code 30fps for the start of scene.
-// DWORD    tc_length_30fps;    //SMPTE time-code 30fps for the duration of scene.
-// DWORD    neg_offset_15fps;   //subtracted from the video position offset, 15fps.
-// char     text[variable];     //subtitle for the particular language.
-//
-//___________________________________________________________
-static BOOL Play_Inflight_Movie(HUD_CLASS_01* p_hud_class_01) {
-
-    if (*pp_movie_class_inflight_01) {
-
-        if (p_hud_class_01->hud_y + p_hud_class_01->comm_y + (LONG)p_movie_class_inflight_02->height > (*pp_wc3_db_game_main)->rc.bottom - (*pp_wc3_db_game_main)->rc.top + 1) {
-            Debug_Info_Movie("Play_Inflight_Movie: Movie being drawn beyond screen height hud_y:%d, comm_y:%d, vid_height:%d, scrn_height:%d", p_hud_class_01->hud_y, p_hud_class_01->comm_y, (LONG)p_movie_class_inflight_02->height, (*pp_wc3_db_game_main)->rc.bottom - (*pp_wc3_db_game_main)->rc.top + 1);
-            LONG y_diff = (p_hud_class_01->hud_y + p_hud_class_01->comm_y + (LONG)p_movie_class_inflight_02->height) - ((*pp_wc3_db_game_main)->rc.bottom - (*pp_wc3_db_game_main)->rc.top + 1);
-            if (p_hud_class_01->comm_y >= y_diff)
-                p_hud_class_01->comm_y -= y_diff;
-            Debug_Info_Movie("Play_Inflight_Movie: comm_y adjusted:%d", p_hud_class_01->comm_y);
-        }
-
-        static LARGE_INTEGER inflight_audio_play_start_time{ 0 };
-        static LARGE_INTEGER inflight_audio_play_start_offset{ 0 };
-
-        if (!(*p_wc3_inflight_draw_buff).buff && !pMovie_vlc_Inflight) {
-            Debug_Info_Movie("Play_Inflight_Movie: timecodes: tc_start_of_file:%d, tc_start_of_scene:%d, tc_duration/appendix:%d, scene_video_neg_frame_offset:%d", (*pp_movie_class_inflight_01)->timecode_start_of_file_30fps, (*pp_movie_class_inflight_01)->timecode_start_of_scene_30fps, (*pp_movie_class_inflight_01)->timecode_duration_30fps, (*pp_movie_class_inflight_01)->video_frame_offset_15fps_neg);
-
-            //Get the offset with in video file by subtracting the start_of_scene from the start_of_file, value returned is frames at 30fps.
-            //This is on occasion used by pilot heads to jump to different scenes but more often then not they reuse the same footage with at different durations to match the audio. 
-            LONG video_start_frame = Get_Num_Frames_Between_Timecodes_30fps((*pp_movie_class_inflight_01)->timecode_start_of_file_30fps, (*pp_movie_class_inflight_01)->timecode_start_of_scene_30fps);
-            Debug_Info_Movie("Play_Inflight_Movie: Video start offset frames:%d", video_start_frame);
-            if (video_start_frame < 0)
-                video_start_frame = 0;
-
-            //Supposed to be subtracted from video_start_frame. Makes more sense to me to add it to audio offset. A value of 3 is used by many Pilot Heads, otherwise this is usually zero.
-            LONG audio_start_frame = (*pp_movie_class_inflight_01)->video_frame_offset_15fps_neg * 2;
-
-            //inflight_audio_play_start_offset.QuadPart = 0;
-            //If the start frame offset is small, delay audio start instead of moving the video position, as libvlc doesn't shift position well.
-            //Two of Rollins Victory communications have a small offset like this, Others Victory communications start a zero.
-            if (video_start_frame <= 10) {
-                audio_start_frame += video_start_frame;
-                video_start_frame = 0;
-                Debug_Info_Movie("Play_Inflight_Movie: Fixed Video start offset frames:%d", video_start_frame);
-                Debug_Info_Movie("Play_Inflight_Movie: Fixed Audio start offset frames:%d", audio_start_frame);
-            }
-
-            inflight_audio_play_start_offset.QuadPart =  static_cast<long long>(audio_start_frame)* p_wc3_frequency->QuadPart / 30;
-
-            RECT rc_dest{ p_hud_class_01->hud_x + p_hud_class_01->comm_x, p_hud_class_01->hud_y + p_hud_class_01->comm_y,  p_hud_class_01->hud_x + p_hud_class_01->comm_x + (LONG)p_movie_class_inflight_02->width - 1, p_hud_class_01->hud_y + p_hud_class_01->comm_y + (LONG)p_movie_class_inflight_02->height - 1 };
-            //Debug_Info_Movie("size:%d,%d,%d,%d", rc_dest.left, rc_dest.top, rc_dest.right, rc_dest.bottom);
-            
-            //iff files modified to play movies divided into scenes DON'T INCLUDE an extension in their file name. 
-            //if the movie file name has an extension, DON'T ADD a letter appendix by setting "appendix_offset = -1".
-            char* ext = strrchr((*pp_movie_class_inflight_01)->file_name, '.');
-            
-            if (ext) {
-                DWORD length_frames = Get_Num_Frames_Between_Timecodes_30fps(0, (*pp_movie_class_inflight_01)->timecode_duration_30fps);
-                pMovie_vlc_Inflight = new LibVlc_MovieInflight((*pp_movie_class_inflight_01)->file_name, &rc_dest, video_start_frame, length_frames);
-            }
-            else {
-                //appendix offsets for individual scene files are stored in "timecode_duration_30fps" 0-26 for letter code.
-                DWORD appendix = (*pp_movie_class_inflight_01)->timecode_duration_30fps;
-                pMovie_vlc_Inflight = new LibVlc_MovieInflight((*pp_movie_class_inflight_01)->file_name, &rc_dest, appendix);
-            }
-
-            if (!pMovie_vlc_Inflight->Play()) {
-                delete pMovie_vlc_Inflight;
-                pMovie_vlc_Inflight = nullptr;
-                Debug_Info_Movie("LibVlc_MovieInflight play failed");
-                return FALSE;
-            }
-
-            //(*p_wc3_inflight_draw_buff).buff needs to exist to evoke the inflight movie destructor function.
-            if (!(*p_wc3_inflight_draw_buff).buff) {
-                (*p_wc3_inflight_draw_buff).buff = (BYTE*)wc3_allocate_mem_main(p_movie_class_inflight_02->width * p_movie_class_inflight_02->height);
-                (*p_wc3_inflight_draw_buff).rc_inv.left = (LONG)p_movie_class_inflight_02->width - 1;
-                (*p_wc3_inflight_draw_buff).rc_inv.top = (LONG)p_movie_class_inflight_02->height - 1;
-                (*p_wc3_inflight_draw_buff).rc_inv.right = 0;
-                (*p_wc3_inflight_draw_buff).rc_inv.bottom = 0;
-
-                (*p_wc3_inflight_draw_buff_main).db = p_wc3_inflight_draw_buff;
-                (*p_wc3_inflight_draw_buff_main).rc.left = 0;
-                (*p_wc3_inflight_draw_buff_main).rc.top = 0;
-                (*p_wc3_inflight_draw_buff_main).rc.right = (LONG)p_movie_class_inflight_02->width - 1;
-                (*p_wc3_inflight_draw_buff_main).rc.bottom = (LONG)p_movie_class_inflight_02->height - 1;
-            }
-
-            inflight_audio_play_start_time.QuadPart = 0;
-            //setting timecode_start_of_scene_30fps = 1 in order allow the audio delay as timecode_start_of_scene_30fps is used as a flag to start the audio when == 0;
-            (*pp_movie_class_inflight_01)->timecode_start_of_scene_30fps = 1;
-        }
-
-        if (!pMovie_vlc_Inflight) {
-            //Debug_Info("LibVlc_MovieInflight !pMovie_vlc_Inflight failed");
-            return FALSE;
-        }
-
-        if (!pMovie_vlc_Inflight->Check_Play_Time())
-            return TRUE;
-
-        // timecode_start_of_scene_30fps is used as a flag to initiate audio playback.
-        // setting this here once playback is initialised and audio start time reached.
-        if ((*pp_movie_class_inflight_01)->timecode_start_of_scene_30fps != 0) {
-            LARGE_INTEGER inflight_video_play_time{};
-            QueryPerformanceCounter(&inflight_video_play_time);
-            if (inflight_audio_play_start_time.QuadPart == 0)
-                inflight_audio_play_start_time.QuadPart = inflight_video_play_time.QuadPart + inflight_audio_play_start_offset.QuadPart;
-            if (inflight_audio_play_start_time.QuadPart < inflight_video_play_time.QuadPart)
-                (*pp_movie_class_inflight_01)->timecode_start_of_scene_30fps = 0;
-        }
-
-        //check if video display dimensions have changed and update if necessary.
-        RECT rc_dest{ p_hud_class_01->hud_x + p_hud_class_01->comm_x, p_hud_class_01->hud_y + p_hud_class_01->comm_y,  p_hud_class_01->hud_x + p_hud_class_01->comm_x + (LONG)p_movie_class_inflight_02->width - 1, p_hud_class_01->hud_y + p_hud_class_01->comm_y + (LONG)p_movie_class_inflight_02->height - 1 };
-        pMovie_vlc_Inflight->Update_Display_Dimensions(&rc_dest);
-
-        //set the movie class pointer to null to signal to wc3 that the movie has ended.
-        if (pMovie_vlc_Inflight && pMovie_vlc_Inflight->HasPlayed()) {
-            *pp_movie_class_inflight_01 = nullptr;
-            Debug_Info_Movie("Play_Inflight_Movie: Movie Finished");
-            return TRUE;
-        }
-
-        //clear the rect on the cockpit/hud so that the movie drawn beneath will be visible.
-        wc3_copy_rect(p_wc3_inflight_draw_buff_main, 0, 0, *pp_wc3_db_game_main, p_hud_class_01->hud_x + p_hud_class_01->comm_x, p_hud_class_01->hud_y + p_hud_class_01->comm_y, (BYTE)255);
-    }
-    return TRUE;
-}
-
-
-//_____________________________________________________
-static void __declspec(naked) play_inflight_movie(void) {
-
-    __asm {
-        push ebx
-        push ecx
-        push edx
-        push edi
-        push esi
-        push ebp
-
-        push esi
-        call Play_Inflight_Movie
-        add esp, 0x4
-
-        pop ebp
-        pop esi
-        pop edi
-        pop edx
-        pop ecx
-        pop ebx
-
-        cmp eax, FALSE
-        je play_mve
-
-        pop eax //pop ret address and skip over regular mve playback code 
-        jmp p_wc3_play_inflight_hr_movie_return_address
-        
-        play_mve :
-        mov eax, p_wc3_inflight_draw_buff
-        cmp dword ptr ds:[eax], 0
-        ret
-    }
-}
-
-
-//_________________________________
-static void Inflight_Movie_Unload() {
-    //check if the finished hd movie has audio, and if so return the volume of the background music to normal setting.
-    if (pMovie_vlc_Inflight) {
-        if (pMovie_vlc_Inflight->HasAudio()) {
-            Debug_Info_Movie("Inflight_Movie_Unload HasAudio - volume returned to normal");
-            wc3_set_music_volume(p_wc3_audio_class, *p_wc3_ambient_music_volume);
-        }
-        //this needs to be set to null to remove the highlight colour from the talking ships target rect.
-        *pp_wc3_inflight_audio_ship_ptr_for_rect_colour = nullptr;
-        delete pMovie_vlc_Inflight;
-        pMovie_vlc_Inflight = nullptr;
-        Debug_Info_Movie("Inflight_Movie_Unload done");
-    }
-}
-
-
-//_______________________________________________________
-static void __declspec(naked) inflight_movie_unload(void) {
-
-    __asm {
-        pushad
-
-        call Inflight_Movie_Unload
-
-        popad
-
-        mov eax, p_wc3_inflight_draw_buff
-        cmp dword ptr ds:[eax] , ebx
-        ret
-    }
-}
-
-
-//______________________________________
-static LONG Inflight_Movie_Audio_Check() {
-    //check if the hd movie has audio, and if so lower the volume of the background music while playing.
-    if (*p_wc3_inflight_audio_ref == 0 && pMovie_vlc_Inflight && pMovie_vlc_Inflight->HasAudio()) {
-        Debug_Info_Movie("Inflight_Movie_Check_Audio HasAudio - volume lowered");
-        LONG audio_vol = *p_wc3_ambient_music_volume - 4;
-        if (audio_vol < 0)
-            audio_vol = 0;
-        wc3_set_music_volume(p_wc3_audio_class, audio_vol);
-
-        return FALSE;
-
-    }
-    return *p_wc3_inflight_audio_unk01;
-}
-
-
-//____________________________________________________________
-static void __declspec(naked) inflight_movie_audio_check(void) {
-
-    __asm {
-        push eax
-        
-        push ebx
-        push ecx
-        push edx
-        push edi
-        push esi
-        push ebp
-
-        call Inflight_Movie_Audio_Check
-
-        pop ebp
-        pop esi
-        pop edi
-        pop edx
-        pop ecx
-        pop ebx
-
-        cmp al, 0
-
-        pop eax
-        ret
-
-    }
-}
-
-
-//________________________________________________________
-static void Fix_Space_Mouse_Movement(LONG* p_x, LONG* p_y) {
-    // Maximum turn speed was being defined by the screen resolution formally 640x480.
-    // Higher resolutions were allowing for a greater mouse range and thus a higher turning speed than what was otherwise defined in game.
-
-    LONG x = *p_x;
-    LONG y = *p_y;
-
-    //keep mouse movement range between -320 and 320 to maintain similar experience as original resolution 640x480.
-    LONG range = *p_wc3_mouse_centre_y;
-    if (*p_wc3_mouse_centre_y > *p_wc3_mouse_centre_x)
-        range = *p_wc3_mouse_centre_x;
-    if (range > 320)
-        range = 320;
-
-    int dead_zone = Mouse.Deadzone();
-    float mouse_unit = 1.25f;
-
-    if (range < 320) {
-        dead_zone = range / 320 * dead_zone;
-        mouse_unit = (float)range / 256;
-    }
-
-
-    //apply a small dead zone (320 / 32 = 10).
-    if (x < dead_zone && x > -dead_zone)
-        x = 0;
-    if (y < dead_zone && y > -dead_zone)
-        y = 0;
-
-    if (x > range)
-        x = range;
-    else if (x < -range)
-        x = -range;
-
-    if (y > range)
-        y = range;
-    else if (y < -range)
-        y = -range;
-
-    //convert mouse movement value to the ships axis range between -256 and 256 (320 / 256 = 1.25).
-    *p_x = (LONG)(x / mouse_unit);
-    *p_y = (LONG)(y / mouse_unit);
-}
-
-
-//__________________________________________________________
-static void __declspec(naked) fix_space_mouse_movement(void) {
-
-    __asm {
-        push esi
-        push ebp
-
-        push edi //y
-        push ecx //x
-
-        //set pointers to x and y vals on the stack
-        lea eax, dword ptr ss : [esp] //*p_x
-        lea edi, dword ptr ss : [esp + 0x4]//*p_y
-        push edi
-        push eax
-        call Fix_Space_Mouse_Movement
-        add esp, 0x8
-
-        pop ecx //x
-        pop edx //y
-
-        pop ebp
-        pop esi
-        ret
-
-    }
-}
-
-
-//_____________________________________________________
-static void __declspec(naked) update_alt_o_cursor(void) {
-    //Check if the position strored in the structure is valid and adjust if necessary.
-    //Before updating the cursor position.
-    __asm {
-        cmp dword ptr ds : [esi + 0x14], 0
-        jge check_max_x
-        mov dword ptr ds : [esi + 0x14], 0
-        jmp check_min_y
-
-        check_max_x:
-        cmp dword ptr ds : [esi + 0x14] , GUI_WIDTH
-        jl check_min_y
-        mov dword ptr ds : [esi + 0x14] , GUI_WIDTH-1
-        
-        check_min_y:
-        cmp dword ptr ds : [esi + 0x18], 0
-        jge check_max_y
-        mov dword ptr ds : [esi + 0x18], 0
-        jmp check_done
-
-        check_max_y :
-        cmp dword ptr ds : [esi + 0x18], GUI_HEIGHT
-        jl check_done
-        mov dword ptr ds : [esi + 0x18], GUI_HEIGHT - 1
-
-        check_done:
-        push dword ptr ds : [esi + 0x18]
-        push dword ptr ds : [esi + 0x14]
-        call Update_Cursor_Position
-        add esp, 0x8
 
         ret
     }
@@ -2643,9 +1795,54 @@ void Modifications_Space_Background_Colour() {
 }
 
 
+//_________________________________________________________
+static void Check_System_Keys(WPARAM wParam, LPARAM lParam) {
+
+    //Debug_Info("Check_System_Keys wParam%X, lParam%X", wParam, lParam);
+    if ((lParam & (1 << 29)) != 0) { //if ALT key is down.
+        if ((lParam & (1 << 31)) != 0) {//if key is down
+            if (wParam == VK_RETURN) { //toggle windowed mode.
+                if (pMovie_vlc)
+                    pMovie_vlc->Pause(true);
+                if (pMovie_vlc_Inflight)
+                    pMovie_vlc_Inflight->Pause(true);
+                Toggle_WindowMode(*p_wc3_hWinMain);
+            }
+            else if (wParam == 'J') {//controller setup
+                if (is_cursor_clipped)
+                    ClipCursor(nullptr);
+                JoyConfig_Main();
+                if (is_cursor_clipped)
+                    ClipMouseCursor();
+ 
+            }
+        }
+    }
+}
+
+
+//_______________________________________________
+static void __declspec(naked) check_sys_key(void) {
+
+    __asm {
+        mov eax, dword ptr ss:[esp + 0x18]//lParam
+        pushad
+        push ecx
+        push eax
+        call Check_System_Keys
+        add esp, 0x8
+        popad
+
+        //insert original code
+        mov eax, ecx
+        shr eax, 0x1F
+        ret
+    }
+}
+
+
 //___________________________
 void Modifications_Display() {
-
 
     MemWrite8(0x430EC0, 0x53, 0xE9);
     FuncWrite32(0x430EC1, 0xDB335756, (DWORD)&Display_Exit);
@@ -2678,9 +1875,6 @@ void Modifications_Display() {
     MemWrite16(0x41BBD0, 0xEC81, 0xE990);
     FuncWrite32(0x41BBD2, 0x84, (DWORD)&UnlockShowSurface);
 
-    //in draw movie func, jump over direct draw stuff
-    MemWrite8(0x41B9AD, 0x74, 0xEB);
-
     //prevent direct draw - create surface func call
     MemWrite16(0x4313D0, 0xEC83, 0xC033);//xor eax, eax
     MemWrite8(0x4313D2, 0x6C, 0xC3);
@@ -2691,41 +1885,6 @@ void Modifications_Display() {
 
     //prevent direct draw - palette update func call
     MemWrite8(0x431360, 0x83, 0xC3);
-
-    //replace direct draw - draw movie frame func
-    MemWrite8(0x444850, 0x83, 0xE9);
-    FuncWrite32(0x444851, 0x565304EC, (DWORD)&DrawVideoFrame);
-
-    //Keep 320 movie width - prevent scale to 640
-    MemWrite32(0x41C3E7, 0x01, 0x0);
-
-    //in draw movie func
-    FuncReplace32(0x41BA23, 0xFFFE90F9, (DWORD)&UnlockShowMovieSurface);
-
-    //in draw movie frame func
-    // shouldnt ever be called
-   // FuncReplace32(0x41CA0A, 0xFFFE8112, (DWORD)&UnlockShowMovieSurface);
-    // shouldnt ever be called
-   // FuncReplace32(0x41CA46, 0xFFFE80D6, (DWORD)&UnlockShowMovieSurface);
-
-    //in draw movie frame func
-    FuncReplace32(0x41CAEB, 0xFFFE8031, (DWORD)&UnlockShowMovieSurface);
-    FuncReplace32(0x41CB8D, 0xFFFE7F8F, (DWORD)&UnlockShowMovieSurface);
-    
-    //for drawing subtitles - dont know much about these
-    FuncReplace32(0x41D4DB, 0xFFFE7641, (DWORD)&UnlockShowMovieSurface);
-    FuncReplace32(0x41D8F0, 0xFFFE722C, (DWORD)&UnlockShowMovieSurface);
-    FuncReplace32(0x41DA10, 0xFFFE710C, (DWORD)&UnlockShowMovieSurface);
-
-    //replace blit function for movies
-    FuncReplace32(0x4147D4, 0xFFFF10B8, (DWORD)&DXBlt_Movie);
-    FuncReplace32(0x4147EC, 0xFFFF10A0, (DWORD)&DXBlt_Movie);
-    FuncReplace32(0x414A40, 0xFFFF0E4C, (DWORD)&DXBlt_Movie);
-    FuncReplace32(0x414A58, 0xFFFF0E34, (DWORD)&DXBlt_Movie);
-
-    //replace blit function for draw choice text
-    FuncReplace32(0x414CBC, 0xFFFF0BD0, (DWORD)&DXBlt_Movie);
-    FuncReplace32(0x414CD4, 0xFFFF0BB8, (DWORD)&DXBlt_Movie);
 
     //replace space first person view setup function
     MemWrite8(0x425B40, 0x8B, 0xE9);
@@ -2782,7 +1941,7 @@ void Modifications_Display() {
     FuncWrite32(0x45C84D, 0x49F97C, (DWORD)&fix_cockpit_view_target_rect);
 
     //draw nav screen space view to 3d surface, seperate from 2d elements
-    FuncReplace32(0x445120, 0x2C, (DWORD)&fix_nav_scrn_display);
+    FuncReplace32(0x445120, 0x2C, (DWORD)&set_input_profile_nav_map_3d_draw);
 
     //set 2d surface for drawing nav screen 2d elements
     MemWrite16(0x44530A, 0x688B, 0xE890);
@@ -2811,24 +1970,12 @@ void Modifications_Display() {
     //Set space subtitle text background colour to 0. As original 255 coflicts with the mask colour being used to draw all cockpit/hud elements to a seperate surface.
     MemWrite8(0x4596A6, 0xFF, 0x00);
 
-
     //Set program to send window message to setup directx no matter if windowed or fullscreen.
     //after "-no_full_screen" check force dx setup either way
     MemWrite8(0x405013, 0x74, 0xEB);
     //recheck if "-no_full_screen" was set and set *p_wc3_is_windowed var.
     MemWrite8(0x405027, 0xA1, 0xE8);
     FuncWrite32(0x405028, 0x004A5AAC, (DWORD)&check_no_full_screen);
-
-    //replaces original function for mouse window client position with scaled gui position.
-    MemWrite8(0x483410, 0x8B, 0xE9);
-    FuncWrite32(0x483411, 0x56082444, (DWORD)&Update_Mouse_State);
-
-
-    //replaces original function for mouse window client position with scaled gui position.
-    MemWrite8(0x483350, 0x83, 0xE9);
-    FuncWrite32(0x483351, 0x54A108EC, (DWORD)&Set_Mouse_Position);
-    MemWrite8(0x483355, 0x7E, 0x90);
-    MemWrite16(0x483356, 0x004A, 0x9090);
 
     //replace the main window message checking function for greater functionality.
     MemWrite8(0x405090, 0x8B, 0xE9);
@@ -2841,21 +1988,6 @@ void Modifications_Display() {
     MemWrite16(0x41C747, 0x888A, 0xE890);
     FuncWrite32(0x41C749, 0x41C8A0, (DWORD)&winproc_movie_message_check);
 
-    //prevent setting mouse centre x and y values to 320x240.
-    MemWrite16(0x408479, 0x05C7, 0x9090);
-    MemWrite32(0x40847B, 0x4A9B78, 0x90909090);
-    MemWrite32(0x40847F, 0x0140, 0x90909090);
-    MemWrite16(0x408483, 0x05C7, 0x9090);
-    MemWrite32(0x408485, 0x4A9B98, 0x90909090);
-    MemWrite32(0x408489, 0xF0, 0x90909090);
-
-    //replace set cursor function to allow cursor to freely leave window bounds when in gui mode
-    FuncReplace32(0x458F1B, 0x017A11, (DWORD)&Update_Cursor_Position);
-
-    //in space - this moves the cursor if it strays out of client area, using ClipCursor instead.
-    MemWrite8(0x4222E9, 0xE8, 0x90);
-    MemWrite32(0x4222EA, 0x061062, 0x90909090);
-
     //in space - return un-scaled position of mouse as space view isn't scaled
     FuncReplace32(0x4222C2, 0x06112A, (DWORD)&Translate_Messages_Mouse_ClipCursor_Space);
 
@@ -2866,80 +1998,12 @@ void Modifications_Display() {
     FuncReplace32(0x40F75F, 0xFFFF8C8D, (DWORD)&overide_cursor_clipping);
     FuncReplace32(0x430087, 0xFFFD8365, (DWORD)&overide_cursor_clipping);
 
-    //ALT-O space settings screen.
-    //Jump over the code that keeps the cursor on screen.
-    MemWrite16(0x437A86, 0x7E83, 0x2EEB);
-    MemWrite16(0x437A88, 0x0014, 0x9090);
-    //update the cursor position on the  ALT-O screen.
-    FuncReplace32(0x437AD1, 0x04B87B, (DWORD)&update_alt_o_cursor);
-    //set pointer to use general mouse pointer data instead of the space flight copy which is set at a different resolution.
-    MemWrite32(0x4378BB, 0x4A9B92, (DWORD)0x4A7E5A);//p_wc3_mouse_x
-    MemWrite32(0x4378C6, 0x4A9B94, (DWORD)0x4A7E5C);//p_wc3_mouse_y
-    MemWrite32(0x4378CF, 0x4A9B90, (DWORD)0x4A7E58); //p_wc3_mouse_button
-
-    //relate the movement diamond to new space view dimensions rather than original 640x480.
-    MemWrite8(0x422277, 0xBE, 0xE8);
-    FuncWrite32(0x422278, 0x280, (DWORD)&fix_movement_diamond_x);
-    MemWrite8(0x42228A, 0xBE, 0xE8);
-    FuncWrite32(0x42228B, 0x1E0, (DWORD)&fix_movement_diamond_y);
-
     //004213D5 | .E8 3A030500   CALL DRAW_IMAGE(*dib_struct, ) ? //draw crosshairs
     //MemWrite8(0x4213D5, 0xE8, 0x90);
     //MemWrite32(0x4213D6, 0x05033A, 0x90909090);
 
-    //update mouse in space view
-    MemWrite8(0x4083DA, 0xBA, 0xE8);
-    FuncWrite32(0x4083DB, 0x4A9B90, (DWORD)&update_space_mouse);
-
     //fix control reaction speed on the nav screen.
     FuncReplace32(0x44526E, 0xFFFEB1EE, (DWORD)&nav_screen_movement_speed_fix);
-
-    // Mouse turn speed fix--------------------------
-    //"MOV EAX, ECX" to "JMP SHORT 00429E79"
-    MemWrite16(0x429E5D, 0xC18B, 0x1AEB);
-    //"MOV EAX, EDI" to "JMP SHORT 00429EA0"
-    MemWrite16(0x429E88, 0xC78B, 0x16EB);
-
-    MemWrite8(0x429EA0, 0x99, 0xE8);
-    FuncWrite32(0x429EA1, 0xD08BFBF7, (DWORD)&fix_space_mouse_movement);
-    //-----------------------------------------------
-    
-    // HD Movies-----------------------------------------------
-    FuncReplace32(0x414940, 0x765C, (DWORD)&Set_Conversation_Decision_Text_Colours);
-    //jump over other  
-    MemWrite16(0x414944, 0xE850, 0x17EB);//JMP SHORT 0041495D
-    MemWrite32(0x414946, 0xFFFFCAB6, 0x90909090);
-
-    //Light and dark offsets set to match those in wc4 for convenience.
-    //Set conversation decision text colour palette offset: Light
-    MemWrite8(0x414974, 0xA0, 0xB8);
-    MemWrite32(0x414975, 0x4AA74E, 0xFC);
-    //Set conversation decision text colour palette offset: Dark
-    MemWrite16(0x414981, 0x0D8A, 0xB990);
-    MemWrite32(0x414983, 0x4AA84E, 0xFD);
-
-    //Attempt to play HD movie
-    MemWrite16(0x41C240, 0xEC81, 0xE890);
-    FuncWrite32(0x41C242, 0x017C, (DWORD)&play_hd_movie);
-
-    //play alternate hires movies
-    FuncReplace32(0x41C59E, 0x03A1FE, (DWORD)&play_movie_sequence);
-
-    //fade out effect for movies
-    FuncReplace32(0x41C622, 0x057A, (DWORD)&movie_fade_out);
-
-    MemWrite16(0x422EA5, 0x3D83, 0xE890);
-    FuncWrite32(0x422EA7, 0x4AB318, (DWORD)&play_inflight_movie);
-    MemWrite8(0x422EAB, 0x00, 0x90);
-
-    MemWrite16(0x423085, 0x1D39, 0xE890);
-    FuncWrite32(0x423087, 0x4AB318, (DWORD)&inflight_movie_unload);
-
-    MemWrite16(0x433731, 0x3D80, 0xE890);
-    FuncWrite32(0x433733, 0x4A3338, (DWORD)&inflight_movie_audio_check);
-    MemWrite8(0x433737, 0x00, 0x90);
-    //---------------------------------------------------------
-
 
     // HD Cockpits--------------------------------------------------------
     MemWrite8(0x45288C, 0xB9, 0xE8);
@@ -2952,7 +2016,6 @@ void Modifications_Display() {
     FuncWrite32(0x422018, 0x4A2DA0, (DWORD)&check_cockpit_death);
     MemWrite8(0x42201C, 0x00, 0x90);
     //--------------------------------------------------------------------
-
 
     // Gamma Correction modifications--------------------------------------------------------------------------
     // Use a shader to set the gamma instead of altering the palette.
@@ -3023,6 +2086,37 @@ void Modifications_Display() {
     //Set the default Gamma setting to it's lowest level.
     MemWrite8(0x49F744, 0x50, 100);
     //------------------------------------------------------------------------------------------
+
+    //set input profile to space when using the flight simulator.
+    FuncReplace32(0x404949, 0x0315D3, (DWORD)&set_input_profile_space_simulator);
+    //set input profile to space when flying a mission.
+    FuncReplace32(0x404957, 0x031725, (DWORD)&set_input_profile_space_mission);
+
+    //set input profile to gui when starting exit game screen.
+    MemWrite16(0x44FF43, 0x3D80, 0xE890);
+    FuncWrite32(0x44FF45, 0x4B17E8, (DWORD)&set_input_profile_space_exit_game_start);
+    MemWrite8(0x44FF49, 0x00, 0x90);
+    //set input profile back to space when ending exit game screen.
+    MemWrite8(0x450010, 0xA2, 0xE8);
+    FuncWrite32(0x450011, 0x4B17E8, (DWORD)&set_input_profile_space_exit_game_end);
+
+    //set input profile to gui when starting pause game screen.
+    MemWrite16(0x45001F, 0x3D80, 0xE890);
+    FuncWrite32(0x450021, 0x4B17CC, (DWORD)&set_input_profile_space_pause_game_start);
+    MemWrite8(0x450025, 0x00, 0x90);
+    //set input profile back to space when ending pause game screen.
+    MemWrite8(0x450092, 0xA2, 0xE8);
+    FuncWrite32(0x450093, 0x4B17CC, (DWORD)&set_input_profile_space_pause_game_end);
+
+    //set input profile to gui when using options screen(Alt+O)
+    FuncReplace32(0x45A73E, 0xFFFDD55E, (DWORD)&options_screen_set_input_profile);
+    
+    //set input profile to gui when on the replay mission screen.
+    FuncReplace32(0x4508A2, 0xFFFDF79A, (DWORD)&replay_screen_set_input_profile);
+
+    //check for windowed mode toggle key combo(Alt+Enter) and controller setup key combo(Alt+J) in keyboard procedure.
+    MemWrite8(0x482A1D, 0x8B, 0xE8);
+    FuncWrite32(0x482A1E, 0x1FE8C1C1, (DWORD)&check_sys_key);
 }
 
 

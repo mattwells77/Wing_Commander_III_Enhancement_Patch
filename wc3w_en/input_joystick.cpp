@@ -1,6 +1,6 @@
 /*
 The MIT License (MIT)
-Copyright © 2025 Matt Wells
+Copyright © 2025-2026 Matt Wells
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this
 software and associated documentation files (the “Software”), to deal in the
@@ -22,107 +22,37 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #include "pch.h"
 
-#include "joystick.h"
-#include "joystick_config.h"
+#include "input.h"
+#include "input_config.h"
 #include "wc3w.h"
-#include "memwrite.h"
 #include "configTools.h"
 
 using namespace std;
 using namespace winrt;
 using namespace Windows::Gaming::Input;
 
+bool controller_enhancements_enabled = false;
+
 JOYSTICKS Joysticks;
 WC3_JOY_AXES wc3_joy_axes{};
 
-LONG WC3_ACTIONS_MAX = static_cast<LONG>(WC3_ACTIONS::Enemy_Taunt);
+PROFILE_TYPE current_pro_type = PROFILE_TYPE::GUI;
+PROFILE_TYPE current_pro_type_map = PROFILE_TYPE::Space;
 
-WORD WC3_ACTIONS_KEYS[][2]{
-	0x00, 0x00,		// None,
-	0x00, 0x00,		// B1_Trigger,
-	0x00, 0x00,		// B2_Modifier,
-	0x00, 0x00,		// B3_Missile,
-	0x00, 0x00,		// B4_Lock_Closest_Enemy_And_Match_Speed,
+#define WC3_ACTIONS_MAX	(static_cast<int>(WC3_ACTIONS::End)-1)
 
-	0x00, 0x48,		// Pitch_Down,
-	0x00, 0x50,		// Pitch_Up,
-	0x00, 0x4B,		// Yaw_Left,
-	0x00, 0x4D,		// Yaw_Right,
+vector<PROFILE_TYPE> profile_map_list;
 
-	0x00, 0x47,		// Pitch Down, Yaw Left,
-	0x00, 0x49,		// Pitch Down, Yaw Right,
-	0x00, 0x4F,		// Pitch Up, Yaw Left,
-	0x00, 0x51,		// Pitch Up, Yaw Right,
+int ReMap_1_list_pos = 0;
+int ReMap_2_list_pos = 0;
+int ReMap_3_list_pos = 0;
 
-	0x00, 0x52,		// Roll_Left,
-	0x00, 0x53,		// Roll_Right,
-	0x00, 0x2A,		// Double_Yaw_Pich_Roll_Rates,
-
-	0x00, 0x3A,		// Auto_slide
-	0x00, 0x35,		// Toggle_Auto_slide
-	0x00, 0x0D,		// Accelerate
-	0x00, 0x0C,		// Decelerate
-	0x00, 0x0E,		// Full_stop
-	0x00, 0x2B,		// Full_speed
-	//0x00, 0x15,		// Match_target_speed
-	0x00, 0x0F,		// Afterburner
-	0x00, 0x29,		// Toggle_Afterburner
-	0x00, 0x1E,		// Autopilot
-	0x00, 0x24,		// Jump
-	0x1D, 0x2E,		// Cloak
-	0x1D, 0x12,		// Eject
-	0x38, 0x19,		// Pause
-	//0x38, 0x2E,		// Calibrate_Joystick
-	0x38, 0x18,		// Options_Menu
-	0x00, 0x31,		// Nav_Map
-
-	0x00, 0x14,		// Cycle_targets
-	0x00, 0x13,		// Cycle_turrets
-	0x00, 0x26,		// Lock_target
-	0x1D, 0x1F,		// Toggle_Smart_Targeting
-	0x00, 0x22,		// Cycle_guns
-	0x00, 0x21,		// Full_guns
-	0x1D, 0x22,		// Synchronize_guns
-	0x1D, 0x1E,		// Toggle_Auto_Tracking
-	0x00, 0x32,		// Config_Cycle_Missile
-	0x00, 0x1B,		// Change_Missile__Increase_power_to_selected_component
-	0x00, 0x1A,		// Select_Missile__Decrease_power_to_selected_component
-	0x00, 0x30,		// Select_All_Missiles
-	//0x00, 0x39,		// Fire_guns
-	//0x00, 0x1C,		// Fire_missile
-	0x00, 0x12,		// Drop_decoy
-
-	0x00, 0x0B,		// Cycle_VDUs
-	0x00, 0x1F,		// VDU_Shield
-	0x00, 0x2E,		// VDU_Comms
-	0x00, 0x20,		// VDU_Damage
-	0x00, 0x11,		// VDU_Weapons
-	0x00, 0x19,		// VDU_Power
-	0x2A, 0x1B,		// Power_Set_Selected_Component_100
-	0x2A, 0x1A,		// Power_Reset_Components_25
-	0x1D, 0x1B,		// Lock_power_to_selected_component
-
-	0x00, 0x3B,		// View_Front
-	0x00, 0x3C,		// View_Left
-	0x00, 0x3D,		// View_Righr
-	0x00, 0x3E,		// View_Rear_Turret
-	0x1D, 0x3E,		// View_Rear_Turret_VDU
-	0x00, 0x3F,		// Camera_Chase
-	0x00, 0x40,		// Camera_Object
-	//0x00, 0x41,		// Tactical_view
-	0x00, 0x42,		// Camera_Missile
-	0x00, 0x43,		// Camera_Victim
-	0x00, 0x44,		// Camera_Track
-
-	0x1D, 0x2F,		// Disable_Video_In_Left_VDU
-
-	0x38, 0x30,		// WingMan_Break_And_Attack,
-	0x38, 0x21,		// WingMan_Form_On_Wing,
-	0x38, 0x20,		// WingMan_Request_Status,
-	0x38, 0x23,		// WingMan_Help_Me_Out,
-	0x38, 0x1E,		// WingMan_Attack_My_Target,
-	0x38, 0x14,		// Enemy_Taunt,
+struct SIMULATED_KEY_ACTION {
+	WC3_ACTIONS action;
+	LARGE_INTEGER endTime;
 };
+
+vector<SIMULATED_KEY_ACTION> simulated_keys;
 
 
 //__________________________________________________
@@ -147,65 +77,52 @@ bool Get_Joystick_Config_Path(wstring *p_ret_string) {
 }
 
 
-//______________________________________________________
-static void Simulate_Key_Pressed(WORD key_mod, WORD key) {
-	//return;
-	//Debug_Info("Simulate_Key_Pressed, key_mod:%d, key:%d", key_mod, key);
-	INPUT inputs[4] = {};
-	ZeroMemory(inputs, sizeof(inputs));
-
-	inputs[0].type = INPUT_KEYBOARD;
-	//inputs[0].ki.wVk = key_mod;
-	inputs[0].ki.wScan = key_mod;
-	inputs[0].ki.dwFlags = KEYEVENTF_SCANCODE;
-
-	inputs[1].type = INPUT_KEYBOARD;
-	//inputs[1].ki.wVk = key;
-	inputs[1].ki.wScan = key;
-	inputs[1].ki.dwFlags = KEYEVENTF_SCANCODE;
-
-	inputs[2].type = INPUT_KEYBOARD;
-	//inputs[2].ki.wVk = key;
-	inputs[2].ki.wScan = key;
-	inputs[2].ki.dwFlags = KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP;
-
-	inputs[3].type = INPUT_KEYBOARD;
-	//inputs[3].ki.wVk = key_mod;
-	inputs[3].ki.wScan = key_mod;
-	inputs[3].ki.dwFlags = KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP;
-
-	UINT num_inputs = 4;
-	INPUT* p_input = inputs;
-	if (key_mod == 0) {//don't proccess mod key if there is none.
-		num_inputs = 2;
-		p_input = &inputs[1];
-	}
-
-	UINT uSent = SendInput(num_inputs, p_input, sizeof(INPUT));
-	if (uSent != num_inputs)
-		Debug_Info_Error("Simulate_Key_Press - SendInput failed: 0x%x\n", HRESULT_FROM_WIN32(GetLastError()));
-}
-
-
-//________________________________________________
-static void Simulate_Key_Press(WC3_ACTIONS action) {
+//_________________________________________
+void Simulate_Key_Press(WC3_ACTIONS action) {
+	
 	if(JoyConfig_Refresh_CurrentAction(action, TRUE))
+		return;
+	if (JoyConfig_Refresh_CurrentAction_Mouse(action, TRUE))
 		return;
 
 	switch (action) {
 	case WC3_ACTIONS::None:
 		return;
-	case WC3_ACTIONS::B1_Trigger:
-		*p_wc3_joy_buttons |= (1 << 0);
+	case WC3_ACTIONS::ReMap_1:
+		if (!ReMap_1_list_pos) {
+			ReMap_1_list_pos = profile_map_list.size();
+			current_pro_type_map = PROFILE_TYPE::ReMap_1;
+			profile_map_list.push_back(current_pro_type_map);
+		}
+		return;
+	case WC3_ACTIONS::ReMap_2:
+		if (!ReMap_2_list_pos) {
+			ReMap_2_list_pos = profile_map_list.size();
+			current_pro_type_map = PROFILE_TYPE::ReMap_2;
+			profile_map_list.push_back(current_pro_type_map);
+		}
+		return;
+	case WC3_ACTIONS::ReMap_3:
+		if (!ReMap_3_list_pos) {
+			ReMap_3_list_pos = profile_map_list.size();
+			current_pro_type_map = PROFILE_TYPE::ReMap_3;
+			profile_map_list.push_back(current_pro_type_map);
+		}
+		return;
+
+	case WC3_ACTIONS::B1_Fire_Guns:
+		*p_wc3_joy_buttons |= 1;
+		*p_wc3_mouse_button_space |= 1;
 		return;
 	case WC3_ACTIONS::B2_Modifier:
 		*p_wc3_joy_buttons |= (1 << 1);
+		*p_wc3_mouse_button_space |= (1 << 1);
 		return;
-	case WC3_ACTIONS::B3_Missile:
-		*p_wc3_joy_buttons |= (1 << 2);
+	case WC3_ACTIONS::B1_Select:
+		*p_wc3_mouse_button |= 1;
 		return;
-	case WC3_ACTIONS::B4_Lock_Closest_Enemy_And_Match_Speed:
-		*p_wc3_joy_buttons |= (1 << 3);
+	case WC3_ACTIONS::B2_Cycle_Hotspots:
+		*p_wc3_mouse_button |= (1 << 1);
 		return;
 
 	case WC3_ACTIONS::Pitch_Down:
@@ -249,54 +166,71 @@ static void Simulate_Key_Press(WC3_ACTIONS action) {
 		wc3_joy_axes.button_mod = TRUE;
 		return;
 	default:
+		BYTE key_mod = WC3_ACTIONS_KEYS[static_cast<int>(action)][1];
+		BYTE key = WC3_ACTIONS_KEYS[static_cast<int>(action)][0];
+		if (key_mod)
+			wc3_process_key(key_mod, 0, 1);
+		wc3_process_key(key, 0, 1);
+
+		if (*p_wc3_key_pressed_character_code == 0)
+			*p_wc3_key_pressed_character_code = MapVirtualKeyA(MapVirtualKeyA(key, MAPVK_VSC_TO_VK), MAPVK_VK_TO_CHAR);
 		break;
 	}
-	WORD key_mod = WC3_ACTIONS_KEYS[static_cast<int>(action)][0];
-	WORD key = WC3_ACTIONS_KEYS[static_cast<int>(action)][1];
-
-	//Debug_Info("Simulate_Key_Press, key_mod:%d, key:%d", key_mod, key);
-	INPUT inputs[2] = { 0 };
-
-	inputs[0].type = INPUT_KEYBOARD;
-	inputs[0].ki.wScan = key_mod;
-	inputs[0].ki.dwFlags = KEYEVENTF_SCANCODE;
-
-	inputs[1].type = INPUT_KEYBOARD;
-	inputs[1].ki.wScan = key;
-	inputs[1].ki.dwFlags = KEYEVENTF_SCANCODE;
-
-	UINT num_inputs = 2;
-	INPUT* p_input = inputs;
-	if (key_mod == 0) {//don't proccess mod key if there is none.
-		num_inputs = 1;
-		p_input = &inputs[1];
-	}
-
-	UINT uSent = SendInput(num_inputs, p_input, sizeof(INPUT));
-	if (uSent != num_inputs)
-		Debug_Info_Error("Simulate_Key_Press - SendInput failed: 0x%x\n", HRESULT_FROM_WIN32(GetLastError()));
 }
 
 
-//__________________________________________________
-static void Simulate_Key_Release(WC3_ACTIONS action) {
-	if(JoyConfig_Refresh_CurrentAction(action, FALSE))
+//___________________________________________
+void Simulate_Key_Release(WC3_ACTIONS action) {
+	
+	if (JoyConfig_Refresh_CurrentAction(action, FALSE))
+		return;
+	if (JoyConfig_Refresh_CurrentAction_Mouse(action, FALSE))
 		return;
 
 	switch (action) {
 	case WC3_ACTIONS::None:
 		return;
-	case WC3_ACTIONS::B1_Trigger:
-		*p_wc3_joy_buttons &= ~(1 << 0);
+	case WC3_ACTIONS::ReMap_1:
+		profile_map_list.erase(profile_map_list.begin() + ReMap_1_list_pos);
+		current_pro_type_map = profile_map_list.back();
+		if (ReMap_2_list_pos > ReMap_1_list_pos)
+			ReMap_2_list_pos--;
+		if (ReMap_3_list_pos > ReMap_1_list_pos)
+			ReMap_3_list_pos--;
+		ReMap_1_list_pos = 0;
+		return;
+	case WC3_ACTIONS::ReMap_2:
+		profile_map_list.erase(profile_map_list.begin() + ReMap_2_list_pos);
+		current_pro_type_map = profile_map_list.back();
+		if (ReMap_1_list_pos > ReMap_2_list_pos)
+			ReMap_1_list_pos--;
+		if (ReMap_3_list_pos > ReMap_2_list_pos)
+			ReMap_3_list_pos--;
+		ReMap_2_list_pos = 0;
+		return;
+	case WC3_ACTIONS::ReMap_3:
+		profile_map_list.erase(profile_map_list.begin() + ReMap_3_list_pos);
+		current_pro_type_map = profile_map_list.back();
+		if (ReMap_1_list_pos > ReMap_3_list_pos)
+			ReMap_1_list_pos--;
+		if (ReMap_2_list_pos > ReMap_3_list_pos)
+			ReMap_2_list_pos--;
+		ReMap_3_list_pos = 0;
+		return;
+
+	case WC3_ACTIONS::B1_Fire_Guns:
+		*p_wc3_joy_buttons &= ~1;
+		*p_wc3_mouse_button_space &= ~1;
 		return;
 	case WC3_ACTIONS::B2_Modifier:
 		*p_wc3_joy_buttons &= ~(1 << 1);
+		*p_wc3_mouse_button_space &= ~(1 << 1);
 		return;
-	case WC3_ACTIONS::B3_Missile:
-		*p_wc3_joy_buttons &= ~(1 << 2);
+	case WC3_ACTIONS::B1_Select:
+		*p_wc3_mouse_button &= ~1;
 		return;
-	case WC3_ACTIONS::B4_Lock_Closest_Enemy_And_Match_Speed:
-		*p_wc3_joy_buttons &= ~(1 << 3);
+	case WC3_ACTIONS::B2_Cycle_Hotspots:
+		*p_wc3_mouse_button &= ~(1 << 1);
 		return;
 
 	case WC3_ACTIONS::Pitch_Down:
@@ -340,31 +274,63 @@ static void Simulate_Key_Release(WC3_ACTIONS action) {
 		wc3_joy_axes.button_mod = FALSE;
 		return;
 	default:
+		BYTE key_mod = WC3_ACTIONS_KEYS[static_cast<int>(action)][1];
+		BYTE key = WC3_ACTIONS_KEYS[static_cast<int>(action)][0];
+		if (key_mod)
+			wc3_process_key(key_mod, 0, 0);
+		wc3_process_key(key, 0, 0);
 		break;
 	}
+}
 
-	WORD key_mod = WC3_ACTIONS_KEYS[static_cast<int>(action)][0];
-	WORD key = WC3_ACTIONS_KEYS[static_cast<int>(action)][1];
 
-	//Debug_Info("Simulate_Key_Release, key_mod:%d, key:%d", key_mod, key);
-	INPUT inputs[2] = { 0 };
+//____________________________________
+void Check_Simulated_Key_For_Release() {
 
-	inputs[0].type = INPUT_KEYBOARD;
-	inputs[0].ki.wScan = key;
-	inputs[0].ki.dwFlags = KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP;
+	if (simulated_keys.empty())
+		return;
 
-	inputs[1].type = INPUT_KEYBOARD;
-	inputs[1].ki.wScan = key_mod;
-	inputs[1].ki.dwFlags = KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP;
+	static LARGE_INTEGER time = { 0 };
+	QueryPerformanceCounter(&time);
 
-	UINT num_inputs = 2;
-	INPUT* p_input = inputs;
-	if (key_mod == 0)//don't proccess mod key if there is none.
-		num_inputs = 1;
+	for (size_t i = 0; i < simulated_keys.size(); i++) {
+		if (simulated_keys[i].endTime.QuadPart < time.QuadPart) {
+			if (simulated_keys[i].action != WC3_ACTIONS::None)
+				Simulate_Key_Release(simulated_keys[i].action);
+			simulated_keys[i].action = WC3_ACTIONS::None;
+		}
+	}
 
-	UINT uSent = SendInput(num_inputs, p_input, sizeof(INPUT));
-	if (uSent != num_inputs)
-		Debug_Info_Error("Simulate_Key_Release - SendInput failed: 0x%x\n", HRESULT_FROM_WIN32(GetLastError()));
+	while (!simulated_keys.empty() && simulated_keys.back().action == WC3_ACTIONS::None)
+		simulated_keys.pop_back();
+}
+
+
+//_____________________________________________________________
+void Simulate_Key_Pressed(WC3_ACTIONS action, LONG duration_ms) {
+
+	if (JoyConfig_Refresh_CurrentAction(action, TRUE))
+		return;
+	if (JoyConfig_Refresh_CurrentAction_Mouse(action, TRUE))
+		return;
+
+	LONGLONG duration = (LONGLONG)duration_ms * (*p_wc3_frequency).QuadPart / 1000LL;//ms to ticks
+
+	//check if key already pressed and extend the time held if so.
+	for (size_t i = 0; i < simulated_keys.size(); i++) {
+		if (simulated_keys[i].action == action) {
+			simulated_keys[i].endTime.QuadPart += duration;
+			return;
+		}
+	}
+
+	Simulate_Key_Press(action);
+	SIMULATED_KEY_ACTION key{};
+	key.action = action;
+
+	QueryPerformanceCounter(&key.endTime);
+	key.endTime.QuadPart += duration;
+	simulated_keys.push_back(key);
 }
 
 
@@ -373,13 +339,19 @@ static void Simulate_Key_Release(WC3_ACTIONS action) {
 //________________________________________
 bool ACTION_KEY::SetButton(bool new_state) {
 
+	PROFILE_TYPE profile_type = current_pro_type;
+	if (current_pro_type == PROFILE_TYPE::Space && current_pro_type_map != PROFILE_TYPE::Space)
+		profile_type = current_pro_type_map;
+
 	if (new_state == true && pressed == false) {
-		Simulate_Key_Press(button);
+		active_profile = profile_type;//ensure this button is bound to the same profile untill it is released.
+		Simulate_Key_Press(button[static_cast<int>(active_profile)]);
 		pressed = true;
 	}
 	else if (new_state == false && pressed == true) {
-		Simulate_Key_Release(button);
+		Simulate_Key_Release(button[static_cast<int>(active_profile)]);
 		pressed = false;
+		active_profile = PROFILE_TYPE::End;
 	}
 
 	return pressed;
@@ -388,25 +360,28 @@ bool ACTION_KEY::SetButton(bool new_state) {
 
 //////////////////////////ACTION_AXIS/////////////////////////////////
 
-//__________________________________________
-void ACTION_AXIS::Set_State(double axis_val) {
+//____________________________________________________________________________
+void ACTION_AXIS::Set_State(double axis_val, bool ignore_space_remap_profiles) {
+
+	PROFILE_TYPE profile_type = current_pro_type;
+	//check the space remaps if set, when not deliberately checking the main space profile.
+	if (!ignore_space_remap_profiles) {
+		if (current_pro_type == PROFILE_TYPE::Space && current_pro_type_map != PROFILE_TYPE::Space)
+			profile_type = current_pro_type_map;
+	}
 
 	if (calibrating) {
 		if (axis_val < limits.min)
 			limits.min = axis_val;
 		if (axis_val > limits.max)
 			limits.max = axis_val;
-		//limits.size = limits.max - limits.min;
-		//current_val = (axis_val - limits.min) / limits.size;
-		if (rev_axis)
+		if (rev_axis[static_cast<int>(profile_type)])
 			axis_val = 1.0f - axis_val;
-
-		//limits.centre = (axis_val - limits.min) / (limits.max - limits.min);
 
 		current_val = axis_val;
 		return;
 	}
-	if (rev_axis)
+	if (rev_axis[static_cast<int>(profile_type)])
 		axis_val = 1.0f - axis_val;
 
 	if (axis_val > limits.max)
@@ -417,7 +392,7 @@ void ACTION_AXIS::Set_State(double axis_val) {
 	
 	double half_val = current_val / 2;
 
-	if (is_centred) {
+	if (is_centred[static_cast<int>(profile_type)]) {
 		if (axis_val > limits.centre_max)
 			current_centred_val = limits.centre_max;
 		else if (axis_val < limits.centre_min)
@@ -438,9 +413,32 @@ void ACTION_AXIS::Set_State(double axis_val) {
 
 	}
 
+	//check "axis as buttons" to ensure buttons are released if profile changes while pressed.
+	// no need to do this if "ignore_space_remap_profiles" is set, when checking space defaults.
+	if (!ignore_space_remap_profiles) {
+		PROFILE_TYPE button_profile_type = button_max.GetActiveProfile();
+		if (button_profile_type != profile_type && button_max.Is_Pressed()) {
+			if (assiged_to[static_cast<int>(button_profile_type)] == AXIS_TYPE::AsOneButton && (current_val < 0.1))
+				button_max.SetButton(false);
+			else if (assiged_to[static_cast<int>(button_profile_type)] == AXIS_TYPE::AsTwoButtons && (current_val <= 0.1))
+				button_max.SetButton(false);
+		}
+		button_profile_type = button_min.GetActiveProfile();
+		if (button_profile_type != profile_type && button_min.Is_Pressed()) {
+			if (assiged_to[static_cast<int>(button_profile_type)] == AXIS_TYPE::AsTwoButtons && (current_val >= -0.1))
+				button_min.SetButton(false);
+		}
+	}
+
 	bool new_state = false;
 
-	switch (assiged_to) {
+	switch (assiged_to[static_cast<int>(profile_type)]) {
+	case AXIS_TYPE::Pointer_X:// check if axis is assigned to Pointer X GUI.
+		wc3_joy_axes.x += current_centred_val;
+		break;
+	case AXIS_TYPE::Pointer_Y:// check if axis is assigned to Pointer Y GUI.
+		wc3_joy_axes.y += current_centred_val;
+		break;
 	case AXIS_TYPE::Yaw:// check if axis is assigned to Yaw.
 		wc3_joy_axes.x += current_centred_val;
 		break;
@@ -472,6 +470,18 @@ void ACTION_AXIS::Set_State(double axis_val) {
 		button_min.SetButton(new_state);
 		break;
 
+	case AXIS_TYPE::Pointer_Left:// check if axis is assigned to Pointer left GUI.
+		wc3_joy_axes.x -= half_val;
+		break;
+	case AXIS_TYPE::Pointer_Right:// check if axis is assigned to Pointer right GUI.
+		wc3_joy_axes.x += half_val;
+		break;
+	case AXIS_TYPE::Pointer_Up:// check if axis is assigned to Pointer up GUI.
+		wc3_joy_axes.y += half_val;
+		break;
+	case AXIS_TYPE::Pointer_Down:// check if axis is assigned to Pointer down GUI.
+		wc3_joy_axes.y -= half_val;
+		break;
 	case AXIS_TYPE::Yaw_Left:// check if axis is assigned to Yaw left.
 		wc3_joy_axes.x -= half_val;
 		break;
@@ -491,6 +501,10 @@ void ACTION_AXIS::Set_State(double axis_val) {
 		wc3_joy_axes.r += half_val;
 		break;
 	default:
+		//if axis has not been assigned, check main space profile assignment.
+		//this is done so that yaw, pitch, roll and throttle axes set in the main space profile continue to function in remaps. 
+		if (current_pro_type == PROFILE_TYPE::Space && current_pro_type != profile_type)
+			Set_State(axis_val, true);
 		break;
 	}
 }
@@ -523,15 +537,21 @@ void ACTION_AXIS::Calibrate(BOOL state) {
 //_____________________________________________
 int ACTION_SWITCH::Switch_Position(int new_pos) {
 
-	if (!action || new_pos == current_position || new_pos >= num_positions)
+	PROFILE_TYPE profile_type = current_pro_type;
+	if (current_pro_type == PROFILE_TYPE::Space && current_pro_type_map != PROFILE_TYPE::Space)
+		profile_type = current_pro_type_map;
+
+	if (!action[static_cast<int>(profile_type)] || new_pos == current_position || new_pos >= num_positions)
 		return current_position;
 	//release current button
-	if (action[current_position] != WC3_ACTIONS::None && current_position != 0)
-		Simulate_Key_Release(action[current_position]);
+	if (action[static_cast<int>(active_profile)][current_position] != WC3_ACTIONS::None && current_position != 0) {
+		Simulate_Key_Release(action[static_cast<int>(active_profile)][current_position]);
+	}
 	//press new button
-	if (action[new_pos] != WC3_ACTIONS::None && new_pos != 0)
-		Simulate_Key_Press(action[new_pos]);
-
+	if (action[static_cast<int>(profile_type)][new_pos] != WC3_ACTIONS::None && new_pos != 0) {
+		active_profile = profile_type;
+		Simulate_Key_Press(action[static_cast<int>(active_profile)][new_pos]);
+	}
 	current_position = new_pos;
 	return current_position;
 };
@@ -577,7 +597,6 @@ JOYSTICK::JOYSTICK(winrt::Windows::Gaming::Input::RawGameController const& in_ra
 
 	if (!Profile_Load())
 		Profile_Save();
-
 };
 
 
@@ -596,7 +615,7 @@ void JOYSTICK::Update() {
 	for (int i = 0; i < num_switches; i++)
 		action_switch[i].Switch_Position(static_cast<int>(switchArray[i]));
 	for (int i = 0; i < num_axes; i++)
-		action_axis[i].Set_State(axisArray[i]);
+		action_axis[i].Set_State(axisArray[i], false);
 }
 
 
@@ -640,21 +659,21 @@ BOOL JOYSTICK::Profile_Load(const wchar_t* file_path) {
 	DWORD d_data = 0;
 
 	if (_wfopen_s(&fileCache, file_path, L"rb") == 0) {
+		
 		fread(&version, sizeof(DWORD), 1, fileCache);
-		/*
-		fread(&d_data, sizeof(DWORD), 1, fileCache);
-
-		wchar_t* pNonRoamableId = new wchar_t[d_data+1] {};
-		fread(pNonRoamableId, sizeof(wchar_t), d_data, fileCache);
-		hstring hNonRoamableId = pNonRoamableId;
-		if (NonRoamableId != hNonRoamableId)
-			MessageBox(nullptr, hNonRoamableId.c_str(), NonRoamableId.c_str(), 0);
-		delete[]pNonRoamableId;
-		*/
 		if (version > JOYSTICK_PROFILE_VERSION) {
 			fclose(fileCache);
 			Debug_Info_Error("JOYSTICK::Profile_Load(), version mismatch, version:%d", version);
 			return FALSE;
+		}
+		if (version >= 3) {
+			fread(&d_data, sizeof(DWORD), 1, fileCache);
+			if (d_data != GAME_CODE) {
+				fclose(fileCache);
+				DWORD type = GAME_CODE;
+				Debug_Info_Error("JOYSTICK::Profile_Load(), type mismatch, found: %c%c%c%c, expected: %c%c%c%c", ((BYTE*)&d_data)[0], ((BYTE*)&d_data)[1], ((BYTE*)&d_data)[2], ((BYTE*)&d_data)[3], ((BYTE*)&type)[0], ((BYTE*)&type)[1], ((BYTE*)&type)[2], ((BYTE*)&type)[3]);
+				return FALSE;
+			}
 		}
 		fread(&d_data, sizeof(DWORD), 1, fileCache);
 		
@@ -669,6 +688,7 @@ BOOL JOYSTICK::Profile_Load(const wchar_t* file_path) {
 			return FALSE;
 		}
 
+		PROFILE_TYPE saved_pro_type = current_pro_type;
 		ACTION_AXIS* p_axis = nullptr;
 		AXIS_LIMITS* p_limits = nullptr;
 		ACTION_KEY* p_key = nullptr;
@@ -690,7 +710,10 @@ BOOL JOYSTICK::Profile_Load(const wchar_t* file_path) {
 			fread(&p_limits->centre_max, sizeof(p_limits->centre_max), 1, fileCache);
 			fread(&p_limits->centre_span, sizeof(p_limits->centre_span), 1, fileCache);
 
-
+			if (version >= 3)
+				current_pro_type = PROFILE_TYPE::GUI;
+			else
+				current_pro_type = PROFILE_TYPE::Space;
 			fread(&i_data, sizeof(i_data), 1, fileCache);
 			p_axis->Set_Axis_As(static_cast<AXIS_TYPE>(i_data));
 
@@ -698,14 +721,34 @@ BOOL JOYSTICK::Profile_Load(const wchar_t* file_path) {
 			p_axis->Set_Axis_Reversed(i_data);
 
 			fread(&i_data, sizeof(i_data), 1, fileCache);
-			if (i_data < 0 || i_data > WC3_ACTIONS_MAX)//insure i_data is within WC3_ACTIONS boundaries, set to "None" is not.
+			if (i_data < 0 || i_data > WC3_ACTIONS_MAX)//ensure i_data is within WC3_ACTIONS boundaries, set to "None" is not.
 				i_data = 0;
 			p_axis->Set_Button_Action_Min(static_cast<WC3_ACTIONS>(i_data));
 
 			fread(&i_data, sizeof(i_data), 1, fileCache);
-			if (i_data < 0 || i_data > WC3_ACTIONS_MAX)//insure i_data is within WC3_ACTIONS boundaries, set to "None" is not.
+			if (i_data < 0 || i_data > WC3_ACTIONS_MAX)//ensure i_data is within WC3_ACTIONS boundaries, set to "None" is not.
 				i_data = 0;
 			p_axis->Set_Button_Action_Max(static_cast<WC3_ACTIONS>(i_data));
+			if (version >= 3) {
+				for (int i = 1; i < NUM_JOY_PROFILES; i++) {
+					current_pro_type = static_cast<PROFILE_TYPE>(i);
+					fread(&i_data, sizeof(i_data), 1, fileCache);
+					p_axis->Set_Axis_As(static_cast<AXIS_TYPE>(i_data));
+
+					fread(&i_data, sizeof(i_data), 1, fileCache);
+					p_axis->Set_Axis_Reversed(i_data);
+
+					fread(&i_data, sizeof(i_data), 1, fileCache);
+					if (i_data < 0 || i_data > WC3_ACTIONS_MAX)//ensure i_data is within WC3_ACTIONS boundaries, set to "None" is not.
+						i_data = 0;
+					p_axis->Set_Button_Action_Min(static_cast<WC3_ACTIONS>(i_data));
+
+					fread(&i_data, sizeof(i_data), 1, fileCache);
+					if (i_data < 0 || i_data > WC3_ACTIONS_MAX)//ensure i_data is within WC3_ACTIONS boundaries, set to "None" is not.
+						i_data = 0;
+					p_axis->Set_Button_Action_Max(static_cast<WC3_ACTIONS>(i_data));
+				}
+			}
 		}
 
 		fread(&i_data, sizeof(i_data), 1, fileCache);
@@ -714,23 +757,48 @@ BOOL JOYSTICK::Profile_Load(const wchar_t* file_path) {
 			Debug_Info_Error("JOYSTICK::Profile_Load(), num_buttons don't match:%d", num_buttons);
 			return FALSE;
 		}
+		if (version >= 3)
+			current_pro_type = PROFILE_TYPE::GUI;
+		else
+			current_pro_type = PROFILE_TYPE::Space;
 		for (int i = 0; i < num_buttons; i++) {
 			p_key = Get_Action_Button(i);
 			if (!p_key) {
 				Debug_Info_Error("JOYSTICK::Profile_Load() FAILED!: p_key %d = null", i);
 				fclose(fileCache);
+				current_pro_type = saved_pro_type;
 				return FALSE;
 			}
 			fread(&i_data, sizeof(i_data), 1, fileCache);
-			if (i_data < 0 || i_data > WC3_ACTIONS_MAX)//insure i_data is within WC3_ACTIONS boundaries, set to "None" is not.
+			if (i_data < 0 || i_data > WC3_ACTIONS_MAX)//ensure i_data is within WC3_ACTIONS boundaries, set to "None" is not.
 				i_data = 0;
 			p_key->Set_Action(static_cast<WC3_ACTIONS>(i_data));
+		}
+		if (version >= 3) {
+			for (int i = 1; i < NUM_JOY_PROFILES; i++) {
+				current_pro_type = static_cast<PROFILE_TYPE>(i);
+				//current_pro_type = PROFILE_TYPE::Space;
+				for (int i = 0; i < num_buttons; i++) {
+					p_key = Get_Action_Button(i);
+					if (!p_key) {
+						Debug_Info_Error("JOYSTICK::Profile_Load() FAILED!: p_key %d = null", i);
+						fclose(fileCache);
+						current_pro_type = saved_pro_type;
+						return FALSE;
+					}
+					fread(&i_data, sizeof(i_data), 1, fileCache);
+					if (i_data < 0 || i_data > WC3_ACTIONS_MAX)//ensure i_data is within WC3_ACTIONS boundaries, set to "None" is not.
+						i_data = 0;
+					p_key->Set_Action(static_cast<WC3_ACTIONS>(i_data));
+				}
+			}
 		}
 
 		fread(&i_data, sizeof(i_data), 1, fileCache);
 		if (i_data != num_switches) {
 			fclose(fileCache);
 			Debug_Info_Error("JOYSTICK::Profile_Load(), num_switches don't match:%d", num_buttons);
+			current_pro_type = saved_pro_type;
 			return FALSE;
 		}
 		for (int i = 0; i < num_switches; i++) {
@@ -738,20 +806,40 @@ BOOL JOYSTICK::Profile_Load(const wchar_t* file_path) {
 			if (!p_switch) {
 				Debug_Info_Error("JOYSTICK::Profile_Load() FAILED!: p_switch %d = null", i);
 				fclose(fileCache);
+				current_pro_type = saved_pro_type;
 				return FALSE;
 			}
 
 			int num_positions = 0;
 			fread(&num_positions, sizeof(num_positions), 1, fileCache);
+
+			if (version >= 3)
+				current_pro_type = PROFILE_TYPE::GUI;
+			else
+				current_pro_type = PROFILE_TYPE::Space;
+
 			for (int i = 0; i < num_positions; i++) {
 				fread(&i_data, sizeof(i_data), 1, fileCache);
-				if (i_data < 0 || i_data > WC3_ACTIONS_MAX)//insure i_data is within WC3_ACTIONS boundaries, set to "None" is not.
+				if (i_data < 0 || i_data > WC3_ACTIONS_MAX)//ensure i_data is within WC3_ACTIONS boundaries, set to "None" is not.
 					i_data = 0;
 				p_switch->Set_Action(i, static_cast<WC3_ACTIONS>(i_data));
+			}
+			if (version >= 3) {
+				for (int i = 1; i < WC3_ACTIONS_MAX; i++) {
+					current_pro_type = static_cast<PROFILE_TYPE>(i);
+					//current_pro_type = PROFILE_TYPE::Space;
+					for (int i = 0; i < num_positions; i++) {
+						fread(&i_data, sizeof(i_data), 1, fileCache);
+						if (i_data < 0 || i_data > WC3_ACTIONS_MAX)//ensure i_data is within WC3_ACTIONS boundaries, set to "None" is not.
+							i_data = 0;
+						p_switch->Set_Action(i, static_cast<WC3_ACTIONS>(i_data));
+					}
+				}
 			}
 		}
 
 		fclose(fileCache);
+		current_pro_type = saved_pro_type;
 	}
 	else {
 		Debug_Info_Error("JOYSTICK::Profile_Load(), _wfopen_s failed: %S", file_path);
@@ -788,18 +876,22 @@ BOOL JOYSTICK::Profile_Load() {
 
 //___________________________________________________
 BOOL JOYSTICK::Profile_Save(const wchar_t* file_path) {
+
 	FILE* fileCache = nullptr;
+	DWORD profile_type = GAME_CODE;
 	DWORD version = JOYSTICK_PROFILE_VERSION;
 	int i_data = 10;
 	DWORD dw_data = 0;
 
 	if (_wfopen_s(&fileCache, file_path, L"wb") == 0) {
+		PROFILE_TYPE saved_pro_type = current_pro_type;
 		ACTION_AXIS* p_axis = nullptr;
 		AXIS_LIMITS* p_limits = nullptr;
 		ACTION_KEY* p_key = nullptr;
 		ACTION_SWITCH* p_switch = nullptr;
 
 		fwrite(&version, sizeof(DWORD), 1, fileCache);
+		fwrite(&profile_type, sizeof(DWORD), 1, fileCache);
 		//data = NonRoamableId.size();
 		//fwrite(&data, sizeof(DWORD), 1, fileCache);
 		//fwrite(NonRoamableId.c_str(), sizeof(wchar_t), NonRoamableId.size(), fileCache);
@@ -815,6 +907,7 @@ BOOL JOYSTICK::Profile_Save(const wchar_t* file_path) {
 			if (!p_axis) {
 				Debug_Info_Error("JOYSTICK::Profile_Save() FAILED!: p_axis %d = null", i);
 				fclose(fileCache);
+				current_pro_type = saved_pro_type;
 				return FALSE;
 			}
 			p_limits = p_axis->Get_Axis_Limits();
@@ -827,42 +920,54 @@ BOOL JOYSTICK::Profile_Save(const wchar_t* file_path) {
 			fwrite(&p_limits->centre_max, sizeof(p_limits->centre_max), 1, fileCache);
 			fwrite(&p_limits->centre_span, sizeof(p_limits->centre_span), 1, fileCache);
 
-			i_data = static_cast<int>(p_axis->Get_Axis_As());
-			fwrite(&i_data, sizeof(i_data), 1, fileCache);
+			for (int i = 0; i < NUM_JOY_PROFILES; i++) {
+				current_pro_type = static_cast<PROFILE_TYPE>(i);
+				i_data = static_cast<int>(p_axis->Get_Axis_As());
+				fwrite(&i_data, sizeof(i_data), 1, fileCache);
 
-			i_data = p_axis->Is_Axis_Reversed();
-			fwrite(&i_data, sizeof(i_data), 1, fileCache);
+				i_data = p_axis->Is_Axis_Reversed();
+				fwrite(&i_data, sizeof(i_data), 1, fileCache);
 
-			i_data = static_cast<int>(p_axis->Get_Button_Action_Min());
-			fwrite(&i_data, sizeof(i_data), 1, fileCache);
+				i_data = static_cast<int>(p_axis->Get_Button_Action_Min());
+				fwrite(&i_data, sizeof(i_data), 1, fileCache);
 
-			i_data = static_cast<int>(p_axis->Get_Button_Action_Max());
-			fwrite(&i_data, sizeof(i_data), 1, fileCache);
+				i_data = static_cast<int>(p_axis->Get_Button_Action_Max());
+				fwrite(&i_data, sizeof(i_data), 1, fileCache);
+			}
 		}
 
 		fwrite(&num_buttons, sizeof(num_buttons), 1, fileCache);
-		for (int i = 0; i < num_buttons; i++) {
-			p_key = Get_Action_Button(i);
-			i_data = static_cast<int>(p_key->GetAction());
-			fwrite(&i_data, sizeof(i_data), 1, fileCache);
+		
+		for (int i = 0; i < NUM_JOY_PROFILES; i++) {
+			current_pro_type = static_cast<PROFILE_TYPE>(i);
+			for (int i = 0; i < num_buttons; i++) {
+				p_key = Get_Action_Button(i);
+				i_data = static_cast<int>(p_key->GetAction());
+				fwrite(&i_data, sizeof(i_data), 1, fileCache);
+			}
 		}
-
 		fwrite(&num_switches, sizeof(num_switches), 1, fileCache);
 		for (int i = 0; i < num_switches; i++) {
 			p_switch = Get_Action_Switch(i);
 			if (!p_switch) {
 				Debug_Info_Error("JOYSTICK::Profile_Save() FAILED!: p_switch %d = null", i);
 				fclose(fileCache);
+				current_pro_type = saved_pro_type;
 				return FALSE;
 			}
 			int num_positions = p_switch->Get_Num_Positions();
 			fwrite(&num_positions, sizeof(num_positions), 1, fileCache);
-			for (int i = 0; i < num_positions; i++) {
-				i_data = static_cast<int>(p_switch->GetAction(i));
-				fwrite(&i_data, sizeof(i_data), 1, fileCache);
+
+			for (int i = 0; i < NUM_JOY_PROFILES; i++) {
+				current_pro_type = static_cast<PROFILE_TYPE>(i);
+				for (int i = 0; i < num_positions; i++) {
+					i_data = static_cast<int>(p_switch->GetAction(i));
+					fwrite(&i_data, sizeof(i_data), 1, fileCache);
+				}
 			}
 		}
 		fclose(fileCache);
+		current_pro_type = saved_pro_type;
 	}
 	else {
 		Debug_Info_Error("JOYSTICK::Profile_Save(), _wfopen_s failed: %S", file_path);
@@ -904,6 +1009,7 @@ BOOL JOYSTICK::Profile_Save() {
 void JOYSTICKS::Setup() {
 	if (setup)
 		return;
+	profile_map_list.push_back(PROFILE_TYPE::Space);
 	Set_Deadzone_Level(ConfigReadInt_InGame(L"MAIN", L"DEAD_ZONE", CONFIG_MAIN_DEAD_ZONE));
 
 	winrt::init_apartment();
@@ -1005,9 +1111,6 @@ void JOYSTICKS::Update() {
 		*p_wc3_joy_move_y = 0;
 		*p_wc3_joy_move_y_256 = 0;
 	}
-	//if (*p_wc3_joy_move_y <= deadzone && *p_wc3_joy_move_y >= -deadzone)
-	//	*p_wc3_joy_move_y = 0;
-
 
 	if (wc3_joy_axes.r < -0.5f)
 		wc3_joy_axes.r = -0.5f;
@@ -1017,10 +1120,6 @@ void JOYSTICKS::Update() {
 	*p_wc3_joy_move_r = (LONG)(512 * wc3_joy_axes.r);
 	if (*p_wc3_joy_move_r <= deadzone_256 && *p_wc3_joy_move_r >= -deadzone_256)
 		*p_wc3_joy_move_r = 0;
-	//*p_wc3_joy_move_r = (LONG)(32 * wc3_joy_axes.r);
-	//if (*p_wc3_joy_move_r <= deadzone && *p_wc3_joy_move_r >= -deadzone)
-	//	*p_wc3_joy_move_r = 0;
-
 
 	if (wc3_joy_axes.t != -1.0f) {
 		if (wc3_joy_axes.t < 0)
@@ -1088,7 +1187,7 @@ void JOYSTICKS::Centre_All() {
 				axis = joy->Get_Action_Axis(axis_num);
 				if (axis) {
 					type = axis->Get_Axis_As();
-					if (type == AXIS_TYPE::Pitch || type == AXIS_TYPE::Yaw || type == AXIS_TYPE::Roll) {
+					if (type == AXIS_TYPE::Pointer_Y || type == AXIS_TYPE::Pointer_X || type == AXIS_TYPE::Pitch || type == AXIS_TYPE::Yaw || type == AXIS_TYPE::Roll) {
 						axis->Centre();
 						//count++;
 					}
@@ -1097,157 +1196,4 @@ void JOYSTICKS::Centre_All() {
 		}
 	}
 	//Debug_Info("Centre_All_Assiged_Axes: %d axes centred", count);
-
-}
-
-
-//______________________
-static void Joy_Update() {
-
-	Joysticks.Update();
-}
-
-
-//_________________________________________________
-static void __declspec(naked) joy_update_main(void) {
-
-	__asm {
-		pushad
-		call Joy_Update
-		popad
-		ret
-	}
-}
-
-
-//____________________________________________________
-static void __declspec(naked) joy_update_buttons(void) {
-
-	__asm {
-		pushad
-		call Joy_Update
-		popad
-		ret
-	}
-}
-
-
-//___________________________________
-static void Joystick_Setup(LONG flag) {
-
-	//Debug_Info("Joystick_Setup - flag:%d", flag);
-	if (flag == -1)
-		JoyConfig_Main();
-
-}
-
-
-//___________________________________________
-static void __declspec(naked) joy_setup(void) {
-
-	__asm {
-		mov eax, dword ptr ss : [esp + 0x4]
-		push ebx
-		push ecx
-		push edx
-		push edi
-		push esi
-		push ebp
-
-		push eax
-		call Joystick_Setup
-		add esp, 0x4
-
-		pop ebp
-		pop esi
-		pop edi
-		pop edx
-		pop ecx
-		pop ebx
-
-		ret 0x4
-	}
-}
-
-
-//___________________________________________________
-static void __declspec(naked) joy_roll_variable(void) {
-	//p_wc3_joy_move_r was originaly a direction flag -1 to 1.
-	//now holds the full range of motion on the roll axis.
-	__asm {
-		mov ecx, dword ptr ds : [esi + 0x650]
-		mov edi, p_wc3_joy_move_r
-		cmp dword ptr ds : [edi] , 0
-		je exit_func
-		mov edi, dword ptr ds : [edi]
-		mov dword ptr ds : [ecx + 0x14] , edi//insert roll axis motion into the player movement structure.
-		exit_func :
-		ret
-	}
-}
-
-
-/*
-//___________________________
-void Print_Scancode(int code) {
-	Debug_Info("Key Scancode: %x", code);
-
-}
-//0048280C | .  8A9A 80214B00                MOV BL, BYTE PTR DS : [EDX + BYTE key_states[136]]
-DWORD pp_key_states = 0x4B2180;
-//___________________________________________________________________
-static void __declspec(naked) print_scancode(void) {
-	//insert the joystick message check function along with the main message check function.
-	__asm {
-		pushad
-		push edx
-		call Print_Scancode
-		add esp, 0x4
-		popad
-		mov ebx, pp_key_states
-		mov bl, byte ptr ds : [edx + ebx]
-		ret
-	}
-}
-*/
-
-//___________________________
-void Modifications_Joystick() {
-
-	MemWrite8(0x407F90, 0x8B, 0xE9);
-	FuncWrite32(0x407F91, 0x53042444, (DWORD)&joy_setup);
-
-	MemWrite8(0x482A90, 0x83, 0xE9);
-	FuncWrite32(0x482A91, 0xC93334EC, (DWORD)&joy_update_main);
-
-	MemWrite8(0x482BA0, 0x83, 0xE9);
-	FuncWrite32(0x482BA1, 0x05C634EC, (DWORD)&joy_update_buttons);
-
-	//Update_Joystick_Movement function. Calls to this function are not needed, joystick movement is updated in "joy_update_main".
-	MemWrite8(0x482DF0, 0x56, 0xC3);
-
-
-
-	// get throttle value fixes-------------
-	//skip over JOYCAPS.wCaps & JOYCAPS_HASZ
-	MemWrite16(0x42932A, 0x05F6, 0x07EB);
-
-	//skip over JOYCAPS.wZmax - JOYCAPS.wZmin
-	MemWrite16(0x42933C, 0x0D8B, 0x0CEB);
-
-	//skip over other maniputations
-	MemWrite16(0x42934F, 0x052B, 0x11EB);
-	//--------------------------------------
-	
-
-	//make the roll axis variable -------------
-	MemWrite16(0x429C41, 0x8E8B, 0xE890);
-	FuncWrite32(0x429C43, 0x0650, (DWORD)&joy_roll_variable);
-	//----------------------------------------
-	
-
-	//print scancodes
-	//MemWrite16(0x48280C, 0x9A8A, 0xE890);
-	//FuncWrite32(0x48280E, 0x4B2180, (DWORD)&print_scancode);
-
 }

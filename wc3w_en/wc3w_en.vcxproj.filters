@@ -66,10 +66,10 @@
     <ClInclude Include="shaders\compiled_h\PS_Greyscale_Tex_32.h">
       <Filter>Shaders\compiled_h</Filter>
     </ClInclude>
-    <ClInclude Include="joystick.h">
+    <ClInclude Include="input.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="joystick_config.h">
+    <ClInclude Include="input_config.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="resource.h">
@@ -125,10 +125,10 @@
     <ClCompile Include="wc3w.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="joystick.cpp">
+    <ClCompile Include="input_joystick.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="joystick_config.cpp">
+    <ClCompile Include="input_config.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Mod_ObjectRotation.cpp">
@@ -143,7 +143,22 @@
     <ClCompile Include="Mod_Music.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="mouse.cpp">
+    <ClCompile Include="input_mouse.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="input_keyboard.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Mod_Controller.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Mod_Mouse.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Mod_Movies.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Mod_Keyboard.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -23,6 +23,7 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "pch.h"
 #include "configTools.h"
 #include "version.h"
+#include "input.h"
 
 using namespace std;
 
@@ -170,15 +171,39 @@ static void ConfigCreate() {
 
 
     ConfigWriteInt(L"MOUSE", L"DEAD_ZONE", CONFIG_MOUSE_DEAD_ZONE);
-    ConfigWriteInt(L"MOUSE", L"BUTTON_01", CONFIG_MOUSE_BUTTON_01);
-    ConfigWriteInt(L"MOUSE", L"BUTTON_02", CONFIG_MOUSE_BUTTON_02);
-    ConfigWriteInt(L"MOUSE", L"BUTTON_03", CONFIG_MOUSE_BUTTON_03);
-    ConfigWriteInt(L"MOUSE", L"BUTTON_04", CONFIG_MOUSE_BUTTON_04);
-    ConfigWriteInt(L"MOUSE", L"BUTTON_05", CONFIG_MOUSE_BUTTON_05);
-    ConfigWriteInt(L"MOUSE", L"MOUSE_WHEEL_UP", CONFIG_MOUSE_WHEEL_UP);
-    ConfigWriteInt(L"MOUSE", L"MOUSE_WHEEL_DOWN", CONFIG_MOUSE_WHEEL_DOWN);
-    ConfigWriteInt(L"MOUSE", L"MOUSE_WHEEL_LEFT", CONFIG_MOUSE_WHEEL_LEFT);
-    ConfigWriteInt(L"MOUSE", L"MOUSE_WHEEL_RIGHT", CONFIG_MOUSE_WHEEL_RIGHT);
+    wchar_t profile_name[16];
+    for (int i = 0; i < NUM_JOY_PROFILES; i++) {
+        switch (i) {
+        case 0:
+            swprintf(profile_name, _countof(profile_name), L"MOUSE_GUI");
+            ConfigWriteInt(profile_name, L"BUTTON_01", static_cast<int>(WC3_ACTIONS::B1_Select));
+            ConfigWriteInt(profile_name, L"BUTTON_02", static_cast<int>(WC3_ACTIONS::B2_Cycle_Hotspots));
+            break;
+        case 1:
+            current_pro_type = PROFILE_TYPE::NAV;
+            swprintf(profile_name, _countof(profile_name), L"MOUSE_NAV");
+            ConfigWriteInt(profile_name, L"BUTTON_01", static_cast<int>(WC3_ACTIONS::NAV_Cycle_Points));
+            ConfigWriteInt(profile_name, L"BUTTON_02", static_cast<int>(WC3_ACTIONS::B2_Modifier));
+            break;
+        case 2:
+            swprintf(profile_name, _countof(profile_name), L"MOUSE_SPACE");
+            ConfigWriteInt(profile_name, L"BUTTON_01", static_cast<int>(WC3_ACTIONS::B1_Fire_Guns));
+            ConfigWriteInt(profile_name, L"BUTTON_02", static_cast<int>(WC3_ACTIONS::B2_Modifier));
+            break;
+        default:
+            swprintf(profile_name, _countof(profile_name), L"MOUSE_REMAP_%02d", i - 1);
+            ConfigWriteInt(profile_name, L"BUTTON_01", static_cast<int>(WC3_ACTIONS::None));
+            ConfigWriteInt(profile_name, L"BUTTON_02", static_cast<int>(WC3_ACTIONS::None));
+            break;
+        }
+        ConfigWriteInt(profile_name, L"BUTTON_03", static_cast<int>(WC3_ACTIONS::None));
+        ConfigWriteInt(profile_name, L"BUTTON_04", static_cast<int>(WC3_ACTIONS::None));
+        ConfigWriteInt(profile_name, L"BUTTON_05", static_cast<int>(WC3_ACTIONS::None));
+        ConfigWriteInt(profile_name, L"MOUSE_WHEEL_UP", static_cast<int>(WC3_ACTIONS::None));
+        ConfigWriteInt(profile_name, L"MOUSE_WHEEL_DOWN", static_cast<int>(WC3_ACTIONS::None));
+        ConfigWriteInt(profile_name, L"MOUSE_WHEEL_LEFT", static_cast<int>(WC3_ACTIONS::None));
+        ConfigWriteInt(profile_name, L"MOUSE_WHEEL_RIGHT", static_cast<int>(WC3_ACTIONS::None));
+    }
 
 
     //ConfigWriteInt(L"DEBUG", L"ERRORS", 1);

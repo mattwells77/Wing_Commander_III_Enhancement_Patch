@@ -341,6 +341,7 @@ extern LONG* p_wc3_current_room_id;
 extern LONG* p_wc3_current_scene_id;
 
 extern DWORD* p_wc3_key_scancode;
+extern DWORD* p_wc3_key_modifier;
 
 extern int8_t* p_wc3_vdu_focus;//-1=none, 0=sheilds, 1=, 2=, 3=weapons, 4=comms, 5=damage, 6=power, 7=, 8=rear_view, 9=.
 extern LONG* p_wc3_vdu_comms_list_size;
@@ -356,9 +357,16 @@ extern BYTE* p_wc3_pal_offsets_07;
 extern BYTE* p_wc3_pal_offsets_08;
 
 
+extern BYTE* p_wc3_keyboard_state_main;
+extern BYTE* p_wc3_key_pressed_character_code;
+
+extern BYTE* p_wc3_space_exit_game_option_flag;
+extern BYTE* p_wc3_space_pause_game_option_flag;
+
 extern void(__thiscall* wc3_draw_hud_targeting_elements)(void*);
 extern void(__thiscall* wc3_draw_hud_view_text)(void*);
 
+extern void(__thiscall* wc3_options_screen)(void*);
 extern void(__thiscall* wc3_nav_screen)(void*);
 
 extern void** pp_wc3_music_thread_class;
@@ -408,3 +416,14 @@ extern void(*wc3_error_message_box)(const char* format, ...);
 extern void(*wc3_draw_text_to_buff)(DRAW_BUFFER* p_toBuff, DWORD x, DWORD y, DWORD unk1, char* text_buff, BYTE* p_pal_offsets);
 
 extern LONG (*wc3_clear_buffer_colour)(DRAW_BUFFER_MAIN* p_Buff, BYTE pal_offset);
+
+extern void(*wc3_process_key)(BYTE scan_code, BYTE is_ext_key, BYTE state);
+
+extern void(*wc3_space_simulator)();
+extern void(*wc3_space_mission)();
+
+extern void(__thiscall* wc3_replay_screen_main)(void*);
+
+extern void(*wc3_update_joystick)();
+extern void(*wc3_proccess_joystick_data)();
+extern void(__stdcall* wc3_setup_joystick)(LONG flag);
