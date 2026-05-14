@@ -860,6 +860,78 @@ void Modifications_Replace_Alt_X_Msg_With_Room_Scene_ID() {
 }
 
 
+//_______________________________________
+static void Set_Subtitles_Flag(LONG flag) {
+
+    *p_wc3_subtitles_enabled = flag;
+    ConfigWriteInt_InGame(L"MAIN", L"ENABLE_SUBTITLES", *p_wc3_subtitles_enabled);
+}
+
+
+//____________________________________________________
+static void __declspec(naked) set_subtitles_flag(void) {
+
+    __asm {
+        pushad
+        push eax
+        call Set_Subtitles_Flag
+        add esp, 0x4
+        popad
+        ret
+    }
+}
+
+
+//____________________________________
+static void Set_Language_Ref(LONG ref) {
+
+    *p_wc3_language_ref = ref;
+    ConfigWriteInt_InGame(L"MAIN", L"LANGUAGE_REF", *p_wc3_language_ref);
+}
+
+
+//____________________________________________________
+static void __declspec(naked) set_language_ref_1(void) {
+
+    __asm {
+        pushad
+        push eax
+        call Set_Language_Ref
+        add esp, 0x4
+        popad
+        ret
+    }
+}
+
+
+//____________________________________________________
+static void __declspec(naked) set_language_ref_2(void) {
+
+    __asm {
+        pushad
+        push 2
+        call Set_Language_Ref
+        add esp, 0x4
+        popad
+        ret
+    }
+}
+
+
+//____________________________________________________
+static void __declspec(naked) set_language_ref_3(void) {
+
+    __asm {
+        pushad
+        push ebx
+        call Set_Language_Ref
+        add esp, 0x4
+        popad
+        ret
+    }
+}
+
+
 //_______________________________
 void Modifications_GeneralFixes() {
 
@@ -960,4 +1032,31 @@ void Modifications_GeneralFixes() {
     //Increase the max number of watchers at a nav point. (max number of active ships and turrets)
     MemWrite8(0x48C9E5, 0x89, 0xE8);
     FuncWrite32(0x48C9E6, 0xF18B0441, (DWORD)&num_watchers_overide);
+
+    //Update language ref stored in ini.-------------------------
+    //update language from loading game.
+    MemWrite8(0x4092D7, 0xA3, 0xE8);
+    FuncWrite32(0x4092D8, 0x4A9720, (DWORD)&set_language_ref_1);
+
+    //update language when changing in game options.
+    MemWrite8(0x41661C, 0xA3, 0xE8);
+    FuncWrite32(0x41661D, 0x4A9720, (DWORD)&set_language_ref_1);
+
+    MemWrite16(0x416667, 0x05C7, 0xE890);
+    FuncWrite32(0x416669, 0x4A9720, (DWORD)&set_language_ref_2);
+    MemWrite32(0x41666D, 0x02, 0x90909090);
+
+    MemWrite16(0x4166BE, 0x1D89, 0xE890);
+    FuncWrite32(0x4166C0, 0x4A9720, (DWORD)&set_language_ref_3);
+    //-----------------------------------------------------------
+
+    //Update subtitle flag stored in ini.------------------------
+    //update subtitle ref when loading game.
+    MemWrite8(0x4092CD, 0xA3, 0xE8);
+    FuncWrite32(0x4092CE, 0x4A0FDC, (DWORD)&set_subtitles_flag);
+
+    //update subtitle ref when changing in game options.
+    MemWrite8(0x41660A, 0xA3, 0xE8);
+    FuncWrite32(0x41660B, 0x4A0FDC, (DWORD)&set_subtitles_flag);
+    //-----------------------------------------------------------
 }

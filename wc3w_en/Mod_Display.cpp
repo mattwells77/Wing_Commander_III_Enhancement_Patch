@@ -225,6 +225,16 @@ static BOOL Window_Setup(HWND hwnd) {
     
     Check_Command_Line_Overrides();
 
+    if (*p_wc3_subtitles_enabled == 0) {
+        if (ConfigReadInt_InGame(L"MAIN", L"ENABLE_SUBTITLES", CONFIG_MAIN_ENABLE_SUBTITLES))
+            *p_wc3_subtitles_enabled = 1;
+    }
+    if (*p_wc3_language_ref == 0) {
+        int lang = ConfigReadInt_InGame(L"MAIN", L"LANGUAGE_REF", CONFIG_MAIN_LANGUAGE_REF);
+        if (lang >= 0 && lang < 3)
+            *p_wc3_language_ref = lang;
+    }
+
     if (!*p_wc3_is_windowed) {
         if (ConfigReadInt_InGame(L"MAIN", L"WINDOWED", CONFIG_MAIN_WINDOWED))
             *p_wc3_is_windowed = true;
