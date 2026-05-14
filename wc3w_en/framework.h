@@ -57,6 +57,8 @@ processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 #include <Shlobj.h>
 #include <commctrl.h>
 
+#include <shellapi.h>
+
 // Link library dependencies
 #pragma comment(lib, "Shlwapi.lib")
 

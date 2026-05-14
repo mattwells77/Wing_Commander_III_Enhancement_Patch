@@ -223,6 +223,8 @@ static bool Display_Exit() {
 //_________________________________
 static BOOL Window_Setup(HWND hwnd) {
     
+    Check_Command_Line_Overrides();
+
     if (!*p_wc3_is_windowed) {
         if (ConfigReadInt_InGame(L"MAIN", L"WINDOWED", CONFIG_MAIN_WINDOWED))
             *p_wc3_is_windowed = true;

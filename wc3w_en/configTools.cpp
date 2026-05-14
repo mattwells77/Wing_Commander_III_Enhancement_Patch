@@ -27,6 +27,32 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 using namespace std;
 
+wstring movies_path_override;
+wstring movies_ext_override;
+
+
+//_________________________________
+void Check_Command_Line_Overrides() {
+
+    LPWSTR* szArglist;
+    int nArgs;
+
+    szArglist = CommandLineToArgvW(GetCommandLineW(), &nArgs);
+    if (szArglist == nullptr) {
+        Debug_Info_Error("CommandLineToArgvW failed.");
+        return;
+    }
+    
+    for (int i = 1; i < nArgs; i++) {
+        //Debug_Info("%d: %S", i, szArglist[i]);
+        if (wcsncmp(szArglist[i], L"/movies_path=", 13) == 0)
+            movies_path_override.assign(szArglist[i] + 13);
+        else if (wcsncmp(szArglist[i], L"/movies_ext=", 12) == 0)
+            movies_ext_override.assign(szArglist[i] + 12);
+    }
+    LocalFree(szArglist);
+}
+
 
 //_______________________________
 static BOOL IsAppInProgramFiles() {
