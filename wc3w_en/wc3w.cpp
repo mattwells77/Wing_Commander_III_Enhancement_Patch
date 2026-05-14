@@ -227,7 +227,7 @@ void(*wc3_deallocate_mem_main)(void*) = nullptr;
 
 void(*wc3_error_message_box)(const char* format, ...) = nullptr;
 
-void(*wc3_draw_text_to_buff)(DRAW_BUFFER* p_toBuff, DWORD x, DWORD y, DWORD unk1, char* text_buff, BYTE* p_pal_offsets) = nullptr;
+void(*wc3_draw_text_to_buff)(DRAW_BUFFER_MAIN* p_toBuff, DWORD x, DWORD y, DWORD unk1, char* text_buff, BYTE* p_pal_offsets) = nullptr;
 
 void(*wc3_draw_movie_frame)() = nullptr;
 
@@ -441,7 +441,7 @@ void WC3W_Setup() {
 
     wc3_error_message_box = (void(*)(const char*, ...))0x4702B0;
 
-    wc3_draw_text_to_buff = (void(*)(DRAW_BUFFER*, DWORD, DWORD, DWORD, char*, BYTE*)) 0x4753E1;
+    wc3_draw_text_to_buff = (void(*)(DRAW_BUFFER_MAIN*, DWORD, DWORD, DWORD, char*, BYTE*)) 0x4753E1;
 
     wc3_clear_buffer_colour = (LONG(*)(DRAW_BUFFER_MAIN*, BYTE))0x4735A8;
 

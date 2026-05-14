@@ -687,7 +687,7 @@ static void Debug_Info_WC3(const char* format, ...) {
 
 /*
 //_______________________________________________________________________________________________________________
-static void Display_Debug_Info_1(DRAW_BUFFER* p_toBuff, DWORD x, DWORD y, DWORD unk1, char* text_buff, BYTE* p_pal_offsets) {
+static void Display_Debug_Info_1(DRAW_BUFFER_MAIN* p_toBuff, DWORD x, DWORD y, DWORD unk1, char* text_buff, BYTE* p_pal_offsets) {
 
     wc3_draw_text_to_buff(p_toBuff, x, y, unk1, text_buff, p_pal_offsets);
     y += 10;
@@ -846,7 +846,7 @@ static void __declspec(naked) num_watchers_overide(void) {
 
 
 //____________________________________________________________________________________________________________________________________
-static void Display_Alt_X_Msg_Room_Scene_ID(DRAW_BUFFER* p_toBuff, DWORD x, DWORD y, DWORD unk1, char* text_buff, BYTE* p_pal_offsets) {
+static void Display_Alt_X_Msg_Room_Scene_ID(DRAW_BUFFER_MAIN* p_toBuff, DWORD x, DWORD y, DWORD unk1, char* text_buff, BYTE* p_pal_offsets) {
 
     sprintf_s(text_buff, 240, "Room: %d, Scene: %d", *p_wc3_current_room_id, *p_wc3_current_scene_id);
     wc3_draw_text_to_buff(p_toBuff, x, y, unk1, text_buff, p_pal_offsets);
