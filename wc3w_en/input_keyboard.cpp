@@ -159,7 +159,7 @@ BYTE WC3_ACTIONS_KEYS[][2]{
 //______________________________________
 void Set_Key_State(BYTE key, BYTE state) {
 
-	Debug_Info("Set_Key_State %X, %X", key, state);
+	//Debug_Info("Set_Key_State %X, %X", key, state);
 	keyboard_state[key] = state;
 	keyboard_state_once[key] = state;
 }

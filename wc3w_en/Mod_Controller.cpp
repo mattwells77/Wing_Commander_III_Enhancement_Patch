@@ -206,7 +206,7 @@ void Modifications_Joystick() {
 
 	//disable calls to update joystick buttons, for movies. This is now done in "joy_update_main".  
 	MemWrite8(0x482BA0, 0x83, 0xC3);
-	MemWrite16(0x482BA2, 0x34EC, 0x9090);
+	MemWrite16(0x482BA1, 0x34EC, 0x9090);
 
 	//disable double-click check for movies. This is now done in "Check_Mouse_Double_Click".
 	MemWrite8(0x41BCE0, 0x83, 0xC3);
