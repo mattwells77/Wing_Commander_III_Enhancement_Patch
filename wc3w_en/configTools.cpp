@@ -142,10 +142,10 @@ const wchar_t* GetAppDataPath() {
 //_______________________________
 static void ConfigCreate_InGame() {
 
-    ConfigWriteInt_InGame(L"MAIN", L"WINDOWED", CONFIG_MAIN_WINDOWED);
+    //ConfigWriteInt_InGame(L"MAIN", L"WINDOWED", CONFIG_MAIN_WINDOWED);
     ConfigWriteInt_InGame(L"MAIN", L"WIN_DATA", CONFIG_MAIN_WIN_DATA);
 
-    ConfigWriteInt_InGame(L"MAIN", L"DEAD_ZONE", CONFIG_MAIN_DEAD_ZONE);
+    //ConfigWriteInt_InGame(L"MAIN", L"DEAD_ZONE", CONFIG_MAIN_DEAD_ZONE);
     ConfigWriteInt_InGame(L"MAIN", L"GAMMA_LEVEL", CONFIG_MAIN_GAMMA_LEVEL);
 }
 

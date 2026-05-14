@@ -80,9 +80,9 @@ bool Get_Joystick_Config_Path(wstring *p_ret_string) {
 //_________________________________________
 void Simulate_Key_Press(WC3_ACTIONS action) {
 	
-	if(JoyConfig_Refresh_CurrentAction(action, TRUE))
-		return;
-	if (JoyConfig_Refresh_CurrentAction_Mouse(action, TRUE))
+	BOOL is_config = JoyConfig_Refresh_CurrentAction(action, TRUE);
+	is_config |= JoyConfig_Refresh_CurrentAction_Mouse(action, TRUE);
+	if (is_config)
 		return;
 
 	switch (action) {
@@ -182,9 +182,9 @@ void Simulate_Key_Press(WC3_ACTIONS action) {
 //___________________________________________
 void Simulate_Key_Release(WC3_ACTIONS action) {
 	
-	if (JoyConfig_Refresh_CurrentAction(action, FALSE))
-		return;
-	if (JoyConfig_Refresh_CurrentAction_Mouse(action, FALSE))
+	BOOL is_config = JoyConfig_Refresh_CurrentAction(action, FALSE);
+	is_config |= JoyConfig_Refresh_CurrentAction_Mouse(action, FALSE);
+	if (is_config)
 		return;
 
 	switch (action) {
@@ -309,9 +309,9 @@ void Check_Simulated_Key_For_Release() {
 //_____________________________________________________________
 void Simulate_Key_Pressed(WC3_ACTIONS action, LONG duration_ms) {
 
-	if (JoyConfig_Refresh_CurrentAction(action, TRUE))
-		return;
-	if (JoyConfig_Refresh_CurrentAction_Mouse(action, TRUE))
+	BOOL is_config = JoyConfig_Refresh_CurrentAction(action, TRUE);
+	is_config |= JoyConfig_Refresh_CurrentAction_Mouse(action, TRUE);
+	if (is_config)
 		return;
 
 	LONGLONG duration = (LONGLONG)duration_ms * (*p_wc3_frequency).QuadPart / 1000LL;//ms to ticks
