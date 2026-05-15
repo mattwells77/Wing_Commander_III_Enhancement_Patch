@@ -719,6 +719,9 @@ static void Movie_Draw_Choice_Text(DRAW_BUFFER_MAIN* p_toBuff, LONG x, LONG y, D
     if (surface_gui == nullptr)
         return;
 
+    LONG surface_width = (LONG)surface_gui->GetWidth();
+    LONG surface_height = (LONG)surface_gui->GetHeight();
+
     bool is_top = false;
     if (y < 240)
         is_top = true;
@@ -733,42 +736,56 @@ static void Movie_Draw_Choice_Text(DRAW_BUFFER_MAIN* p_toBuff, LONG x, LONG y, D
 
     LONG text_y = 0;
     LONG text_height = 16;
-    LONG black_bar_height = (LONG)((480.0f / clientHeight) * ((clientHeight - movie_height) / 2));
+    LONG black_bar_height = (LONG)(((float)surface_height / clientHeight) * ((clientHeight - movie_height) / 2));
 
     if (black_bar_height >= text_height) {
         text_y = (clientHeight - movie_height) / 4;
-        text_y = (480 * text_y) / clientHeight;
+        text_y = (surface_height * text_y) / clientHeight;
 
         if (is_top)//draw text in the black area above the movie if there is room.
             text_y -= text_height / 2;
         else//draw text in the black area under the movie if there is room.
-            text_y = 480 - text_y - text_height / 2;
+            text_y = surface_height - text_y - text_height / 2;
     }
     else {
         if (is_top)//otherwise draw text over the movie at the top rather than overlapping the black bar.
             text_y = black_bar_height;
         else//otherwise draw text over the movie at the bottom rather than overlapping the black bar.
-            text_y = 480 - black_bar_height - text_height;
+            text_y = surface_height - black_bar_height - text_height;
     }
 
     if (text_y < 0)
         text_y = 0;
-    else if (text_y > 480 - text_height)
-        text_y = 480 - text_height;
-
-    BYTE* pSurface_bak = p_toBuff->db->buff;
+    else if (text_y > surface_height - text_height)
+        text_y = surface_height - text_height;
 
     BYTE* pSurface = nullptr;
+    LONG surface_pitch = 0;
 
-    if (surface_gui->Lock((VOID**)&pSurface, p_wc3_main_surface_pitch) != S_OK)
+    if (surface_gui->Lock((VOID**)&pSurface, &surface_pitch) != S_OK)
         return;
 
+    DRAW_BUFFER db_3d_backup = { 0 };
+    db_3d_backup.rc_inv.left = p_toBuff->db->rc_inv.left;
+    db_3d_backup.rc_inv.top = p_toBuff->db->rc_inv.top;
+    db_3d_backup.rc_inv.right = p_toBuff->rc.right;
+    db_3d_backup.rc_inv.bottom = p_toBuff->rc.bottom;
+    db_3d_backup.buff = p_toBuff->db->buff;
+
     p_toBuff->db->buff = pSurface;
+    p_toBuff->rc.right = surface_width - 1;
+    p_toBuff->rc.bottom = surface_height - 1;
+    p_toBuff->db->rc_inv.left = surface_pitch - 1;
+    p_toBuff->db->rc_inv.top = surface_height - 1;
+
     wc3_draw_text_to_buff(p_toBuff, x, text_y, unk1, text_buff, p_pal_offsets);
     surface_gui->Unlock();
 
-    p_toBuff->db->buff = pSurface_bak;
-    Display_Dx_Present(PRESENT_TYPE::movie);
+    p_toBuff->db->rc_inv.left = db_3d_backup.rc_inv.left;
+    p_toBuff->db->rc_inv.top = db_3d_backup.rc_inv.top;
+    p_toBuff->rc.right = db_3d_backup.rc_inv.right;
+    p_toBuff->rc.bottom = db_3d_backup.rc_inv.bottom;
+    p_toBuff->db->buff = db_3d_backup.buff;
 }
 
 
