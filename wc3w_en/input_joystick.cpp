@@ -825,7 +825,7 @@ BOOL JOYSTICK::Profile_Load(const wchar_t* file_path) {
 				p_switch->Set_Action(i, static_cast<WC3_ACTIONS>(i_data));
 			}
 			if (version >= 3) {
-				for (int i = 1; i < WC3_ACTIONS_MAX; i++) {
+				for (int i = 1; i < NUM_JOY_PROFILES; i++) {
 					current_pro_type = static_cast<PROFILE_TYPE>(i);
 					//current_pro_type = PROFILE_TYPE::Space;
 					for (int i = 0; i < num_positions; i++) {
