@@ -452,6 +452,7 @@ public:
 	winrt::hstring Get_DisplayName() const { return DisplayName; };
 	BOOL Profile_Load();
 	BOOL Profile_Load(const wchar_t* file_path);
+	BOOL Profile_Load_First_Preset();
 	BOOL Profile_Save();
 	BOOL Profile_Save(const wchar_t* file_path);
 	ACTION_AXIS* Get_Action_Axis(int axis_num) {

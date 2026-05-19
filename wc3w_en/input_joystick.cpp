@@ -595,8 +595,10 @@ JOYSTICK::JOYSTICK(winrt::Windows::Gaming::Input::RawGameController const& in_ra
 		action_switch[i].Set_Num_Positions(num_switch_positions);
 	}
 
-	if (!Profile_Load())
+	if (!Profile_Load()) {
+		Profile_Load_First_Preset();
 		Profile_Save();
+	}
 };
 
 
@@ -872,6 +874,49 @@ BOOL JOYSTICK::Profile_Load() {
 	Debug_Info_Joy("Profile_Load path: %S", path.c_str());
 	return Profile_Load(path.c_str());
 };
+
+
+//________________________________________
+BOOL JOYSTICK::Profile_Load_First_Preset() {
+
+	wstring search_path;
+	if (!Get_Joystick_Config_Path(&search_path))
+		return FALSE;
+
+	search_path.append(L"\\presets");
+	if (GetFileAttributes(search_path.c_str()) == INVALID_FILE_ATTRIBUTES)
+		return FALSE;
+
+	search_path.append(L"\\");
+
+	wchar_t vid_pid_name[10]{ 0 };
+	swprintf_s(vid_pid_name, L"%04x%04x_", Get_VID(), Get_PID());
+
+	//wstring file_path = search_path;
+
+	search_path.append(vid_pid_name);
+	search_path.append(L"*.joy");
+
+
+	WIN32_FIND_DATA FindFileData{};
+	HANDLE hFind = hFind = FindFirstFile(search_path.c_str(), &FindFileData);
+	FindClose(hFind);
+	if (hFind == INVALID_HANDLE_VALUE)
+		return FALSE;
+
+	wstring file_path;
+	if (!Get_Joystick_Config_Path(&file_path))
+		return FALSE;
+
+	file_path.append(L"\\presets\\");
+	file_path.append(FindFileData.cFileName);
+
+	if (Profile_Load(file_path.c_str())) {
+		Debug_Info_Joy("Profile_Load_First_Preset: %S", file_path.c_str());
+		return TRUE;
+	}
+	return FALSE;
+}
 
 
 //___________________________________________________
