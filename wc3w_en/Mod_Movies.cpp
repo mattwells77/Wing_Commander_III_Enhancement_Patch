@@ -764,28 +764,18 @@ static void Movie_Draw_Choice_Text(DRAW_BUFFER_MAIN* p_toBuff, LONG x, LONG y, D
 
     if (surface_gui->Lock((VOID**)&pSurface, &surface_pitch) != S_OK)
         return;
+    
+    DRAW_BUFFER db{
+        pSurface,
+        surface_pitch - 1, surface_height - 1,0,0
+    };
+    DRAW_BUFFER_MAIN dbm{
+        &db,
+        0,0,surface_width - 1,surface_height - 1
+    };
 
-    DRAW_BUFFER db_3d_backup = { 0 };
-    db_3d_backup.rc_inv.left = p_toBuff->db->rc_inv.left;
-    db_3d_backup.rc_inv.top = p_toBuff->db->rc_inv.top;
-    db_3d_backup.rc_inv.right = p_toBuff->rc.right;
-    db_3d_backup.rc_inv.bottom = p_toBuff->rc.bottom;
-    db_3d_backup.buff = p_toBuff->db->buff;
-
-    p_toBuff->db->buff = pSurface;
-    p_toBuff->rc.right = surface_width - 1;
-    p_toBuff->rc.bottom = surface_height - 1;
-    p_toBuff->db->rc_inv.left = surface_pitch - 1;
-    p_toBuff->db->rc_inv.top = surface_height - 1;
-
-    wc3_draw_text_to_buff(p_toBuff, x, text_y, unk1, text_buff, p_pal_offsets);
+    wc3_draw_text_to_buff(&dbm, x, text_y, unk1, text_buff, p_pal_offsets);
     surface_gui->Unlock();
-
-    p_toBuff->db->rc_inv.left = db_3d_backup.rc_inv.left;
-    p_toBuff->db->rc_inv.top = db_3d_backup.rc_inv.top;
-    p_toBuff->rc.right = db_3d_backup.rc_inv.right;
-    p_toBuff->rc.bottom = db_3d_backup.rc_inv.bottom;
-    p_toBuff->db->buff = db_3d_backup.buff;
 }
 
 
