@@ -735,7 +735,7 @@ static void Movie_Draw_Choice_Text(DRAW_BUFFER_MAIN* p_toBuff, LONG x, LONG y, D
         movie_height = (LONG)surface_movieXAN->GetScaledHeight();
 
     LONG text_y = 0;
-    LONG text_height = 16;
+    LONG text_height = 18;
     LONG black_bar_height = (LONG)(((float)surface_height / clientHeight) * ((clientHeight - movie_height) / 2));
 
     if (black_bar_height >= text_height) {
@@ -782,7 +782,7 @@ static void Movie_Draw_Choice_Text(DRAW_BUFFER_MAIN* p_toBuff, LONG x, LONG y, D
 //____________________________________________________________________________________________________________________________________
 static void Movie_Draw_Choice_Text_Top(DRAW_BUFFER_MAIN* p_toBuff, DWORD x, DWORD y, DWORD unk1, char* text_buff, BYTE* p_pal_offsets) {
     
-    if (surface_gui)//to clear choise text if resizing during conversation. 
+    if (surface_gui)//to clear choice text if resizing during conversation. 
         surface_gui->Clear_Texture(0x0);
     Movie_Draw_Choice_Text(p_toBuff, x, y, unk1, text_buff, p_pal_offsets);
 }
@@ -801,6 +801,85 @@ static void Movie_Draw_Choice_Text_Highlight(DRAW_BUFFER_MAIN* p_toBuff, DWORD x
 
     Movie_Draw_Choice_Text(p_toBuff, x, y, unk1, text_buff, p_pal_offsets);
     Display_Dx_Present(PRESENT_TYPE::movie);
+}
+
+
+bool subtitle_has_2_lines = false;
+bool subtitle_2nd_line_check = false;
+
+
+//___________________________________________________________________________________________________________________________________________
+static void Movie_Draw_Subtitle_Text_Line_Two(DRAW_BUFFER_MAIN* p_toBuff, DWORD x, DWORD y, DWORD unk1, char* text_buff, BYTE* p_pal_offsets) {
+    
+    wc3_draw_text_to_buff(p_toBuff, x, y, unk1, text_buff, p_pal_offsets);
+    
+    //set flag if a second line of txt is draw to subtitle buffer.
+    subtitle_2nd_line_check = true;
+}
+
+
+//___________________________________________________________________________________________________________________________________________
+static void Movie_Draw_Subtitle_Text_Line_One(DRAW_BUFFER_MAIN* p_toBuff, DWORD x, DWORD y, DWORD unk1, char* text_buff, BYTE* p_pal_offsets) {
+    
+    wc3_draw_text_to_buff(p_toBuff, x, y, unk1, text_buff, p_pal_offsets);
+
+    if (subtitle_2nd_line_check) {
+        subtitle_has_2_lines = true;
+        subtitle_2nd_line_check = false;
+    }
+    else
+        subtitle_has_2_lines = false;
+}
+
+
+//_________________________________________________________________________________
+static void Movie_Draw_Subtitle_Buffer(BYTE* to_Buff, BYTE* from_Buff, LONG height) {
+    if (!surface_movieXAN)
+        return;
+
+    if (surface_gui == nullptr)
+        return;
+
+    //to clear choice text if resizing during conversation. 
+    surface_gui->Clear_Texture(0x0);
+
+    LONG movie_height = (LONG)surface_movieXAN->GetScaledHeight();
+    LONG surface_width = (LONG)surface_gui->GetWidth();
+    LONG surface_height = (LONG)surface_gui->GetHeight();
+
+    LONG text_y = 0;
+
+    // reduce height of buffer if subtitle has only one line.
+    if (!subtitle_has_2_lines)
+        height = 18;
+
+    LONG black_bar_height = (LONG)(((float)surface_height / clientHeight) * ((clientHeight - movie_height) / 2));
+
+    if (black_bar_height >= height) {
+        text_y = (clientHeight - movie_height) / 4;
+        text_y = (surface_height * text_y) / clientHeight;
+        //draw text in the black area under the movie if there is room.
+        text_y = surface_height - text_y - height / 2;
+    }
+    else {
+        //otherwise draw text over the movie at the bottom rather than overlapping the black bar.
+        text_y = surface_height - black_bar_height - height;
+    }
+
+    if (text_y < 0)
+        text_y = 0;
+    else if (text_y > surface_height - height)
+        text_y = surface_height - height;
+
+    to_Buff += text_y * *p_wc3_main_surface_pitch;
+
+    for (LONG y = 0; y < height; y++) {
+        for (LONG x = 0; x < 640; x++)
+            to_Buff[x] = from_Buff[x];
+
+        from_Buff += 640;
+        to_Buff += *p_wc3_main_surface_pitch;
+    }
 }
 
 
@@ -851,6 +930,12 @@ void Modifications_Movies() {
     //jump redundant blits after drawing choice text.
     MemWrite16(0x414CAF, 0x4B6A, 0x2AEB);//JMP SHORT 00414CDB
 
+    //draw original movie subtitles
+    FuncReplace32(0x446937, 0x02EAA6, (DWORD)&Movie_Draw_Subtitle_Text_Line_Two);
+    FuncReplace32(0x446959, 0x02EA84, (DWORD)&Movie_Draw_Subtitle_Text_Line_One);
+
+    MemWrite8(0x41B9A2, 0x52, 0x51);//PUSH ECX, un-altered to buffer pointer.
+    FuncReplace32(0x41B9A4, 0x02D8, (DWORD)&Movie_Draw_Subtitle_Buffer);
 
     // HD Movies-----------------------------------------------
     FuncReplace32(0x414940, 0x765C, (DWORD)&Set_Conversation_Decision_Text_Colours);
