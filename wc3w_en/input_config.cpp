@@ -61,6 +61,16 @@ int current_num_switches = 0;
 GameControllerSwitchPosition* current_switchArray;
 
 
+int input_protype_tab_list[]{
+	4,//GUI
+	5,//NAV
+	0,//Space
+	1,//ReMap_1
+	2,//ReMap_2
+	3,//ReMap_3
+};
+
+
 WC3_ACTIONS actions_gui[]{
 		WC3_ACTIONS::None,
 		WC3_ACTIONS::B1_Select,
@@ -2201,25 +2211,25 @@ static INT_PTR CALLBACK DialogProc_JoyConfig(HWND hwndDlg, UINT uMsg, WPARAM wPa
 
 		LoadString(phinstDLL, IDS_TAB_GUI, general_string_buff, _countof(general_string_buff));
 		tie.pszText = general_string_buff;
-		TabCtrl_InsertItem(hwndTab, 0, &tie);
+		TabCtrl_InsertItem(hwndTab, input_protype_tab_list[static_cast<int>(PROFILE_TYPE::GUI)], &tie);
 
 		LoadString(phinstDLL, IDS_TAB_NAV, general_string_buff, _countof(general_string_buff));
 		tie.pszText = general_string_buff;
-		TabCtrl_InsertItem(hwndTab, 1, &tie);
+		TabCtrl_InsertItem(hwndTab, input_protype_tab_list[static_cast<int>(PROFILE_TYPE::NAV)], &tie);
 
 		LoadString(phinstDLL, IDS_TAB_SPACE, general_string_buff, _countof(general_string_buff));
 		tie.pszText = general_string_buff;
-		TabCtrl_InsertItem(hwndTab, 2, &tie);
+		TabCtrl_InsertItem(hwndTab, input_protype_tab_list[static_cast<int>(PROFILE_TYPE::Space)], &tie);
 
 		LoadString(phinstDLL, IDS_TAB_REMAP_1, general_string_buff, _countof(general_string_buff));
 		tie.pszText = general_string_buff;
-		TabCtrl_InsertItem(hwndTab, 3, &tie);
+		TabCtrl_InsertItem(hwndTab, input_protype_tab_list[static_cast<int>(PROFILE_TYPE::ReMap_1)], &tie);
 		LoadString(phinstDLL, IDS_TAB_REMAP_2, general_string_buff, _countof(general_string_buff));
 		tie.pszText = general_string_buff;
-		TabCtrl_InsertItem(hwndTab, 4, &tie);
+		TabCtrl_InsertItem(hwndTab, input_protype_tab_list[static_cast<int>(PROFILE_TYPE::ReMap_2)], &tie);
 		LoadString(phinstDLL, IDS_TAB_REMAP_3, general_string_buff, _countof(general_string_buff));
 		tie.pszText = general_string_buff;
-		TabCtrl_InsertItem(hwndTab, 5, &tie);
+		TabCtrl_InsertItem(hwndTab, input_protype_tab_list[static_cast<int>(PROFILE_TYPE::ReMap_3)], &tie);
 
 		//create tab windows.
 		hWin_Config_Joy_Control = CreateDialogParam(phinstDLL, MAKEINTRESOURCE(IDD_DIALOG_JOY_CONTROLS), hwndDlg, &DialogProc_Config_Joy_Control, 0);
@@ -2232,7 +2242,7 @@ static INT_PTR CALLBACK DialogProc_JoyConfig(HWND hwndDlg, UINT uMsg, WPARAM wPa
 
 		SetWindowPos(hWin_Config_Joy_Control, nullptr, rcTab.left, rcTab.top, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
 
-		TabCtrl_SetCurFocus(hwndTab, static_cast<int>(current_pro_type));
+		TabCtrl_SetCurFocus(hwndTab, input_protype_tab_list[static_cast<int>(current_pro_type)]);
 		ShowWindow(hWin_Config_Joy_Control, SW_SHOW);
 
 		hwnd_sub = GetDlgItem(hwndDlg, IDC_COMBO_DEAD_ZONE);
@@ -2258,17 +2268,17 @@ static INT_PTR CALLBACK DialogProc_JoyConfig(HWND hwndDlg, UINT uMsg, WPARAM wPa
 		case TCN_SELCHANGE: {
 			HWND hwndTab = GetDlgItem(hwndDlg, IDC_TAB_JOY_CONTROL);
 			int tabNum = TabCtrl_GetCurSel(hwndTab);
-			if (tabNum == 0)
+			if (tabNum == input_protype_tab_list[static_cast<int>(PROFILE_TYPE::GUI)])
 				current_pro_type = PROFILE_TYPE::GUI;
-			else if (tabNum == 1)
+			else if (tabNum == input_protype_tab_list[static_cast<int>(PROFILE_TYPE::NAV)])
 				current_pro_type = PROFILE_TYPE::NAV;
-			else if (tabNum == 2)
+			else if (tabNum == input_protype_tab_list[static_cast<int>(PROFILE_TYPE::Space)])
 				current_pro_type = PROFILE_TYPE::Space;
-			else if (tabNum == 3)
+			else if (tabNum == input_protype_tab_list[static_cast<int>(PROFILE_TYPE::ReMap_1)])
 				current_pro_type = PROFILE_TYPE::ReMap_1;
-			else if (tabNum == 4)
+			else if (tabNum == input_protype_tab_list[static_cast<int>(PROFILE_TYPE::ReMap_2)])
 				current_pro_type = PROFILE_TYPE::ReMap_2;
-			else if (tabNum == 5)
+			else if (tabNum == input_protype_tab_list[static_cast<int>(PROFILE_TYPE::ReMap_3)])
 				current_pro_type = PROFILE_TYPE::ReMap_3;
 			JoyConfig_Update_Profile_Vars();
 			JoyConfig_Refresh_Axes(FALSE, TRUE);
@@ -2630,25 +2640,25 @@ static INT_PTR CALLBACK DialogProc_Config_Mouse(HWND hwndDlg, UINT uMsg, WPARAM 
 
 		LoadString(phinstDLL, IDS_TAB_GUI, general_string_buff, _countof(general_string_buff));
 		tie.pszText = general_string_buff;
-		TabCtrl_InsertItem(hwndTab, 0, &tie);
+		TabCtrl_InsertItem(hwndTab, input_protype_tab_list[static_cast<int>(PROFILE_TYPE::GUI)], &tie);
 
 		LoadString(phinstDLL, IDS_TAB_NAV, general_string_buff, _countof(general_string_buff));
 		tie.pszText = general_string_buff;
-		TabCtrl_InsertItem(hwndTab, 1, &tie);
+		TabCtrl_InsertItem(hwndTab, input_protype_tab_list[static_cast<int>(PROFILE_TYPE::NAV)], &tie);
 
 		LoadString(phinstDLL, IDS_TAB_SPACE, general_string_buff, _countof(general_string_buff));
 		tie.pszText = general_string_buff;
-		TabCtrl_InsertItem(hwndTab, 2, &tie);
+		TabCtrl_InsertItem(hwndTab, input_protype_tab_list[static_cast<int>(PROFILE_TYPE::Space)], &tie);
 
 		LoadString(phinstDLL, IDS_TAB_REMAP_1, general_string_buff, _countof(general_string_buff));
 		tie.pszText = general_string_buff;
-		TabCtrl_InsertItem(hwndTab, 3, &tie);
+		TabCtrl_InsertItem(hwndTab, input_protype_tab_list[static_cast<int>(PROFILE_TYPE::ReMap_1)], &tie);
 		LoadString(phinstDLL, IDS_TAB_REMAP_2, general_string_buff, _countof(general_string_buff));
 		tie.pszText = general_string_buff;
-		TabCtrl_InsertItem(hwndTab, 4, &tie);
+		TabCtrl_InsertItem(hwndTab, input_protype_tab_list[static_cast<int>(PROFILE_TYPE::ReMap_2)], &tie);
 		LoadString(phinstDLL, IDS_TAB_REMAP_3, general_string_buff, _countof(general_string_buff));
 		tie.pszText = general_string_buff;
-		TabCtrl_InsertItem(hwndTab, 5, &tie);
+		TabCtrl_InsertItem(hwndTab, input_protype_tab_list[static_cast<int>(PROFILE_TYPE::ReMap_3)], &tie);
 
 		//create tab windows.
 		hWin_Config_Mouse_Control = CreateDialogParam(phinstDLL, MAKEINTRESOURCE(IDD_DIALOG_MOUSE_CONTROLS), hwndDlg, &DialogProc_Config_Mouse_Control, 0);
@@ -2661,7 +2671,7 @@ static INT_PTR CALLBACK DialogProc_Config_Mouse(HWND hwndDlg, UINT uMsg, WPARAM 
 
 		SetWindowPos(hWin_Config_Mouse_Control, nullptr, rcTab.left, rcTab.top, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
 
-		TabCtrl_SetCurFocus(hwndTab, static_cast<int>(current_pro_type));
+		TabCtrl_SetCurFocus(hwndTab, input_protype_tab_list[static_cast<int>(current_pro_type)]);
 		ShowWindow(hWin_Config_Mouse_Control, SW_SHOW);
 
 		break;
@@ -2692,17 +2702,17 @@ static INT_PTR CALLBACK DialogProc_Config_Mouse(HWND hwndDlg, UINT uMsg, WPARAM 
 		case TCN_SELCHANGE: {
 			HWND hwndTab = GetDlgItem(hwndDlg, IDC_TAB_MOUSE_CONTROL);
 			int tabNum = TabCtrl_GetCurSel(hwndTab);
-			if (tabNum == 0)
+			if (tabNum == input_protype_tab_list[static_cast<int>(PROFILE_TYPE::GUI)])
 				current_pro_type = PROFILE_TYPE::GUI;
-			else if (tabNum == 1)
+			else if (tabNum == input_protype_tab_list[static_cast<int>(PROFILE_TYPE::NAV)])
 				current_pro_type = PROFILE_TYPE::NAV;
-			else if (tabNum == 2)
+			else if (tabNum == input_protype_tab_list[static_cast<int>(PROFILE_TYPE::Space)])
 				current_pro_type = PROFILE_TYPE::Space;
-			else if (tabNum == 3)
+			else if (tabNum == input_protype_tab_list[static_cast<int>(PROFILE_TYPE::ReMap_1)])
 				current_pro_type = PROFILE_TYPE::ReMap_1;
-			else if (tabNum == 4)
+			else if (tabNum == input_protype_tab_list[static_cast<int>(PROFILE_TYPE::ReMap_2)])
 				current_pro_type = PROFILE_TYPE::ReMap_2;
-			else if (tabNum == 5)
+			else if (tabNum == input_protype_tab_list[static_cast<int>(PROFILE_TYPE::ReMap_3)])
 				current_pro_type = PROFILE_TYPE::ReMap_3;
 			MouseConfig_Update_Profile_Vars();
 			break;

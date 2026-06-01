@@ -135,6 +135,46 @@ static void __declspec(naked) joy_setup(void) {
 }
 
 
+//______________________________________________
+static void Joystick_Setup_Alt_O_Menu(LONG flag) {
+	
+	PROFILE_TYPE saved_pro_type = current_pro_type;
+	current_pro_type = PROFILE_TYPE::Space;
+
+	Joystick_Setup(flag);
+
+	current_pro_type = saved_pro_type;
+}
+
+
+//______________________________________________________
+static void __declspec(naked) joy_setup_alt_o_menu(void) {
+
+	__asm {
+		mov eax, dword ptr ss : [esp + 0x4]
+		push ebx
+		push ecx
+		push edx
+		push edi
+		push esi
+		push ebp
+
+		push eax
+		call Joystick_Setup_Alt_O_Menu
+		add esp, 0x4
+
+		pop ebp
+		pop esi
+		pop edi
+		pop edx
+		pop ecx
+		pop ebx
+
+		ret 0x4
+	}
+}
+
+
 //___________________________________________________
 static void __declspec(naked) joy_roll_variable(void) {
 	//p_wc3_joy_move_r was originaly a direction flag -1 to 1.
@@ -182,7 +222,7 @@ void Modifications_Joystick() {
 	FuncReplace32(0x4082C8, 0xFFFFFCC4, (DWORD)&joy_setup);
 	FuncReplace32(0x41288C, 0xFFFF5700, (DWORD)&joy_setup);
 	FuncReplace32(0x435A17, 0xFFFD2575, (DWORD)&joy_setup);
-	FuncReplace32(0x438948, 0xFFFCF644, (DWORD)&joy_setup);
+	FuncReplace32(0x438948, 0xFFFCF644, (DWORD)&joy_setup_alt_o_menu);
 	FuncReplace32(0x450345, 0xFFFB7C47, (DWORD)&joy_setup);
 	FuncReplace32(0x45F4A6, 0xFFFA8AE6, (DWORD)&joy_setup);
 
