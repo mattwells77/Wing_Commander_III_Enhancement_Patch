@@ -212,6 +212,8 @@ BYTE* p_wc3_space_background_pal_offset = nullptr;
 LONG* p_wc3_current_room_id = nullptr;
 LONG* p_wc3_current_scene_id = nullptr;
 
+DWORD* p_wc3_current_cd_num = nullptr;
+
 void(__thiscall* wc3_file_init)(void*) = nullptr;
 BOOL(__thiscall* wc3_file_load)(void*, char* path, DWORD dwDesiredAccess, BOOL halt_on_create_file_error, DWORD dwFlagsAndAttributes) = nullptr;
 BOOL(__thiscall* wc3_file_close)(void*) = nullptr;
@@ -472,4 +474,6 @@ void WC3W_Setup() {
     wc3_update_joystick = (void(*)())0x482A90;
     wc3_proccess_joystick_data = (void(*)())0x482DF0;
     wc3_setup_joystick = (void(__stdcall*)(LONG))0x407F90;
+
+    p_wc3_current_cd_num = (DWORD*)0x49F72C;
 }

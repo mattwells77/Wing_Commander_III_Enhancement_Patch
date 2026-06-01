@@ -32,6 +32,11 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //_________________________________________________
 static DWORD Music_Player(MUSIC_CLASS* music_class) {
     //This function runs in a seperate thread.
+    
+    static bool deleting_music_player = false;
+
+    while (deleting_music_player)
+        Sleep(0);
 
     if (p_Music_Player)
         delete p_Music_Player;
@@ -58,11 +63,14 @@ static DWORD Music_Player(MUSIC_CLASS* music_class) {
 
     music_class->header.flags &= 0xFFFFFFFE;
 
-    if (p_Music_Player)
+    if (p_Music_Player) {
+        deleting_music_player = true;
         delete p_Music_Player;
-    p_Music_Player = nullptr;
+        p_Music_Player = nullptr;
+        deleting_music_player = false;
+    }
 
-    Debug_Info_Music("Music_Player DONE");
+    Debug_Info_Music("Music_Player Thread Exit");
     return 0;
 }
 
@@ -102,7 +110,7 @@ static BOOL Read_Music_Data(LONG tune_num, void* This, char* path, DWORD dwDesir
         if (p_Music_Player)
             p_Music_Player->Load_Tune_Data(tune_num, music_file);
         //Debug_Info_Music("Read_Music_Data: continuous play: %d, dont_interrupt_tune: %d, ?: %d, ?: %d", music_file->DIGM_CDX_01_flag, music_file->dont_interrupt_tune, music_file->DIGM_CDX_03_flag, music_file->DIGM_CDX_04_unk);
-        Debug_Info_Music("Read_Music_Data: continuous play: %d, dont_interrupt_tune: %d, ?: %d", music_file->DIGM_CDX_03_flag, (BYTE)(music_file->flags >> 8), music_file->DIGM_CDX_01_flag);
+        //Debug_Info_Music("Read_Music_Data: continuous play: %d, dont_interrupt_tune: %d, ?: %d", music_file->DIGM_CDX_03_flag, (BYTE)(music_file->flags >> 8), music_file->DIGM_CDX_01_flag);
     }
     return is_file_loaded;
 }

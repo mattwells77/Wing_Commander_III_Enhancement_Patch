@@ -27,6 +27,7 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #define NUM_TUNES   34
 
+#define MUSIC_INTERUPT_TUNE     0x0100
 
 struct FILE_STRUCT {
     /*0x00*/char path[80];
@@ -57,7 +58,7 @@ struct MUSIC_HEADER {
 struct MUSIC_FILE {
     FILE_STRUCT file;
     /*0x80*/DWORD unk80;//xanlib ptr ref??
-    /*0x84*/DWORD flags;// DIGM_CDX_02_flag;//(BYTE)(flags<<8)don't interrupt until done
+    /*0x84*/DWORD flags;// DIGM_CDX_02_flag;//!(BYTE)(flags>>8)don't interrupt until done
     /*0x88*/DWORD DIGM_CDX_01_flag;//continuous play
     /*0x8C*/DWORD DIGM_CDX_03_flag;//continuous play again ???
     ///*0x90*/DWORD unk90;
@@ -362,6 +363,8 @@ extern BYTE* p_wc3_key_pressed_character_code;
 
 extern BYTE* p_wc3_space_exit_game_option_flag;
 extern BYTE* p_wc3_space_pause_game_option_flag;
+
+extern DWORD* p_wc3_current_cd_num;
 
 extern void(__thiscall* wc3_draw_hud_targeting_elements)(void*);
 extern void(__thiscall* wc3_draw_hud_view_text)(void*);

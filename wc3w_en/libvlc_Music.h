@@ -40,12 +40,14 @@ public:
     size_t pos;
     char* name;
     LONG max_volume;
+    float position;
     TUNE_DATA(size_t size) {
         data = new BYTE[size];
         len = size;
         pos = 0;
         name = nullptr;
         max_volume = MUSIC_VOLUME_VLC_MAX;
+        position = 0;
     }
     ~TUNE_DATA() {
         if (data)
@@ -83,10 +85,11 @@ public:
                 delete tune[i];
             tune[i] = nullptr;
         }
-        Debug_Info_Music("~LibVlc_Music: DONE");
+        //Debug_Info_Music("~LibVlc_Music: DONE");
     };
 
     bool Update_Tune();
+    bool Update_Volume();
     void Pause(bool pause) {
         if (is_playing) {
             paused = pause;
@@ -96,8 +99,6 @@ public:
                 position = mediaPlayer.position();
 #if LIBVLC_VERSION_INT >= LIBVLC_VERSION(4, 0, 0, 0)
                 mediaPlayer.stopAsync();
-                while (is_vlc_playing)//ensure vlc is done with surface. 
-                    Sleep(0);
 #else
                 mediaPlayer.stop();
 #endif
@@ -114,6 +115,8 @@ public:
     };
 
     void Stop() {
+        if (current_tune < NUM_TUNES && tune[current_tune] != nullptr)
+            tune[current_tune]->position = mediaPlayer.position();
 #if LIBVLC_VERSION_INT >= LIBVLC_VERSION(4, 0, 0, 0)
         is_stop_set = true;
         mediaPlayer.stopAsync();
@@ -142,6 +145,7 @@ private:
     bool paused;
     float position;
     bool is_playing;
+    LONG last_volume;
 #if LIBVLC_VERSION_INT >= LIBVLC_VERSION(4, 0, 0, 0)
     bool is_stop_set;//when stopping after being deliberatly stopped rather than reaching the end of the movie. 
 #endif
@@ -149,14 +153,26 @@ private:
 
     void on_play() {
         Debug_Info_Music("LibVlc_Music: on_play Play started");
+        last_volume = -1;
         is_playing = true;
     };
     void on_stopped() {
         if (!paused) {
             Debug_Info_Music("LibVlc_Music: on_stopped Play stopped");
-            p_music_class->header.current_tune = -1;
-            p_music_class->header.requested_tune = -1;
+            MUSIC_FILE* music_file = &p_music_class->file[current_tune];
+            // set the previous tune to the current if the currrent tune if it is interruptible.    
+            if (music_file->flags & MUSIC_INTERUPT_TUNE)
+                p_music_class->header.previous_tune = current_tune;
+
+            //if the requested tune is not -1, set the requested tune to the previous tune. This seeems to be the intended behaviour.
+            if (p_music_class->header.requested_tune == -1) {
+                p_music_class->header.current_tune = -1;
+                p_music_class->header.requested_tune = -1;
+            }
+            else
+                p_music_class->header.requested_tune = p_music_class->header.previous_tune;
             current_tune = -1;
+            last_volume = -1;
             is_playing = false;
         }
     };
@@ -166,11 +182,13 @@ private:
 
     void on_end_reached() {
         Debug_Info_Music("LibVlc_Music: end reached");
+        if (current_tune < NUM_TUNES && tune[current_tune] != nullptr)
+            tune[current_tune]->position = 0;
     };
 
-    void on_time_changed(libvlc_time_t time_ms) {
-        Debug_Info_Music("LibVlc_Music: on time changed %d", (int)time_ms);
-    };
+    //void on_time_changed(libvlc_time_t time_ms) {
+    //    Debug_Info_Music("LibVlc_Music: on time changed %d", (int)time_ms);
+    //};
 };
 
 extern LibVlc_Music* p_Music_Player;

@@ -238,6 +238,7 @@ static void ConfigCreate() {
     ConfigWriteInt(L"DEBUG", L"GENERAL", 0);
     ConfigWriteInt(L"DEBUG", L"FLIGHT", 0);
     ConfigWriteInt(L"DEBUG", L"MOVIE", 0);
+    ConfigWriteInt(L"DEBUG", L"MUSIC", 0);
     ConfigWriteInt(L"DEBUG", L"CONTROLLER", 0);
     ConfigWriteInt(L"DEBUG", L"REPLACE_ALT_X_MSG_WITH_ROOM_SCENE_ID", CONFIG_DEBUG_REPLACE_ALT_X_MSG_WITH_ROOM_SCENE_ID);
     

@@ -27,6 +27,7 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "memwrite.h"
 #include "configTools.h"
 #include "libvlc_Movies.h"
+#include "libvlc_Music.h"
 #include "wc3w.h"
 #include "input_config.h"
 
@@ -1318,6 +1319,8 @@ static bool WinProc_Main(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam) 
                 pMovie_vlc->Pause(true);
             if (pMovie_vlc_Inflight)
                 pMovie_vlc_Inflight->Pause(true);
+            if (p_Music_Player)
+                p_Music_Player->Pause(true);
         }
         else {
             Debug_Info("WM_ACTIVATEAPP true");
@@ -1330,6 +1333,8 @@ static bool WinProc_Main(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam) 
                 pMovie_vlc->Pause(false);
             if (pMovie_vlc_Inflight)
                 pMovie_vlc_Inflight->Pause(false);
+            if (p_Music_Player)
+                p_Music_Player->Pause(false);
         }
         return 0;
         //case WM_ERASEBKGND:
