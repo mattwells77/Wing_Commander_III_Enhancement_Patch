@@ -1833,6 +1833,8 @@ static void Check_System_Keys(WPARAM wParam, LPARAM lParam) {
                     ClipMouseCursor();
  
             }
+            else if (wParam == VK_F4) //close window on ALT + F4
+                PostMessage(*p_wc3_hWinMain, WM_CLOSE, 0, 0);
         }
     }
 }
