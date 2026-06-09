@@ -1376,7 +1376,24 @@ static bool JoyConfig_Preset_Set() {
 	file_path.append(general_string_buff);
 	file_path.append(L".joy");
 
-	p_joy_selected->Profile_Load(file_path.c_str());
+	if (p_joy_selected->Profile_Load(file_path.c_str()) == FALSE) {
+		//if could not load preset from the AppData path, try loading from the local folder.
+		if (!Get_Joystick_Config_Path_Local(&file_path))
+			return false;
+		
+		file_path.append(L"\\presets\\");
+
+		wchar_t vid_pid_name[10]{ 0 };
+		swprintf_s(vid_pid_name, L"%04x%04x_", p_joy_selected->Get_VID(), p_joy_selected->Get_PID());
+
+		file_path.append(vid_pid_name);
+
+		SendMessage(hwnd_presets, CB_GETLBTEXT, (WPARAM)preset_selected, (LPARAM)general_string_buff);
+		file_path.append(general_string_buff);
+		file_path.append(L".joy");
+
+		p_joy_selected->Profile_Load(file_path.c_str());
+	}
 
 	SendMessage(hwnd_presets, CB_SETCURSEL, (WPARAM)0, (LPARAM)0);
 	return true;
@@ -1572,49 +1589,122 @@ static bool JoyConfig_Refresh_Presets() {
 	JOYSTICK* p_joy_selected = Joysticks.GetJoy(joy_selected);
 	if (!p_joy_selected)
 		return false;
-	
-	std::wstring search_path;
-	if(!Get_Joystick_Config_Path(&search_path))
+
+	std::wstring search_path_appdata;
+	if(!Get_Joystick_Config_Path(&search_path_appdata))
 		return false;
 
-	search_path.append(L"\\presets");
-	if (GetFileAttributes(search_path.c_str()) == INVALID_FILE_ATTRIBUTES)
+	search_path_appdata.append(L"\\presets");
+	if (GetFileAttributes(search_path_appdata.c_str()) == INVALID_FILE_ATTRIBUTES) {
+		if (!CreateDirectory(search_path_appdata.c_str(), nullptr)) {
+			Debug_Info_Error("JoyConfig_Refresh_Presets: could not create presets path: %S", search_path_appdata.c_str());
 			return false;
-	
-	search_path.append(L"\\");
+		}
+	}
+	search_path_appdata.append(L"\\");
 
+	// create vendor/productID string
 	wchar_t vid_pid_name[10]{ 0 };
 	swprintf_s(vid_pid_name, L"%04x%04x_", p_joy_selected->Get_VID(), p_joy_selected->Get_PID());
 
-	std::wstring file_path = search_path;
+	std::wstring file_path_appdata = search_path_appdata;
 
-	file_path.append(vid_pid_name);
-	file_path.append(L"*.joy");
+	file_path_appdata.append(vid_pid_name);
+	file_path_appdata.append(L"*.joy");
+	bool preset_found = false;
 
 	WIN32_FIND_DATA FindFileData{};
-	HANDLE hFind = hFind = FindFirstFile(file_path.c_str(), &FindFileData);
-	if (hFind == INVALID_HANDLE_VALUE) {
+	//search AppData path for presets.
+	HANDLE hFind = FindFirstFile(file_path_appdata.c_str(), &FindFileData);
+	if (hFind != INVALID_HANDLE_VALUE) {
+		preset_found = true;
+		EnableWindow(hwnd_presets, TRUE);
+		LoadString(phinstDLL, IDS_SELECT_PRESET, general_string_buff, _countof(general_string_buff));
+		SendMessage(hwnd_presets, CB_ADDSTRING, (WPARAM)0, (LPARAM)general_string_buff);
+		SendMessage(hwnd_presets, CB_SETCURSEL, (WPARAM)0, (LPARAM)0);
+
+		std::wstring name;
+		do {
+			name = &FindFileData.cFileName[9];
+			name.at(name.find_last_of(L'.')) = L'\0';
+			SendMessage(hwnd_presets, CB_ADDSTRING, (WPARAM)0, (LPARAM)name.c_str());
+			Debug_Info_Joy("JoyConfig_Refresh_Presets: add AppData preset: %S", name.c_str());
+
+		} while (FindNextFile(hFind, &FindFileData));
+
 		FindClose(hFind);
+	}
+
+	std::wstring search_path_local;
+	if (!Get_Joystick_Config_Path_Local(&search_path_local))
+		return false;
+
+	search_path_local.append(L"\\presets");
+	if (GetFileAttributes(search_path_local.c_str()) == INVALID_FILE_ATTRIBUTES)
+		return true;
+
+	search_path_local.append(L"\\");
+
+	if (search_path_local.compare(search_path_appdata) == 0) {
+		//Debug_Info_Joy("JoyConfig_Refresh_Presets: local path == Appdata path :%S"search_path_local.c_str());
+		if(!preset_found){
+			//no presets found, add "None" string and disable combo.
+			LoadString(phinstDLL, IDS_NONE, general_string_buff, _countof(general_string_buff));
+			SendMessage(hwnd_presets, CB_ADDSTRING, (WPARAM)0, (LPARAM)general_string_buff);
+			SendMessage(hwnd_presets, CB_SETCURSEL, (WPARAM)0, (LPARAM)0);
+			EnableWindow(hwnd_presets, FALSE);
+			return false;
+		}
+		return true;
+	}
+	std::wstring file_path_local = search_path_local;
+
+	file_path_local.append(vid_pid_name);
+	file_path_local.append(L"*.joy");
+
+	WIN32_FIND_DATA FindFileData_Local{};
+	//search local path for presets.
+	HANDLE hFind_Local = FindFirstFile(file_path_local.c_str(), &FindFileData_Local);
+	if (hFind_Local != INVALID_HANDLE_VALUE) {
+		if (!preset_found) {
+			EnableWindow(hwnd_presets, TRUE);
+			LoadString(phinstDLL, IDS_SELECT_PRESET, general_string_buff, _countof(general_string_buff));
+			SendMessage(hwnd_presets, CB_ADDSTRING, (WPARAM)0, (LPARAM)general_string_buff);
+			SendMessage(hwnd_presets, CB_SETCURSEL, (WPARAM)0, (LPARAM)0);
+			preset_found = true;
+		}
+		std::wstring name;
+		do {
+			name = &FindFileData_Local.cFileName[9];
+
+			file_path_appdata = search_path_appdata;
+			file_path_appdata.append(vid_pid_name);
+			file_path_appdata.append(name);
+
+			name.at(name.find_last_of(L'.')) = L'\0';
+
+			//don't add the local preset if a preset with the same name exists in AppData presets.
+			//Debug_Info_Joy("JoyConfig_Refresh_Presets: add local preset check appdata: L:%S, A:%S", name.c_str(), file_path_appdata.c_str());
+			hFind = FindFirstFile(file_path_appdata.c_str(), &FindFileData);
+			if (hFind == INVALID_HANDLE_VALUE) {
+				SendMessage(hwnd_presets, CB_ADDSTRING, (WPARAM)0, (LPARAM)name.c_str());
+				Debug_Info_Joy("JoyConfig_Refresh_Presets: add local preset: %S", name.c_str());
+			}
+			else
+				FindClose(hFind);
+			
+		} while (FindNextFile(hFind_Local, &FindFileData_Local));
+
+		FindClose(hFind_Local);
+	}
+	if (!preset_found) {
+		//no presets found, add "None" string and disable combo.
 		LoadString(phinstDLL, IDS_NONE, general_string_buff, _countof(general_string_buff));
 		SendMessage(hwnd_presets, CB_ADDSTRING, (WPARAM)0, (LPARAM)general_string_buff);
 		SendMessage(hwnd_presets, CB_SETCURSEL, (WPARAM)0, (LPARAM)0);
 		EnableWindow(hwnd_presets, FALSE);
 		return false;
 	}
-	EnableWindow(hwnd_presets, TRUE);
-	LoadString(phinstDLL, IDS_SELECT_PRESET, general_string_buff, _countof(general_string_buff));
-	SendMessage(hwnd_presets, CB_ADDSTRING, (WPARAM)0, (LPARAM)general_string_buff);
-	SendMessage(hwnd_presets, CB_SETCURSEL, (WPARAM)0, (LPARAM)0);
-
-	std::wstring name;
-	do {
-		name = &FindFileData.cFileName[9]; 
-		name.at(name.find_last_of(L'.')) = L'\0';
-		SendMessage(hwnd_presets, CB_ADDSTRING, (WPARAM)0, (LPARAM)name.c_str());
-			
-	} while (FindNextFile(hFind, &FindFileData));
-
-	FindClose(hFind);
 	return true;
 }
 
