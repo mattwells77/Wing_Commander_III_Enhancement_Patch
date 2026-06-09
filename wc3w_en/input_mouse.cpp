@@ -138,7 +138,12 @@ void MOUSE::Setup() {
 void MOUSE::Load() {
 
 	Set_Deadzone_Level(ConfigReadInt_InGame(L"MOUSE", L"DEAD_ZONE", CONFIG_MOUSE_DEAD_ZONE));
-
+	Set_Axis_Limit_Pecentage(ConfigReadInt_InGame(L"MOUSE", L"AXIS_LIMIT_PERCENTAGE", CONFIG_MOUSE_AXIS_LIMIT_PERCENTAGE));
+	bool is_y_axis_inverted = false;
+	if (ConfigReadInt_InGame(L"MOUSE", L"INVERT_Y_AXIS", CONFIG_MOUSE_INVERT_Y_AXIS))
+		is_y_axis_inverted = true;
+	Invert_Y_Axis(is_y_axis_inverted);
+	
 	PROFILE_TYPE saved_pro_type = current_pro_type;
 	wchar_t profile_name[16];
 
@@ -189,6 +194,8 @@ void MOUSE::Load() {
 void MOUSE::Save() {
 
 	ConfigWriteInt_InGame(L"MOUSE", L"DEAD_ZONE", Deadzone_Level());
+	ConfigWriteInt_InGame(L"MOUSE", L"INVERT_Y_AXIS", Is_Y_Axis_Inverted());
+	ConfigWriteInt_InGame(L"MOUSE", L"AXIS_LIMIT_PERCENTAGE", Axis_Limit_Percentage());
 
 	PROFILE_TYPE saved_pro_type = current_pro_type;
 	wchar_t button_name[12];

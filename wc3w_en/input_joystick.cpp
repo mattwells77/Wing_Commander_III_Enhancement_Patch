@@ -69,9 +69,31 @@ bool Get_Joystick_Config_Path(wstring *p_ret_string) {
 
 	if (GetFileAttributes(p_ret_string->c_str()) == INVALID_FILE_ATTRIBUTES) {
 		if (!CreateDirectory(p_ret_string->c_str(), nullptr)) {
+			Debug_Info_Error("Get_Joystick_Config_Path: could not create path: %S", p_ret_string->c_str());
 			p_ret_string->clear();
 			return false;
 		}
+	}
+	return true;
+}
+
+
+//________________________________________________________
+bool Get_Joystick_Config_Path_Local(wstring* p_ret_string) {
+	if (!p_ret_string)
+		return false;
+
+	p_ret_string->assign(GetAppPath());
+	if (!p_ret_string->empty())
+		p_ret_string->append(L"\\");
+	p_ret_string->append(JOYSTICK_CONFIG_PATH);
+
+	Debug_Info_Joy("Get_Joystick_Config_Path_Local: %S", p_ret_string->c_str());
+
+	if (GetFileAttributes(p_ret_string->c_str()) == INVALID_FILE_ATTRIBUTES) {
+		Debug_Info_Error("Get_Joystick_Config_Path_Local: could not create path: %S", p_ret_string->c_str());
+		p_ret_string->clear();
+		return false;
 	}
 	return true;
 }

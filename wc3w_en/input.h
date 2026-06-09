@@ -566,7 +566,8 @@ public:
 		setup = false;
 		deadzone_level = 0;
 		deadzone = 0;
-
+		invert_y_axis = false;
+		axis_limit_percentage = 100;
 	};
 	~MOUSE() {
 
@@ -588,6 +589,16 @@ public:
 	};
 	int Deadzone_Level() const { return deadzone_level; };
 	int Deadzone() const { return deadzone; };
+	void Invert_Y_Axis(bool in_invert_y_axis) { invert_y_axis = in_invert_y_axis; };
+	bool Is_Y_Axis_Inverted() const { return invert_y_axis; };
+	void Set_Axis_Limit_Pecentage(int in_axis_limit_percentage) {
+		axis_limit_percentage = in_axis_limit_percentage;
+		if (axis_limit_percentage > 100)
+			axis_limit_percentage = 100;
+		else if (axis_limit_percentage < 10)
+			axis_limit_percentage = 10;
+	};
+	int Axis_Limit_Percentage() const { return axis_limit_percentage; };
 
 	WC3_ACTIONS GetAction_Button(int button);
 	WC3_ACTIONS GetAction_Wheel_Up();
@@ -610,6 +621,8 @@ private:
 	bool setup;
 	int deadzone_level;
 	int deadzone;
+	bool invert_y_axis;
+	int axis_limit_percentage;
 };
 
 
@@ -640,6 +653,7 @@ extern WC3_JOY_AXES wc3_joy_axes;
 extern JOYSTICKS Joysticks;
 
 bool Get_Joystick_Config_Path(std::wstring* p_ret_string);
+bool Get_Joystick_Config_Path_Local(std::wstring* p_ret_string);
 
 void Simulate_Key_Press(WC3_ACTIONS action);
 void Simulate_Key_Release(WC3_ACTIONS action);

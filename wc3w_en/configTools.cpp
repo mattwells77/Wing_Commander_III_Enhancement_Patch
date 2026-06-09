@@ -199,6 +199,9 @@ static void ConfigCreate() {
 
 
     ConfigWriteInt(L"MOUSE", L"DEAD_ZONE", CONFIG_MOUSE_DEAD_ZONE);
+    ConfigWriteInt(L"MOUSE", L"AXIS_LIMIT_PERCENTAGE", CONFIG_MOUSE_AXIS_LIMIT_PERCENTAGE);
+    ConfigWriteInt(L"MOUSE", L"INVERT_Y_AXIS", CONFIG_MOUSE_INVERT_Y_AXIS);
+    
     wchar_t profile_name[16];
     for (int i = 0; i < NUM_JOY_PROFILES; i++) {
         switch (i) {

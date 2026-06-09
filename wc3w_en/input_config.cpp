@@ -2625,6 +2625,27 @@ static INT_PTR CALLBACK DialogProc_Config_Mouse(HWND hwndDlg, UINT uMsg, WPARAM 
 
 		SendMessage(hwnd_sub, CB_SETCURSEL, (WPARAM)Mouse.Deadzone_Level(), (LPARAM)0);
 		
+		hwnd_sub = GetDlgItem(hwndDlg, IDC_COMBO_AXIS_RANGE);
+
+		SendMessage(hwnd_sub, CB_ADDSTRING, (WPARAM)0, (LPARAM)L"10%");
+		SendMessage(hwnd_sub, CB_ADDSTRING, (WPARAM)0, (LPARAM)L"20%");
+		SendMessage(hwnd_sub, CB_ADDSTRING, (WPARAM)0, (LPARAM)L"30%");
+		SendMessage(hwnd_sub, CB_ADDSTRING, (WPARAM)0, (LPARAM)L"40%");
+		SendMessage(hwnd_sub, CB_ADDSTRING, (WPARAM)0, (LPARAM)L"50%");
+		SendMessage(hwnd_sub, CB_ADDSTRING, (WPARAM)0, (LPARAM)L"60%");
+		SendMessage(hwnd_sub, CB_ADDSTRING, (WPARAM)0, (LPARAM)L"70%");
+		SendMessage(hwnd_sub, CB_ADDSTRING, (WPARAM)0, (LPARAM)L"80%");
+		SendMessage(hwnd_sub, CB_ADDSTRING, (WPARAM)0, (LPARAM)L"90%");
+		SendMessage(hwnd_sub, CB_ADDSTRING, (WPARAM)0, (LPARAM)L"100%");
+
+		SendMessage(hwnd_sub, CB_SETCURSEL, (WPARAM)Mouse.Axis_Limit_Percentage() / 10 - 1, (LPARAM)0);
+
+		hwnd_sub = GetDlgItem(hwndDlg, IDC_CHECK_INVERT_Y_AXIS);
+		DWORD checked = BST_UNCHECKED;
+		if (Mouse.Is_Y_Axis_Inverted())
+			checked = BST_CHECKED;
+		SendMessage(hwnd_sub, BM_SETCHECK, (WPARAM)checked, (LPARAM)0);
+
 		INITCOMMONCONTROLSEX iccex{ 0 };
 		//initialize common controls.
 		iccex.dwSize = sizeof(INITCOMMONCONTROLSEX);
@@ -2737,6 +2758,21 @@ static INT_PTR CALLBACK DialogProc_Config_Mouse(HWND hwndDlg, UINT uMsg, WPARAM 
 			if (HIWORD(wParam) == CBN_SELCHANGE) {
 				int deadzone = (int)(SendMessage(GetDlgItem(hwndDlg, IDC_COMBO_DEAD_ZONE), CB_GETCURSEL, (WPARAM)0, (LPARAM)0));
 				Mouse.Set_Deadzone_Level(deadzone);
+			}
+			return TRUE;
+		case IDC_COMBO_AXIS_RANGE:
+			if (HIWORD(wParam) == CBN_SELCHANGE) {
+				int percent = ((int)(SendMessage(GetDlgItem(hwndDlg, IDC_COMBO_AXIS_RANGE), CB_GETCURSEL, (WPARAM)0, (LPARAM)0)) + 1) * 10;
+				Mouse.Set_Axis_Limit_Pecentage(percent);
+			}
+			return TRUE;
+		case IDC_CHECK_INVERT_Y_AXIS:
+			if (HIWORD(wParam) == BN_CLICKED) {
+				DWORD button_state = (int)(SendMessage((HWND)lParam, BM_GETCHECK, (WPARAM)0, (LPARAM)0));
+				bool is_y_axis_inverted = false;
+				if (button_state & BST_CHECKED)
+					is_y_axis_inverted = true;
+				Mouse.Invert_Y_Axis(is_y_axis_inverted);
 			}
 			return TRUE;
 		default:
