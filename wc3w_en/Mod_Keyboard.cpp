@@ -253,6 +253,73 @@ static void __declspec(naked) replay_screen_check_yes_no(void) {
 	}
 }
 
+
+//___________________________
+static void Check_Exit_Keys() {
+    //Check if ESC key pressed.
+    if (!Get_Key_State(0x1, 0, 0x10))
+        return;
+
+    //send ALT-X key combo to evoke Exit screen.
+    INPUT inputs[4] = {};
+    ZeroMemory(inputs, sizeof(inputs));
+
+    inputs[0].type = INPUT_KEYBOARD;
+    inputs[0].ki.wScan = 0x38;
+    inputs[0].ki.dwFlags = KEYEVENTF_SCANCODE;
+
+    inputs[1].type = INPUT_KEYBOARD;
+    inputs[1].ki.wScan = 0x2D;
+    inputs[1].ki.dwFlags = KEYEVENTF_SCANCODE;
+
+    inputs[2].type = INPUT_KEYBOARD;
+    inputs[2].ki.wScan = 0x2D;
+    inputs[2].ki.dwFlags = KEYEVENTF_KEYUP | KEYEVENTF_SCANCODE;
+
+    inputs[3].type = INPUT_KEYBOARD;
+    inputs[3].ki.wScan = 0x38;
+    inputs[3].ki.dwFlags = KEYEVENTF_KEYUP | KEYEVENTF_SCANCODE;
+
+    UINT uSent = SendInput(4, inputs, sizeof(INPUT));
+    if (uSent != 4)
+        Debug_Info_Error("Send_Exit_Keys - SendInput failed: 0x%x\n", HRESULT_FROM_WIN32(GetLastError()));
+}
+
+
+//_______________________________________________________
+static void __declspec(naked) translate_msg_key_gui(void) {
+
+    __asm {
+        call wc3_translate_messages_keys
+        //don't check ESC key when using the Main Terminal as the ESC key is used for other purposes there.
+        mov eax, p_wc3_current_room_id
+        cmp dword ptr ds : [eax] , 0x8
+        je exit_func
+        pushad
+        call Check_Exit_Keys
+        popad
+        exit_func :
+        ret
+    }
+}
+
+
+//_________________________________________________________
+static void __declspec(naked) translate_msg_key_space(void) {
+
+    __asm {
+        call wc3_translate_messages_keys
+        //don't check ESC key on NAV or other GUI screens in space.
+        cmp current_pro_type, PROFILE_SPACE
+        jne exit_func
+        pushad
+        call Check_Exit_Keys
+        popad
+        exit_func :
+        ret
+    }
+}
+
 /*
 //___________________________
 void Print_Scancode(int code) {
@@ -304,6 +371,10 @@ void Modifications_Keyboard() {
 	//to improve controller support.
 	MemWrite8(0x43008B, 0xA1, 0xE8);
 	FuncWrite32(0x43008C, 0x4A9B80, (DWORD)&replay_screen_check_yes_no);
+
+    //use ESC key to evoke Exit screen.
+    FuncReplace32(0x481F53, 0x09C9, (DWORD)&translate_msg_key_gui);
+    FuncReplace32(0x4082D9, 0x07A643, (DWORD)&translate_msg_key_space);
 
 	//print scancodes
 	//MemWrite16(0x48280C, 0x9A8A, 0xE890);
