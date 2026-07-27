@@ -246,6 +246,10 @@ void(*wc3_update_joystick)() = nullptr;
 void(*wc3_proccess_joystick_data)() = nullptr;
 void(__stdcall* wc3_setup_joystick)(LONG flag) = nullptr;
 
+void(__thiscall* wc3_flight_auto_take_off)(void*) = nullptr;
+void(__thiscall* wc3_flight_auto_landing)(void*) = nullptr;
+
+
 //_______________
 void WC3W_Setup() {
 
@@ -476,4 +480,7 @@ void WC3W_Setup() {
     wc3_setup_joystick = (void(__stdcall*)(LONG))0x407F90;
 
     p_wc3_current_cd_num = (DWORD*)0x49F72C;
+
+    wc3_flight_auto_take_off = (void(__thiscall*)(void*))0x434120;
+    wc3_flight_auto_landing = (void(__thiscall*)(void*))0x434290;
 }

@@ -430,3 +430,6 @@ extern void(__thiscall* wc3_replay_screen_main)(void*);
 extern void(*wc3_update_joystick)();
 extern void(*wc3_proccess_joystick_data)();
 extern void(__stdcall* wc3_setup_joystick)(LONG flag);
+
+extern void(__thiscall* wc3_flight_auto_take_off)(void*);
+extern void(__thiscall* wc3_flight_auto_landing)(void*);

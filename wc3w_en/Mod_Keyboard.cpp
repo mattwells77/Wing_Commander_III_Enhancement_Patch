@@ -31,6 +31,9 @@ LONG vdu_comms_selected_line = -1;
 BOOL vdu_comms_had_focus = FALSE;
 BYTE vdu_comms_highlight[256]{ 0x0 };
 
+BOOL is_flight_auto_take_off = FALSE;
+BOOL is_flight_auto_landing = FALSE;
+
 
 //________________________________
 static LONG VDU_Comms_Check_Keys() {
@@ -260,6 +263,14 @@ static void Check_Exit_Keys() {
     if (!Get_Key_State(0x1, 0, 0x10))
         return;
 
+    //don't evoke the exit screen when using a VDU or during auto takeoff and landing as the ESC key is used for an alternate purpose here.
+    if (current_pro_type == PROFILE_TYPE::Space) {
+        if (*p_wc3_vdu_focus != -1 && *p_wc3_vdu_focus != 0)
+            return;
+        if (is_flight_auto_take_off || is_flight_auto_landing)
+            return;
+    }
+
     //send ALT-X key combo to evoke Exit screen.
     INPUT inputs[4] = {};
     ZeroMemory(inputs, sizeof(inputs));
@@ -320,6 +331,30 @@ static void __declspec(naked) translate_msg_key_space(void) {
     }
 }
 
+
+//____________________________________________________
+static void __declspec(naked) mark_auto_take_off(void) {
+
+    __asm {
+        mov is_flight_auto_take_off, TRUE
+        call wc3_flight_auto_take_off
+        mov is_flight_auto_take_off, FALSE
+        ret
+    }
+}
+
+
+//___________________________________________________
+static void __declspec(naked) mark_auto_landing(void) {
+
+    __asm {
+        mov is_flight_auto_landing, TRUE
+        call wc3_flight_auto_landing
+        mov is_flight_auto_landing, FALSE
+        ret
+    }
+}
+
 /*
 //___________________________
 void Print_Scancode(int code) {
@@ -375,6 +410,10 @@ void Modifications_Keyboard() {
     //use ESC key to evoke Exit screen.
     FuncReplace32(0x481F53, 0x09C9, (DWORD)&translate_msg_key_gui);
     FuncReplace32(0x4082D9, 0x07A643, (DWORD)&translate_msg_key_space);
+
+    //set flags when auto takeoff and landing to prevent the ESC key evoking the Exit screen.
+    FuncReplace32(0x43454F, 0xFFFFFBCD, (DWORD)&mark_auto_take_off);
+    FuncReplace32(0x434581, 0xFFFFFD0B, (DWORD)&mark_auto_landing);
 
 	//print scancodes
 	//MemWrite16(0x48280C, 0x9A8A, 0xE890);
