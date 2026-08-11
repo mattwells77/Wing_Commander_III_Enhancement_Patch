@@ -265,7 +265,7 @@ static void Check_Exit_Keys() {
 
     //don't evoke the exit screen when using a VDU or during auto takeoff and landing as the ESC key is used for an alternate purpose here.
     if (current_pro_type == PROFILE_TYPE::Space) {
-        if (*p_wc3_vdu_focus != -1 && *p_wc3_vdu_focus != 0)
+        if (*p_wc3_vdu_focus != -1 && *p_wc3_vdu_focus != 0 && *p_wc3_vdu_focus != 8)
             return;
         if (is_flight_auto_take_off || is_flight_auto_landing)
             return;
