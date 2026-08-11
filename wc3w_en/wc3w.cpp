@@ -249,6 +249,12 @@ void(__stdcall* wc3_setup_joystick)(LONG flag) = nullptr;
 void(__thiscall* wc3_flight_auto_take_off)(void*) = nullptr;
 void(__thiscall* wc3_flight_auto_landing)(void*) = nullptr;
 
+LONG(*wc3_shape_draw)(DRAW_BUFFER_MAIN* p_db, void* shape_data, DWORD shape_num, DWORD x, DWORD y) = nullptr;
+DWORD(*wc3_shape_get_width_height)(void* shape_data, DWORD shape_num) = nullptr;
+LONG(*wc3_draw_line)(DRAW_BUFFER_MAIN* p_db, LONG x1, LONG y1, LONG x2, LONG y2, DWORD arg6, DWORD colour_ref) = nullptr;
+
+int16_t* p_wc3_space_x = nullptr;
+int16_t* p_wc3_space_y = nullptr;
 
 //_______________
 void WC3W_Setup() {
@@ -329,7 +335,7 @@ void WC3W_Setup() {
     p_wc3_controller_mouse = (bool*)0x4A2DEC;
     p_wc3_controller_keyboard = (bool*)0x4A2DF0;
 
-    pp_wc3_music_thread_class = (void**)0x4A3A74;
+    pp_wc3_music_thread_class = (MUSIC_CLASS**)0x4A3A74;
     wc3_music_thread_class_destructor = (void(__thiscall*)(void*))0x444B30;
 
     wc3_dealocate_mem01 = (void(*)(void*))0x490810;
@@ -483,4 +489,11 @@ void WC3W_Setup() {
 
     wc3_flight_auto_take_off = (void(__thiscall*)(void*))0x434120;
     wc3_flight_auto_landing = (void(__thiscall*)(void*))0x434290;
+
+    wc3_shape_draw = (LONG(*)(DRAW_BUFFER_MAIN*, void*, DWORD, DWORD, DWORD))0x471714;
+    wc3_shape_get_width_height = (DWORD(*)(void*, DWORD))0x475C7E;
+    wc3_draw_line = (LONG(*)(DRAW_BUFFER_MAIN*, LONG, LONG, LONG, LONG, DWORD, DWORD))0x470BD9;
+
+    p_wc3_space_x = (int16_t*)0x4B3550;
+    p_wc3_space_y = (int16_t*)0x4B3552;
 }

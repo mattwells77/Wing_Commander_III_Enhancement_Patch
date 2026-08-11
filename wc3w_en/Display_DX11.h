@@ -1120,6 +1120,7 @@ extern UINT space_scaled_height;
 extern DrawSurface8_RT* surface_gui;
 extern DrawSurface* surface_space3D;
 extern DrawSurface8_RT* surface_space2D;
+extern DrawSurface8_RT* surface_space_targeting_hud;
 extern DrawSurface8_RT* surface_movieXAN;
 
 extern BOOL space_view_has_BG_image;

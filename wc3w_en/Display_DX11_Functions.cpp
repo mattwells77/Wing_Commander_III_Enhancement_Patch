@@ -125,6 +125,7 @@ PAL_DX* main_pal = nullptr;
 DrawSurface8_RT* surface_gui = nullptr;
 DrawSurface* surface_space3D = nullptr;
 DrawSurface8_RT* surface_space2D = nullptr;
+DrawSurface8_RT* surface_space_targeting_hud = nullptr;
 DrawSurface8_RT* surface_movieXAN = nullptr;
 
 DrawSurface* surface_cockpit[4] = { nullptr,nullptr,nullptr,nullptr };
@@ -350,6 +351,20 @@ static void Surfaces_Setup(UINT width, UINT height) {
         }
         //surface_space3D->Set_Default_Pixel_Shader(pd3d_PS_Basic_Tex_8_masked);
     }
+    if (surface_space_targeting_hud == nullptr) {
+        DWORD hud_w = GUI_WIDTH;
+        DWORD hud_h = GUI_HEIGHT;
+        float spaceRO = (float)spaceWidth / spaceHeight;
+        if (spaceRO > (float)GUI_WIDTH / GUI_HEIGHT)
+            hud_w = (DWORD)((float)hud_h * spaceRO);
+        else
+            hud_h = (DWORD)((float)hud_w / spaceRO);
+        
+        surface_space_targeting_hud = new DrawSurface8_RT(0, 0, hud_w, hud_h, 32, 0x00000000, true, 255);
+        surface_space_targeting_hud->ScaleTo((float)width, (float)height, SCALE_TYPE::fill);
+        if (!ConfigReadInt(L"MAIN", L"ENABLE_LINEAR_UPSCALING_COCKPIT_HUD", CONFIG_MAIN_ENABLE_LINEAR_UPSCALING_COCKPIT_HUD))
+            surface_space_targeting_hud->Set_Default_SamplerState(pd3dPS_SamplerState_Point);
+    }
     Debug_Info("Surfaces_Setup Done");
 }
 
@@ -365,8 +380,8 @@ static void Surfaces_Resize(UINT width, UINT height) {
 
     if (surface_space2D)
         surface_space2D->ScaleTo((float)width, (float)height);
-    
-    
+
+
     for (int i = 0; i < _countof(surface_cockpit); i++) {
         if (!surface_cockpit[i])
             continue;
@@ -418,6 +433,23 @@ static void Surfaces_Resize(UINT width, UINT height) {
     }
     //surface_space3D->Set_Default_Pixel_Shader(pd3d_PS_Basic_Tex_8_masked);
 
+    if (surface_space_targeting_hud)
+        delete surface_space_targeting_hud;
+    surface_space_targeting_hud = nullptr;
+
+    DWORD hud_w = GUI_WIDTH;
+    DWORD hud_h = GUI_HEIGHT;
+    float spaceRO = (float)spaceWidth / spaceHeight;
+    if (spaceRO > (float)GUI_WIDTH / GUI_HEIGHT)
+        hud_w = (DWORD)((float)hud_h * spaceRO);
+    else
+        hud_h = (DWORD)((float)hud_w / spaceRO);
+
+    surface_space_targeting_hud = new DrawSurface8_RT(0, 0, hud_w, hud_h, 32, 0x00000000, true, 255);
+    surface_space_targeting_hud->ScaleTo((float)width, (float)height, SCALE_TYPE::fill);
+    if (!ConfigReadInt(L"MAIN", L"ENABLE_LINEAR_UPSCALING_COCKPIT_HUD", CONFIG_MAIN_ENABLE_LINEAR_UPSCALING_COCKPIT_HUD))
+        surface_space_targeting_hud->Set_Default_SamplerState(pd3dPS_SamplerState_Point);
+
     Debug_Info("Surfaces_Resize Done - space w:%d, h:%d", surface_space3D->GetWidth(), surface_space3D->GetHeight());
 }
 
@@ -441,6 +473,9 @@ static void Surfaces_Destroy() {
         delete surface_space3D;
     surface_space3D = nullptr;
 
+    if (surface_space_targeting_hud)
+        delete surface_space_targeting_hud;
+    surface_space_targeting_hud = nullptr;
 
     for (int i = 0; i < _countof(surface_cockpit); i++) {
         if (surface_cockpit[i])
@@ -545,6 +580,9 @@ void Display_Dx_Present(PRESENT_TYPE present_type) {
             Shader_SetPaletteData(pal_mask_space);
             surface_space3D->Display();
         }
+        if (surface_space_targeting_hud)
+            surface_space_targeting_hud->Display();
+
         if (*p_wc3_view_cockpit_or_hud == SPACE_VIEW_TYPE::Cockpit && p_wc3_camera_01->view_type <= SPACE_VIEW_TYPE::CockBack || (space_view_has_BG_image && p_wc3_camera_01->view_type == SPACE_VIEW_TYPE::CockBack)) {
             if (surface_cockpit[static_cast<WORD>(p_wc3_camera_01->view_type)])
                 surface_cockpit[static_cast<WORD>(p_wc3_camera_01->view_type)]->Display();
@@ -554,7 +592,7 @@ void Display_Dx_Present(PRESENT_TYPE present_type) {
 
         if (surface_space2D) {
             surface_space2D->Display();
-        }
+       }
     }
     else {
         if (present_type == PRESENT_TYPE::movie) {

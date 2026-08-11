@@ -52,7 +52,7 @@ struct MUSIC_HEADER {
     /*0x08*/DWORD previous_tune;
     /*0x0C*/DWORD requested_tune;
     /*0x10*/DWORD unk10;
-    /*0x14*/DWORD unk14;//volume?
+    /*0x14*/DWORD volume;
 };
 
 struct MUSIC_FILE {
@@ -366,6 +366,11 @@ extern BYTE* p_wc3_space_pause_game_option_flag;
 
 extern DWORD* p_wc3_current_cd_num;
 
+
+extern int16_t* p_wc3_space_x;
+extern int16_t* p_wc3_space_y;
+
+
 extern void(__thiscall* wc3_draw_hud_targeting_elements)(void*);
 extern void(__thiscall* wc3_draw_hud_view_text)(void*);
 
@@ -433,3 +438,7 @@ extern void(__stdcall* wc3_setup_joystick)(LONG flag);
 
 extern void(__thiscall* wc3_flight_auto_take_off)(void*);
 extern void(__thiscall* wc3_flight_auto_landing)(void*);
+
+extern LONG(*wc3_shape_draw)(DRAW_BUFFER_MAIN* p_db, void* shape_data, DWORD shape_num, DWORD x, DWORD y);
+extern DWORD(*wc3_shape_get_width_height)(void* shape_data, DWORD shape_num);
+extern LONG(*wc3_draw_line)(DRAW_BUFFER_MAIN* p_db, LONG x1, LONG y1, LONG x2, LONG y2, DWORD arg6, DWORD colour_ref);
