@@ -130,7 +130,7 @@ const char* p_save_game_text_eng = nullptr;
 const char* p_save_game_text_ger = nullptr;
 const char* p_save_game_text_fre = nullptr;
 
-void** pp_wc3_music_thread_class = nullptr;
+MUSIC_CLASS** pp_wc3_music_thread_class = nullptr;
 void(__thiscall* wc3_music_thread_class_destructor)(void*) = nullptr;
 
 void(*wc3_dealocate_mem01)(void*) = nullptr;
@@ -255,6 +255,10 @@ LONG(*wc3_draw_line)(DRAW_BUFFER_MAIN* p_db, LONG x1, LONG y1, LONG x2, LONG y2,
 
 int16_t* p_wc3_space_x = nullptr;
 int16_t* p_wc3_space_y = nullptr;
+
+void(__thiscall* wc3_music_update_tune_space)(void*) = nullptr;
+void(__thiscall* wc3_music_update_tune_gui)(void*, LONG) = nullptr;
+
 
 //_______________
 void WC3W_Setup() {
@@ -496,4 +500,7 @@ void WC3W_Setup() {
 
     p_wc3_space_x = (int16_t*)0x4B3550;
     p_wc3_space_y = (int16_t*)0x4B3552;
+
+    wc3_music_update_tune_space = (void(__thiscall*)(void*))0x439520;
+    wc3_music_update_tune_gui = (void(__thiscall*)(void*, LONG))0x439440;
 }

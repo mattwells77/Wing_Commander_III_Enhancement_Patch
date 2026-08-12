@@ -366,10 +366,8 @@ extern BYTE* p_wc3_space_pause_game_option_flag;
 
 extern DWORD* p_wc3_current_cd_num;
 
-
 extern int16_t* p_wc3_space_x;
 extern int16_t* p_wc3_space_y;
-
 
 extern void(__thiscall* wc3_draw_hud_targeting_elements)(void*);
 extern void(__thiscall* wc3_draw_hud_view_text)(void*);
@@ -377,9 +375,10 @@ extern void(__thiscall* wc3_draw_hud_view_text)(void*);
 extern void(__thiscall* wc3_options_screen)(void*);
 extern void(__thiscall* wc3_nav_screen)(void*);
 
-extern void** pp_wc3_music_thread_class;
+extern MUSIC_CLASS** pp_wc3_music_thread_class;
 extern void(__thiscall* wc3_music_thread_class_destructor)(void*);
-
+extern void(__thiscall* wc3_music_update_tune_space)(void*);
+extern void(__thiscall* wc3_music_update_tune_gui)(void*, LONG);
 
 extern void(*wc3_dealocate_mem01)(void*);
 extern void(*wc3_unknown_func01)();
