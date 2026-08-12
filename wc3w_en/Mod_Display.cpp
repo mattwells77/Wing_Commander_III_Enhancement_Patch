@@ -1481,6 +1481,9 @@ static void Check_Optional_Enhancements() {
 
     if (ConfigReadInt(L"DEBUG", L"REPLACE_ALT_X_MSG_WITH_ROOM_SCENE_ID", CONFIG_DEBUG_REPLACE_ALT_X_MSG_WITH_ROOM_SCENE_ID))
         Modifications_Replace_Alt_X_Msg_With_Room_Scene_ID();
+    
+    if (ConfigReadInt(L"DEBUG", L"PRINT_RANDOM_CRASH_REPORT", 0))
+        Modifications_Random_Crash_Check();
 
     //Joysticks.Update();
 }

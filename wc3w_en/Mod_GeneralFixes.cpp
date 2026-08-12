@@ -932,6 +932,84 @@ static void __declspec(naked) set_language_ref_3(void) {
 }
 
 
+BOOL is_random_crash_report_activated = FALSE;
+BOOL flag_draw_3d_func_addr = FALSE;
+BOOL flag_draw_3d_func_num = FALSE;
+BOOL flag_draw_3d_func_arg3 = FALSE;
+
+BOOL flag_draw_3d_func_global1 = FALSE;
+BOOL flag_draw_3d_func_global2 = FALSE;
+
+BOOL flag_draw_3d_func_arg5 = FALSE;
+BOOL flag_draw_3d_func_arg6 = FALSE;
+BOOL flag_draw_3d_func_arg7 = FALSE;
+BOOL flag_draw_3d_func_arg8 = FALSE;
+
+
+//________________________
+void Random_Crash_Report() {
+    if (!is_random_crash_report_activated)
+        return;
+    Debug_Info_Error("");
+    Debug_Info_Error("///////////// Random Crash Report /////////////");
+    Debug_Info_Error("Processing function addr: 0x%X, function num: %d, Arg3 - num vertices to proccess?: %d", flag_draw_3d_func_addr, flag_draw_3d_func_num, flag_draw_3d_func_arg3);
+    Debug_Info_Error("Arg5: %d, Arg6: %d, Arg7: %d, Arg8: %d", flag_draw_3d_func_arg5, flag_draw_3d_func_arg6, flag_draw_3d_func_arg7, flag_draw_3d_func_arg8);
+    Debug_Info_Error("global1: %d, global2: %d", flag_draw_3d_func_global1, flag_draw_3d_func_global2);
+}
+
+
+//____________________________________________________
+static void __declspec(naked) check_3d_draw_func(void) {
+
+    __asm {
+
+        push eax
+
+        mov eax, dword ptr ds : [ebp + 0x10]
+        mov flag_draw_3d_func_arg3, eax
+
+        mov eax, dword ptr ds : [ebp + 0x18]
+        mov flag_draw_3d_func_arg5, eax
+        mov eax, dword ptr ds : [ebp + 0x1C]
+        mov flag_draw_3d_func_arg6, eax
+        mov eax, dword ptr ds : [ebp + 0x30]
+        mov flag_draw_3d_func_arg7, eax
+        mov eax, dword ptr ds : [ebp + 0x24]
+        mov flag_draw_3d_func_arg8, eax
+
+        mov eax, 0x4A74D0
+        mov eax, dword ptr ds : [eax]
+        mov flag_draw_3d_func_global1, eax
+        mov eax, 0x4A74D4
+        mov eax, dword ptr ds : [eax]
+        mov flag_draw_3d_func_global2, eax
+
+        pop eax
+
+        mov flag_draw_3d_func_addr, eax
+        mov flag_draw_3d_func_num, ebx
+        cmp eax, 0
+        je exit_func
+
+        call eax
+
+        exit_func:
+        mov flag_draw_3d_func_addr, 0
+        mov flag_draw_3d_func_num, 0
+        ret
+    }
+}
+
+//_____________________________________
+void Modifications_Random_Crash_Check() {
+    is_random_crash_report_activated = TRUE;
+
+    MemWrite16(0x47D7A1, 0xF883, 0x9090);
+    MemWrite8(0x47D7A3, 0x00, 0xE8);
+    FuncWrite32(0x47D7A4, 0xD0FF0274, (DWORD)&check_3d_draw_func);
+}
+
+
 //_______________________________
 void Modifications_GeneralFixes() {
 

@@ -37,3 +37,6 @@ void Modifications_Space_Background_Colour();
 void Modifications_Replace_Alt_X_Msg_With_Room_Scene_ID();
 
 void Set_WindowActive_State(BOOL isActive);
+
+void Modifications_Random_Crash_Check();
+void Random_Crash_Report();
