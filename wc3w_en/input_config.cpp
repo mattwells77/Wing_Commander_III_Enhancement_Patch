@@ -3140,11 +3140,14 @@ static HWND JoyConfig_Create(HWND hwnd, HINSTANCE hinstance) {
 
 //___________________
 BOOL JoyConfig_Main() {
-
-	if (!JoyConfig_Create(*p_wc3_hWinMain, phinstDLL))
-		return FALSE;
-
+	
 	PROFILE_TYPE saved_pro_type = current_pro_type;
+	current_pro_type = PROFILE_TYPE::Space;
+
+	if (!JoyConfig_Create(*p_wc3_hWinMain, phinstDLL)) {
+		current_pro_type = saved_pro_type;
+		return FALSE;
+	}
 
 	ShowCursor(TRUE);
 
