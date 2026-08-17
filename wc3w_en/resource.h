@@ -250,6 +250,8 @@
 #define IDC_CHECK_INVERT_Y_AXIS         1081
 #define IDC_COMBO_                      1083
 #define IDC_COMBO_AXIS_RANGE            1083
+#define IDC_STATIC_AS_BUTTON_1          1084
+#define IDC_STATIC_AS_BUTTON_2          1085
 #define IDC_STATIC                      -1
 #define IDC_STATIC_XY_BOX               -1
 
@@ -260,7 +262,7 @@
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        152
 #define _APS_NEXT_COMMAND_VALUE         32771
-#define _APS_NEXT_CONTROL_VALUE         1084
+#define _APS_NEXT_CONTROL_VALUE         1086
 #define _APS_NEXT_SYMED_VALUE           110
 #endif
 #endif

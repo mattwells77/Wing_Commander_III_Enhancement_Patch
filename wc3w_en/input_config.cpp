@@ -1157,10 +1157,12 @@ static void JoyConfig_Refresh_Axes(BOOL joy_changed, BOOL axis_type_change) {
 			if (action_pos >= 0)
 				SendMessage(hwnd_butt1, CB_SETCURSEL, (WPARAM)action_pos, (LPARAM)0);
 			EnableWindow(hwnd_butt1, is_button1);
+			EnableWindow(GetDlgItem(hWin_Config_Joy_Control, IDC_STATIC_AS_BUTTON_1), is_button1);
 			action_pos = Get_Action_Position(p_action_axis->Get_Button_Action_Max());
 			if (action_pos >= 0)
 				SendMessage(hwnd_butt2, CB_SETCURSEL, (WPARAM)action_pos, (LPARAM)0);
 			EnableWindow(hwnd_butt2, is_button2);
+			EnableWindow(GetDlgItem(hWin_Config_Joy_Control, IDC_STATIC_AS_BUTTON_2), is_button2);
 
 		}
 		else {
@@ -1170,8 +1172,10 @@ static void JoyConfig_Refresh_Axes(BOOL joy_changed, BOOL axis_type_change) {
 			EnableWindow(hwnd_sign, FALSE);
 			SendMessage(hwnd_butt1, CB_SETCURSEL, (WPARAM)0, (LPARAM)0);
 			EnableWindow(hwnd_butt1, FALSE);
+			EnableWindow(GetDlgItem(hWin_Config_Joy_Control, IDC_STATIC_AS_BUTTON_1), FALSE);
 			SendMessage(hwnd_butt2, CB_SETCURSEL, (WPARAM)0, (LPARAM)0);
 			EnableWindow(hwnd_butt2, FALSE);
+			EnableWindow(GetDlgItem(hWin_Config_Joy_Control, IDC_STATIC_AS_BUTTON_2), FALSE);
 			EnableWindow(hwnd_calibrate, FALSE);
 			EnableWindow(hwnd_centre, FALSE);
 		}
