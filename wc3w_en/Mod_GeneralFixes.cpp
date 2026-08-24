@@ -932,6 +932,86 @@ static void __declspec(naked) set_language_ref_3(void) {
 }
 
 
+DWORD vmem_start = 0;
+DWORD vmem_end = 0;
+//_____________________________________________________________________________________________________________________________
+static LPVOID __stdcall VirtualAlloc_Game_Resources(LPVOID lpAddress, SIZE_T dwSize, DWORD  flAllocationType, DWORD  flProtect) {
+
+    LPVOID base_address = VirtualAlloc(lpAddress, dwSize, flAllocationType, flProtect);
+    vmem_start = (DWORD)base_address;
+    vmem_end = vmem_start + dwSize;
+
+    return base_address;
+}
+void* p_virtual_alloc_game_resources = &VirtualAlloc_Game_Resources;
+
+
+//_____________________________________________
+//static void print_texture_error(DWORD mem_addr) {
+//
+//    Debug_Info_Error("BAD_Texture_Addr: %X", mem_addr);
+//}
+
+
+//______________________________________________________
+static void __declspec(naked) test_texture_address(void) {
+
+    __asm {
+        add eax, edx// add tex_mem_ptr(EAX) and offset(EDX)
+        cmp eax, vmem_start
+        jb mem_out_of_bounds
+        cmp eax, vmem_end
+        jb sample_texture
+
+        mem_out_of_bounds :
+        //pushad
+        //push eax
+        //call print_texture_error
+        //add esp, 0x4
+        //popad
+        mov al, 0xFF// set pixel to 255(mask colour) don't draw. 
+        jmp end_func
+
+        sample_texture :
+        mov al, byte ptr ds : [eax]
+
+        end_func :
+        //original code
+        add ebp, ebx
+        ret
+    }
+}
+
+
+//________________________________________________________
+static void __declspec(naked) test_texture_address_2(void) {
+
+    __asm {
+        //original code
+        adc ecx, dword ptr ds : [0x4A7590]
+
+        add eax, edx// add tex_mem_ptr(EAX) and offset(EDX)
+        cmp eax, vmem_start
+        jb mem_out_of_bounds
+        cmp eax, vmem_end
+        jb sample_texture
+
+        mem_out_of_bounds :
+        //pushad
+        //push eax
+        //call print_texture_error
+        //add esp, 0x4
+        //popad
+        mov al, 0xFF// set pixel to 255(mask colour) don't draw. 
+        ret
+
+        sample_texture :
+        mov al, byte ptr ds : [eax]
+        ret
+    }
+}
+
+
 BOOL is_random_crash_report_activated = FALSE;
 BOOL flag_draw_3d_func_addr = FALSE;
 BOOL flag_draw_3d_func_num = FALSE;
@@ -1137,4 +1217,350 @@ void Modifications_GeneralFixes() {
     MemWrite8(0x41660A, 0xA3, 0xE8);
     FuncWrite32(0x41660B, 0x4A0FDC, (DWORD)&set_subtitles_flag);
     //-----------------------------------------------------------
+
+
+    //---------------random-space-crash-fix--texture-sampler-fix------------------
+    MemWrite32(0x480986, 0x4B5344, (DWORD)&p_virtual_alloc_game_resources);
+
+    // poly draw func 01: texture highlight, large near
+    // 8 or greater
+    //0
+    MemWrite8(0x478528, 0x8A, 0xE8);
+    FuncWrite32(0x478529, 0x0D130204, (DWORD)&test_texture_address_2);
+    MemWrite32(0x47852D, 0x4A7590, 0x90909090);
+    //1
+    MemWrite8(0x47855A, 0x8A, 0xE8);
+    FuncWrite32(0x47855B, 0x0D130204, (DWORD)&test_texture_address_2);
+    MemWrite32(0x47855F, 0x4A7590, 0x90909090);
+    //2
+    MemWrite8(0x47858D, 0x8A, 0xE8);
+    FuncWrite32(0x47858E, 0x0D130204, (DWORD)&test_texture_address_2);
+    MemWrite32(0x478592, 0x4A7590, 0x90909090);
+    //3
+    MemWrite8(0x4785C0, 0x8A, 0xE8);
+    FuncWrite32(0x4785C1, 0x0D130204, (DWORD)&test_texture_address_2);
+    MemWrite32(0x4785C5, 0x4A7590, 0x90909090);
+    //4
+    MemWrite8(0x4785F3, 0x8A, 0xE8);
+    FuncWrite32(0x4785F4, 0x0D130204, (DWORD)&test_texture_address_2);
+    MemWrite32(0x4785F8, 0x4A7590, 0x90909090);
+    //5
+    MemWrite8(0x478626, 0x8A, 0xE8);
+    FuncWrite32(0x478627, 0x0D130204, (DWORD)&test_texture_address_2);
+    MemWrite32(0x47862B, 0x4A7590, 0x90909090);
+    //6
+    MemWrite8(0x478659, 0x8A, 0xE8);
+    FuncWrite32(0x47865A, 0x0D130204, (DWORD)&test_texture_address_2);
+    MemWrite32(0x47865E, 0x4A7590, 0x90909090);
+    //7
+    MemWrite8(0x47868C, 0x8A, 0xE8);
+    FuncWrite32(0x47868D, 0x0D130204, (DWORD)&test_texture_address_2);
+    MemWrite32(0x478691, 0x4A7590, 0x90909090);
+    // less than 8
+    //0
+    MemWrite8(0x4786DC, 0x8A, 0xE8);
+    FuncWrite32(0x4786DD, 0x0D130204, (DWORD)&test_texture_address_2);
+    MemWrite32(0x4786E1, 0x4A7590, 0x90909090);
+    //1
+    MemWrite8(0x47871A, 0x8A, 0xE8);
+    FuncWrite32(0x47871B, 0x0D130204, (DWORD)&test_texture_address_2);
+    MemWrite32(0x47871F, 0x4A7590, 0x90909090);
+    //2
+    MemWrite8(0x478759, 0x8A, 0xE8);
+    FuncWrite32(0x47875A, 0x0D130204, (DWORD)&test_texture_address_2);
+    MemWrite32(0x47875E, 0x4A7590, 0x90909090);
+    //3
+    MemWrite8(0x478798, 0x8A, 0xE8);
+    FuncWrite32(0x478799, 0x0D130204, (DWORD)&test_texture_address_2);
+    MemWrite32(0x47879D, 0x4A7590, 0x90909090);
+    //4
+    MemWrite8(0x4787D7, 0x8A, 0xE8);
+    FuncWrite32(0x4787D8, 0x0D130204, (DWORD)&test_texture_address_2);
+    MemWrite32(0x4787DC, 0x4A7590, 0x90909090);
+    //5
+    MemWrite8(0x478812, 0x8A, 0xE8);
+    FuncWrite32(0x478813, 0x0D130204, (DWORD)&test_texture_address_2);
+    MemWrite32(0x478817, 0x4A7590, 0x90909090);
+    //6
+    MemWrite8(0x47884D, 0x8A, 0xE8);
+    FuncWrite32(0x47884E, 0x0D130204, (DWORD)&test_texture_address_2);
+    MemWrite32(0x478852, 0x4A7590, 0x90909090);
+
+    // poly draw func 02: texture, large near
+    // 8 or greater
+    //0
+    MemWrite8(0x478FB7, 0x03, 0xE8);
+    FuncWrite32(0x478FB8, 0x02048AEB, (DWORD)&test_texture_address);
+    //1
+    MemWrite8(0x478FDB, 0x03, 0xE8);
+    FuncWrite32(0x478FDC, 0x02048AEB, (DWORD)&test_texture_address);
+    //2
+    MemWrite8(0x479000, 0x03, 0xE8);
+    FuncWrite32(0x479001, 0x02048AEB, (DWORD)&test_texture_address);
+    //3
+    MemWrite8(0x479025, 0x03, 0xE8);
+    FuncWrite32(0x479026, 0x02048AEB, (DWORD)&test_texture_address);
+    //4
+    MemWrite8(0x47904A, 0x03, 0xE8);
+    FuncWrite32(0x47904B, 0x02048AEB, (DWORD)&test_texture_address);
+    //5
+    MemWrite8(0x47906F, 0x03, 0xE8);
+    FuncWrite32(0x479070, 0x02048AEB, (DWORD)&test_texture_address);
+    //6
+    MemWrite8(0x479094, 0x03, 0xE8);
+    FuncWrite32(0x479095, 0x02048AEB, (DWORD)&test_texture_address);
+    //7
+    MemWrite8(0x4790B9, 0x03, 0xE8);
+    FuncWrite32(0x4790BA, 0x02048AEB, (DWORD)&test_texture_address);
+    // less than 8
+    //0
+    MemWrite8(0x4790FB, 0x03, 0xE8);
+    FuncWrite32(0x4790FC, 0x02048AEB, (DWORD)&test_texture_address);
+    //1
+    MemWrite8(0x47912B, 0x03, 0xE8);
+    FuncWrite32(0x47912C, 0x02048AEB, (DWORD)&test_texture_address);
+    //2
+    MemWrite8(0x47915C, 0x03, 0xE8);
+    FuncWrite32(0x47915D, 0x02048AEB, (DWORD)&test_texture_address);
+    //3
+    MemWrite8(0x47918D, 0x03, 0xE8);
+    FuncWrite32(0x47918E, 0x02048AEB, (DWORD)&test_texture_address);
+    //4
+    MemWrite8(0x4791BA, 0x03, 0xE8);
+    FuncWrite32(0x4791BB, 0x02048AEB, (DWORD)&test_texture_address);
+    //5
+    MemWrite8(0x4791E7, 0x03, 0xE8);
+    FuncWrite32(0x4791E8, 0x02048AEB, (DWORD)&test_texture_address);
+    //6
+    MemWrite8(0x479214, 0x03, 0xE8);
+    FuncWrite32(0x479215, 0x02048AEB, (DWORD)&test_texture_address);
+
+    // poly draw func 03: texture highlight
+    // 8 or greater
+    //0
+    MemWrite8(0x479BA2, 0x8A, 0xE8);
+    FuncWrite32(0x479BA3, 0x0D130204, (DWORD)&test_texture_address_2);
+    MemWrite32(0x479BA7, 0x4A7590, 0x90909090);
+    //1
+    MemWrite8(0x479BD4, 0x8A, 0xE8);
+    FuncWrite32(0x479BD5, 0x0D130204, (DWORD)&test_texture_address_2);
+    MemWrite32(0x479BD9, 0x4A7590, 0x90909090);
+    //2
+    MemWrite8(0x479C07, 0x8A, 0xE8);
+    FuncWrite32(0x479C08, 0x0D130204, (DWORD)&test_texture_address_2);
+    MemWrite32(0x479C0C, 0x4A7590, 0x90909090);
+    //3
+    MemWrite8(0x479C3A, 0x8A, 0xE8);
+    FuncWrite32(0x479C3B, 0x0D130204, (DWORD)&test_texture_address_2);
+    MemWrite32(0x479C3F, 0x4A7590, 0x90909090);
+    //4
+    MemWrite8(0x479C6D, 0x8A, 0xE8);
+    FuncWrite32(0x479C6E, 0x0D130204, (DWORD)&test_texture_address_2);
+    MemWrite32(0x479C72, 0x4A7590, 0x90909090);
+    //5
+    MemWrite8(0x479CA0, 0x8A, 0xE8);
+    FuncWrite32(0x479CA1, 0x0D130204, (DWORD)&test_texture_address_2);
+    MemWrite32(0x479CA5, 0x4A7590, 0x90909090);
+    //6
+    MemWrite8(0x479CD3, 0x8A, 0xE8);
+    FuncWrite32(0x479CD4, 0x0D130204, (DWORD)&test_texture_address_2);
+    MemWrite32(0x479CD8, 0x4A7590, 0x90909090);
+    //7
+    MemWrite8(0x479D06, 0x8A, 0xE8);
+    FuncWrite32(0x479D07, 0x0D130204, (DWORD)&test_texture_address_2);
+    MemWrite32(0x479D0B, 0x4A7590, 0x90909090);
+    // less than 8
+    //0
+    MemWrite8(0x479D56, 0x8A, 0xE8);
+    FuncWrite32(0x479D57, 0x0D130204, (DWORD)&test_texture_address_2);
+    MemWrite32(0x479D5B, 0x4A7590, 0x90909090);
+    //1
+    MemWrite8(0x479D94, 0x8A, 0xE8);
+    FuncWrite32(0x479D95, 0x0D130204, (DWORD)&test_texture_address_2);
+    MemWrite32(0x479D99, 0x4A7590, 0x90909090);
+    //2
+    MemWrite8(0x479DD3, 0x8A, 0xE8);
+    FuncWrite32(0x479DD4, 0x0D130204, (DWORD)&test_texture_address_2);
+    MemWrite32(0x479DD8, 0x4A7590, 0x90909090);
+    //3
+    MemWrite8(0x479E12, 0x8A, 0xE8);
+    FuncWrite32(0x479E13, 0x0D130204, (DWORD)&test_texture_address_2);
+    MemWrite32(0x479E17, 0x4A7590, 0x90909090);
+    //4
+    MemWrite8(0x479E51, 0x8A, 0xE8);
+    FuncWrite32(0x479E52, 0x0D130204, (DWORD)&test_texture_address_2);
+    MemWrite32(0x479E56, 0x4A7590, 0x90909090);
+    //5
+    MemWrite8(0x479E8C, 0x8A, 0xE8);
+    FuncWrite32(0x479E8D, 0x0D130204, (DWORD)&test_texture_address_2);
+    MemWrite32(0x479E91, 0x4A7590, 0x90909090);
+    //6
+    MemWrite8(0x479EC7, 0x8A, 0xE8);
+    FuncWrite32(0x479EC8, 0x0D130204, (DWORD)&test_texture_address_2);
+    MemWrite32(0x479ECC, 0x4A7590, 0x90909090);
+
+    // texture, large near
+    // 8 or greater
+    //0
+    MemWrite8(0x47A85B, 0x03, 0xE8);
+    FuncWrite32(0x47A85C, 0x02048AEB, (DWORD)&test_texture_address);
+    //1
+    MemWrite8(0x47A87F, 0x03, 0xE8);
+    FuncWrite32(0x47A880, 0x02048AEB, (DWORD)&test_texture_address);
+    //2
+    MemWrite8(0x47A8A4, 0x03, 0xE8);
+    FuncWrite32(0x47A8A5, 0x02048AEB, (DWORD)&test_texture_address);
+    //3
+    MemWrite8(0x47A8C9, 0x03, 0xE8);
+    FuncWrite32(0x47A8CA, 0x02048AEB, (DWORD)&test_texture_address);
+    //4
+    MemWrite8(0x47A8EE, 0x03, 0xE8);
+    FuncWrite32(0x47A8EF, 0x02048AEB, (DWORD)&test_texture_address);
+    //5
+    MemWrite8(0x47A913, 0x03, 0xE8);
+    FuncWrite32(0x47A914, 0x02048AEB, (DWORD)&test_texture_address);
+    //6
+    MemWrite8(0x47A938, 0x03, 0xE8);
+    FuncWrite32(0x47A939, 0x02048AEB, (DWORD)&test_texture_address);
+    //7
+    MemWrite8(0x47A95D, 0x03, 0xE8);
+    FuncWrite32(0x47A95E, 0x02048AEB, (DWORD)&test_texture_address);
+    // less than 8
+    //0
+    MemWrite8(0x47A99F, 0x03, 0xE8);
+    FuncWrite32(0x47A9A0, 0x02048AEB, (DWORD)&test_texture_address);
+    //1
+    MemWrite8(0x47A9CF, 0x03, 0xE8);
+    FuncWrite32(0x47A9D0, 0x02048AEB, (DWORD)&test_texture_address);
+    //2
+    MemWrite8(0x47AA00, 0x03, 0xE8);
+    FuncWrite32(0x47AA01, 0x02048AEB, (DWORD)&test_texture_address);
+    //3
+    MemWrite8(0x47AA31, 0x03, 0xE8);
+    FuncWrite32(0x47AA32, 0x02048AEB, (DWORD)&test_texture_address);
+    //4
+    MemWrite8(0x47AA5E, 0x03, 0xE8);
+    FuncWrite32(0x47AA5F, 0x02048AEB, (DWORD)&test_texture_address);
+    //5
+    MemWrite8(0x47AA8B, 0x03, 0xE8);
+    FuncWrite32(0x47AA8C, 0x02048AEB, (DWORD)&test_texture_address);
+    //6
+    MemWrite8(0x47AAB8, 0x03, 0xE8);
+    FuncWrite32(0x47AAB9, 0x02048AEB, (DWORD)&test_texture_address);
+
+
+    // poly draw func 04: texture
+    // 8 or greater
+    //0
+    MemWrite8(0x47B0F9, 0x03, 0xE8);
+    FuncWrite32(0x47B0FA, 0x02048AEB, (DWORD)&test_texture_address);
+    //1
+    MemWrite8(0x47B119, 0x03, 0xE8);
+    FuncWrite32(0x47B11A, 0x02048AEB, (DWORD)&test_texture_address);
+    //2
+    MemWrite8(0x47B13A, 0x03, 0xE8);
+    FuncWrite32(0x47B13B, 0x02048AEB, (DWORD)&test_texture_address);
+    //3
+    MemWrite8(0x47B15B, 0x03, 0xE8);
+    FuncWrite32(0x47B15C, 0x02048AEB, (DWORD)&test_texture_address);
+    //4
+    MemWrite8(0x47B17C, 0x03, 0xE8);
+    FuncWrite32(0x47B17D, 0x02048AEB, (DWORD)&test_texture_address);
+    //5
+    MemWrite8(0x47B19D, 0x03, 0xE8);
+    FuncWrite32(0x47B19E, 0x02048AEB, (DWORD)&test_texture_address);
+    //6
+    MemWrite8(0x47B1BE, 0x03, 0xE8);
+    FuncWrite32(0x47B1BF, 0x02048AEB, (DWORD)&test_texture_address);
+    //7
+    MemWrite8(0x47B1DF, 0x03, 0xE8);
+    FuncWrite32(0x47B1E0, 0x02048AEB, (DWORD)&test_texture_address);
+    // less than 8
+    //0
+    MemWrite8(0x47B21D, 0x03, 0xE8);
+    FuncWrite32(0x47B21E, 0x02048AEB, (DWORD)&test_texture_address);
+    //1
+    MemWrite8(0x47B249, 0x03, 0xE8);
+    FuncWrite32(0x47B24A, 0x02048AEB, (DWORD)&test_texture_address);
+    //2
+    MemWrite8(0x47B276, 0x03, 0xE8);
+    FuncWrite32(0x47B277, 0x02048AEB, (DWORD)&test_texture_address);
+    //3
+    MemWrite8(0x47B2A3, 0x03, 0xE8);
+    FuncWrite32(0x47B2A4, 0x02048AEB, (DWORD)&test_texture_address);
+    //4
+    MemWrite8(0x47B2CC, 0x03, 0xE8);
+    FuncWrite32(0x47B2CD, 0x02048AEB, (DWORD)&test_texture_address);
+    //5
+    MemWrite8(0x47B2F5, 0x03, 0xE8);
+    FuncWrite32(0x47B2F6, 0x02048AEB, (DWORD)&test_texture_address);
+    //6
+    MemWrite8(0x47B31E, 0x03, 0xE8);
+    FuncWrite32(0x47B31F, 0x02048AEB, (DWORD)&test_texture_address);
+
+
+    // poly draw func 05: texture highlight
+    // 8 or greater
+    //0
+    MemWrite8(0x47B85F, 0x8A, 0xE8);
+    FuncWrite32(0x47B860, 0x0D130204, (DWORD)&test_texture_address_2);
+    MemWrite32(0x47B864, 0x4A7590, 0x90909090);
+    //1
+    MemWrite8(0x47B88D, 0x8A, 0xE8);
+    FuncWrite32(0x47B88E, 0x0D130204, (DWORD)&test_texture_address_2);
+    MemWrite32(0x47B892, 0x4A7590, 0x90909090);
+    //2
+    MemWrite8(0x47B8BC, 0x8A, 0xE8);
+    FuncWrite32(0x47B8BD, 0x0D130204, (DWORD)&test_texture_address_2);
+    MemWrite32(0x47B8C1, 0x4A7590, 0x90909090);
+    //3
+    MemWrite8(0x47B8EB, 0x8A, 0xE8);
+    FuncWrite32(0x47B8EC, 0x0D130204, (DWORD)&test_texture_address_2);
+    MemWrite32(0x47B8F0, 0x4A7590, 0x90909090);
+    //4
+    MemWrite8(0x47B91A, 0x8A, 0xE8);
+    FuncWrite32(0x47B91B, 0x0D130204, (DWORD)&test_texture_address_2);
+    MemWrite32(0x47B91F, 0x4A7590, 0x90909090);
+    //5
+    MemWrite8(0x47B949, 0x8A, 0xE8);
+    FuncWrite32(0x47B94A, 0x0D130204, (DWORD)&test_texture_address_2);
+    MemWrite32(0x47B94E, 0x4A7590, 0x90909090);
+    //6
+    MemWrite8(0x47B978, 0x8A, 0xE8);
+    FuncWrite32(0x47B979, 0x0D130204, (DWORD)&test_texture_address_2);
+    MemWrite32(0x47B97D, 0x4A7590, 0x90909090);
+    //7
+    MemWrite8(0x47B9A7, 0x8A, 0xE8);
+    FuncWrite32(0x47B9A8, 0x0D130204, (DWORD)&test_texture_address_2);
+    MemWrite32(0x47B9AC, 0x4A7590, 0x90909090);
+    // less than 8
+    //0
+    MemWrite8(0x47B9F3, 0x8A, 0xE8);
+    FuncWrite32(0x47B9F4, 0x0D130204, (DWORD)&test_texture_address_2);
+    MemWrite32(0x47B9F8, 0x4A7590, 0x90909090);
+    //1
+    MemWrite8(0x47BA2D, 0x8A, 0xE8);
+    FuncWrite32(0x47BA2E, 0x0D130204, (DWORD)&test_texture_address_2);
+    MemWrite32(0x47BA32, 0x4A7590, 0x90909090);
+    //2
+    MemWrite8(0x47BA68, 0x8A, 0xE8);
+    FuncWrite32(0x47BA69, 0x0D130204, (DWORD)&test_texture_address_2);
+    MemWrite32(0x47BA6D, 0x4A7590, 0x90909090);
+    //3
+    MemWrite8(0x47BAA3, 0x8A, 0xE8);
+    FuncWrite32(0x47BAA4, 0x0D130204, (DWORD)&test_texture_address_2);
+    MemWrite32(0x47BAA8, 0x4A7590, 0x90909090);
+    //4
+    MemWrite8(0x47BADE, 0x8A, 0xE8);
+    FuncWrite32(0x47BADF, 0x0D130204, (DWORD)&test_texture_address_2);
+    MemWrite32(0x47BAE3, 0x4A7590, 0x90909090);
+    //5
+    MemWrite8(0x47BB15, 0x8A, 0xE8);
+    FuncWrite32(0x47BB16, 0x0D130204, (DWORD)&test_texture_address_2);
+    MemWrite32(0x47BB1A, 0x4A7590, 0x90909090);
+    //6
+    MemWrite8(0x47BB4C, 0x8A, 0xE8);
+    FuncWrite32(0x47BB4D, 0x0D130204, (DWORD)&test_texture_address_2);
+    MemWrite32(0x47BB51, 0x4A7590, 0x90909090);
+    //----------------------------------------------------------------------------
 }
