@@ -166,6 +166,9 @@ static BOOL Play_Movie_Sequence(void* p_wc3_movie_class, void* p_sig_movie_class
 
     Sleep(150);//add a small delay to reduce unintended button clicks after ending a movie by double-clicking.
 
+    while (Get_Key_State(0x1, 0, 0))
+        wc3_translate_messages_keys();
+
     Debug_Info_Movie("Play_Movie_Sequence: Done");
     return play_successfull;
 }
@@ -288,6 +291,9 @@ static BOOL Play_HD_Movie_Sequence(char* mve_path) {
     }
 
     Sleep(150);//add a small delay to reduce unintended button clicks after ending a movie by double-clicking.
+    
+    while (Get_Key_State(0x1, 0, 0))
+        wc3_translate_messages_keys();
 
     Debug_Info_Movie("Play_HD_Movie_Sequence: Done:%d", play_successfull);
     return play_successfull;
