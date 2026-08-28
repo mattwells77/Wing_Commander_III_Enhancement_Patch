@@ -387,6 +387,15 @@ static void __declspec(naked) print_scancode(void) {
 }
 */
 
+
+//_______________________________________
+void Modifications_Keyboard_ESC_To_Exit() {
+    //use ESC key to evoke Exit screen.
+    FuncReplace32(0x481F53, 0x09C9, (DWORD)&translate_msg_key_gui);
+    FuncReplace32(0x4082D9, 0x07A643, (DWORD)&translate_msg_key_space);
+}
+
+
 //___________________________
 void Modifications_Keyboard() {
 	
@@ -414,10 +423,6 @@ void Modifications_Keyboard() {
 	//to improve controller support.
 	MemWrite8(0x43008B, 0xA1, 0xE8);
 	FuncWrite32(0x43008C, 0x4A9B80, (DWORD)&replay_screen_check_yes_no);
-
-    //use ESC key to evoke Exit screen.
-    FuncReplace32(0x481F53, 0x09C9, (DWORD)&translate_msg_key_gui);
-    FuncReplace32(0x4082D9, 0x07A643, (DWORD)&translate_msg_key_space);
 
     //set flags when auto takeoff and landing to prevent the ESC key evoking the Exit screen.
     FuncReplace32(0x43454F, 0xFFFFFBCD, (DWORD)&mark_auto_take_off);

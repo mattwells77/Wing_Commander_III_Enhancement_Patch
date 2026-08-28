@@ -1475,6 +1475,8 @@ static void Check_Optional_Enhancements() {
         Modifications_Controller_Enhancements(); //Modifications_Joystick();
     if (ConfigReadInt(L"MAIN", L"ENABLE_MUSIC_ENHANCEMENTS", CONFIG_MAIN_ENABLE_MUSIC_ENHANCEMENTS))
         Modifications_Music();
+    if (ConfigReadInt(L"MAIN", L"ENABLE_ESC_KEY_TO_EXIT_GAME", CONFIG_MAIN_ENABLE_ESC_KEY_TO_EXIT_GAME))
+        Modifications_Keyboard_ESC_To_Exit();
 
     if (ConfigReadInt(L"SPACE", L"ENABLE_SPACE_COLOUR_CHANGE", CONFIG_SPACE_ENABLE_SPACE_COLOUR_CHANGE))
         Modifications_Space_Background_Colour();
