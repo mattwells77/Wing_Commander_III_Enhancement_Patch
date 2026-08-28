@@ -213,6 +213,14 @@ static BYTE GUI_Alt_X_Message_Loop() {
 		key = Get_Pressed_Key();
 	} while (key == 0);
 
+    if (key == 1) {//prevent ESC from re-evoking exit menu by waiting for it to be lifted before continuing.
+        do {
+            wc3_update_input_states();
+            key = Get_Pressed_Key();
+        } while (key != 0);
+        key = 1;
+    }
+
 	//convert key to char. exit char depends on set language, Y for English.
 	return MapVirtualKeyA(MapVirtualKeyA(key, MAPVK_VSC_TO_VK), MAPVK_VK_TO_CHAR);
 }
