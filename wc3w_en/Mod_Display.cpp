@@ -1409,6 +1409,8 @@ static bool WinProc_Main(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam) 
                 pMovie_vlc_Inflight->Pause(false);
             if (p_Music_Player)
                 p_Music_Player->Pause(false);
+
+            Clear_Key_States();
         }
         return 0;
         //case WM_ERASEBKGND:
