@@ -603,6 +603,8 @@ JOYSTICK::JOYSTICK(winrt::Windows::Gaming::Input::RawGameController const& in_ra
 
 	num_axes = rawGameController.AxisCount();
 	axisArray = new double[num_axes];
+	axes_init = 0;//0: get init state, 1: compare init with current state, 2: state change detected - init complete.
+	axisArray_init_state = new double[num_axes];
 
 	action_button = new ACTION_KEY[num_buttons]{};
 	action_axis = new ACTION_AXIS[num_axes]{};
@@ -634,12 +636,30 @@ void JOYSTICK::Update() {
 	
 	rawGameController.GetCurrentReading(array_view<bool>(buttonArray, num_buttons), array_view<GameControllerSwitchPosition>(switchArray, num_switches), array_view<double>(axisArray, num_axes));
 
+	if (axes_init == 0) {// get init state on start and after loosing window focus.
+		for (int i = 0; i < num_axes; i++)
+			axisArray_init_state[i] = axisArray[i];
+		axes_init = 1;
+	}
+	else if (axes_init == 1) {// compare init with current state
+		bool state_change = false;
+		for (int i = 0; i < num_axes; i++) {
+			if (axisArray_init_state[i] != axisArray[i])
+				state_change = true;
+		}
+		if (state_change)// if state change detected - init complete, start using axis data.
+			axes_init = 2;
+	}
+
 	for (int i = 0; i < num_buttons; i++)
 		action_button[i].SetButton(buttonArray[i]);
 	for (int i = 0; i < num_switches; i++)
 		action_switch[i].Switch_Position(static_cast<int>(switchArray[i]));
-	for (int i = 0; i < num_axes; i++)
-		action_axis[i].Set_State(axisArray[i], false);
+	
+	if (axes_init == 2) {
+		for (int i = 0; i < num_axes; i++)
+			action_axis[i].Set_State(axisArray[i], false);
+	}
 }
 
 
@@ -1263,4 +1283,13 @@ void JOYSTICKS::Centre_All() {
 		}
 	}
 	//Debug_Info("Centre_All_Assiged_Axes: %d axes centred", count);
+}
+
+
+//________________________________
+void JOYSTICKS::Re_Initiate_Axes() {
+
+	concurrency::critical_section::scoped_lock s3{ controllerListLock };
+	for (auto& joysticks : joysticks)
+		joysticks->Re_Initiate_Axes();
 }

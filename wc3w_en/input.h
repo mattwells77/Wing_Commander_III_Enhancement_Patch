@@ -413,6 +413,10 @@ public:
 			delete[] action_axis;
 		action_axis = nullptr;
 
+		if (axisArray_init_state)
+			delete[] axisArray_init_state;
+		axisArray_init_state = nullptr;
+
 		if (buttonArray)
 			delete[] buttonArray;
 		buttonArray = nullptr;
@@ -472,6 +476,7 @@ public:
 	};
 	USHORT Get_PID() const { return pid; };
 	USHORT Get_VID() const { return vid; };
+	void Re_Initiate_Axes() { axes_init = 0; };// Re-Initiate axes, wait for a change in state before using axes data.
 protected:
 private:
 	bool connected;
@@ -486,6 +491,8 @@ private:
 	int num_axes;
 	double* axisArray;
 	ACTION_AXIS* action_axis;
+	BOOL axes_init;// for confirming axes data is valid before using.
+	double* axisArray_init_state;
 
 	int num_buttons;
 	bool* buttonArray;
@@ -548,6 +555,7 @@ public:
 			in_deadzone = 10;
 		deadzone = in_deadzone; 
 	};
+	void Re_Initiate_Axes();// Re-Initiate all controller axes, wait for a change in state before using axes data.
 protected:
 private:
 	std::vector<JOYSTICK*> joysticks;

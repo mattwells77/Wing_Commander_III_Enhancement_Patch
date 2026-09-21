@@ -1411,6 +1411,9 @@ static bool WinProc_Main(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam) 
                 p_Music_Player->Pause(false);
 
             Clear_Key_States();
+
+            if (controller_enhancements_enabled)
+                Joysticks.Re_Initiate_Axes();
         }
         return 0;
         //case WM_ERASEBKGND:
