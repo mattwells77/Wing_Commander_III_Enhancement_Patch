@@ -369,6 +369,8 @@ extern DWORD* p_wc3_current_cd_num;
 extern int16_t* p_wc3_space_x;
 extern int16_t* p_wc3_space_y;
 
+extern DWORD* p_wc3_space_frame_time_ms_x4;
+
 extern void(__thiscall* wc3_draw_hud_targeting_elements)(void*);
 extern void(__thiscall* wc3_draw_hud_view_text)(void*);
 

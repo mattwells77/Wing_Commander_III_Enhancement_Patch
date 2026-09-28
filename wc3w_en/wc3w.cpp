@@ -259,6 +259,8 @@ int16_t* p_wc3_space_y = nullptr;
 void(__thiscall* wc3_music_update_tune_space)(void*) = nullptr;
 void(__thiscall* wc3_music_update_tune_gui)(void*, LONG) = nullptr;
 
+DWORD* p_wc3_space_frame_time_ms_x4 = nullptr;
+
 
 //_______________
 void WC3W_Setup() {
@@ -503,4 +505,6 @@ void WC3W_Setup() {
 
     wc3_music_update_tune_space = (void(__thiscall*)(void*))0x439520;
     wc3_music_update_tune_gui = (void(__thiscall*)(void*, LONG))0x439440;
+
+    p_wc3_space_frame_time_ms_x4 = (DWORD*)0x4AB280;
 }
