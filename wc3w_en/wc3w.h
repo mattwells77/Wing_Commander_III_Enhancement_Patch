@@ -371,6 +371,8 @@ extern int16_t* p_wc3_space_y;
 
 extern DWORD* p_wc3_space_frame_time_ms_x4;
 
+extern char* p_wc3_cmd_mission_name;
+
 extern void(__thiscall* wc3_draw_hud_targeting_elements)(void*);
 extern void(__thiscall* wc3_draw_hud_view_text)(void*);
 
@@ -443,3 +445,6 @@ extern void(__thiscall* wc3_flight_auto_landing)(void*);
 extern LONG(*wc3_shape_draw)(DRAW_BUFFER_MAIN* p_db, void* shape_data, DWORD shape_num, DWORD x, DWORD y);
 extern DWORD(*wc3_shape_get_width_height)(void* shape_data, DWORD shape_num);
 extern LONG(*wc3_draw_line)(DRAW_BUFFER_MAIN* p_db, LONG x1, LONG y1, LONG x2, LONG y2, DWORD arg6, DWORD colour_ref);
+
+extern BOOL(*wc3_save_game)(DWORD save_num, const char* title);
+extern BOOL(*wc3_delete_file)(const char* file_path);

@@ -1511,6 +1511,9 @@ static void Check_Optional_Enhancements() {
     if (ConfigReadInt(L"SPACE", L"ENABLE_SPACE_COLOUR_CHANGE", CONFIG_SPACE_ENABLE_SPACE_COLOUR_CHANGE))
         Modifications_Space_Background_Colour();
 
+    if (ConfigReadInt(L"SPACE", L"ENABLE_REPLAY_LAST_MISSION", CONFIG_SPACE_ENABLE_REPLAY_LAST_MISSION))
+        Modifications_Replay_Last_Mission();
+
     if (ConfigReadInt(L"DEBUG", L"REPLACE_ALT_X_MSG_WITH_ROOM_SCENE_ID", CONFIG_DEBUG_REPLACE_ALT_X_MSG_WITH_ROOM_SCENE_ID))
         Modifications_Replace_Alt_X_Msg_With_Room_Scene_ID();
     

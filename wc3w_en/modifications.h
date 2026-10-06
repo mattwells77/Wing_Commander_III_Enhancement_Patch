@@ -36,6 +36,7 @@ void Modifications_Movies();
 void Modifications_Space_Background_Colour();
 void Modifications_Replace_Alt_X_Msg_With_Room_Scene_ID();
 void Modifications_Keyboard_ESC_To_Exit();
+void Modifications_Replay_Last_Mission();
 
 void Set_WindowActive_State(BOOL isActive);
 
