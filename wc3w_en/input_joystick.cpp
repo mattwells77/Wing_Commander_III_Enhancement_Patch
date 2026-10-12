@@ -432,7 +432,16 @@ void ACTION_AXIS::Set_State(double axis_val, bool ignore_space_remap_profiles) {
 		}
 		else
 			current_centred_val -= limits.centre;
-
+		//check deadzone from centre.
+		if (current_centred_val < limits.dead_zone && current_centred_val > -limits.dead_zone)
+			current_centred_val = 0.0f;
+	}
+	else {
+		//check deadzone from min and max for un-centred axes.
+		if (current_val > 1.0f - limits.dead_zone)
+			current_val = 1.0f;
+		else if (current_val < limits.dead_zone)
+			current_val = 0.0f;
 	}
 
 	//check "axis as buttons" to ensure buttons are released if profile changes while pressed.
@@ -753,6 +762,10 @@ BOOL JOYSTICK::Profile_Load(const wchar_t* file_path) {
 			fread(&p_limits->centre_min, sizeof(p_limits->centre_min), 1, fileCache);
 			fread(&p_limits->centre_max, sizeof(p_limits->centre_max), 1, fileCache);
 			fread(&p_limits->centre_span, sizeof(p_limits->centre_span), 1, fileCache);
+			if (version >= 4)
+				fread(&p_limits->dead_zone, sizeof(p_limits->dead_zone), 1, fileCache);
+			else
+				p_limits->dead_zone = 0;
 
 			if (version >= 3)
 				current_pro_type = PROFILE_TYPE::GUI;
@@ -1006,6 +1019,8 @@ BOOL JOYSTICK::Profile_Save(const wchar_t* file_path) {
 			fwrite(&p_limits->centre_min, sizeof(p_limits->centre_min), 1, fileCache);
 			fwrite(&p_limits->centre_max, sizeof(p_limits->centre_max), 1, fileCache);
 			fwrite(&p_limits->centre_span, sizeof(p_limits->centre_span), 1, fileCache);
+
+			fwrite(&p_limits->dead_zone, sizeof(p_limits->dead_zone), 1, fileCache);//added version 4
 
 			for (int i = 0; i < NUM_JOY_PROFILES; i++) {
 				current_pro_type = static_cast<PROFILE_TYPE>(i);

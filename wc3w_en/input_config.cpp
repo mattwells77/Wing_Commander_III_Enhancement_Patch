@@ -1145,6 +1145,10 @@ static void JoyConfig_Refresh_Axes(BOOL joy_changed, BOOL axis_type_change) {
 				checked = BST_CHECKED;
 			SendMessage(hwnd_sign, BM_SETCHECK, (WPARAM)checked, (LPARAM)0);
 
+			AXIS_LIMITS* p_limits = p_action_axis->Get_Axis_Limits();
+			int dead_zone_percent = (int)(p_limits->dead_zone * 100);
+			SetDlgItemInt(hWin_Config_Joy_Control, IDC_EDIT_DEADZONE, dead_zone_percent, TRUE);
+
 			BOOL is_button1 = FALSE;
 			BOOL is_button2 = FALSE;
 			if (axis_type == AXIS_TYPE::AsOneButton)
@@ -1250,6 +1254,45 @@ static void JoyConfig_Axis_SetSign() {
 		is_rev_axis = TRUE;
 
 	p_action_axis->Set_Axis_Reversed(is_rev_axis);
+}
+
+
+//______________________________________
+static void JoyConfig_Axis_SetDeadZone() {
+
+	if (!hWin_Config_Joy)
+		return;
+	if (!hWin_Config_Joy_Control)
+		return;
+
+	HWND hwnd_joy = GetDlgItem(hWin_Config_Joy, IDC_COMBO_JOY_SELECT);
+	if (!hwnd_joy)
+		return;
+	HWND hwnd_axis = GetDlgItem(hWin_Config_Joy_Control, IDC_COMBO_SELECT_AXIS);
+	if (!hwnd_axis)
+		return;
+
+	int joy_selected = (int)(SendMessage(hwnd_joy, CB_GETCURSEL, (WPARAM)0, (LPARAM)0));
+	JOYSTICK* p_joy_selected = Joysticks.GetJoy(joy_selected);
+	if (!p_joy_selected)
+		return;
+
+	int axis_selected = (int)(SendMessage(hwnd_axis, CB_GETCURSEL, (WPARAM)0, (LPARAM)0));
+	ACTION_AXIS* p_action_axis = p_joy_selected->Get_Action_Axis(axis_selected);
+	if (!p_action_axis)
+		return;
+
+	BOOL translated = false;
+	UINT val = GetDlgItemInt(hWin_Config_Joy_Control, IDC_EDIT_DEADZONE, &translated, TRUE);
+	if (translated) {
+		//keep component value under max 100.
+		if (val < 0 || val > 100) {
+			val = 0;
+			SetDlgItemInt(hWin_Config_Joy_Control, IDC_EDIT_DEADZONE, val, TRUE);
+		}
+		AXIS_LIMITS* p_limits = p_action_axis->Get_Axis_Limits();
+		p_limits->dead_zone = (double)val / 100;
+	}
 }
 
 
@@ -2242,7 +2285,10 @@ static INT_PTR CALLBACK DialogProc_Config_Joy_Control(HWND hwndDlg, UINT uMsg, W
 			if (HIWORD(wParam) == CBN_SELCHANGE)
 				JoyConfig_Switch_SetButton();
 			return TRUE;
-
+		case IDC_EDIT_DEADZONE: 
+			if (HIWORD(wParam) == EN_UPDATE)
+				JoyConfig_Axis_SetDeadZone();
+			return TRUE;
 		default:
 			break;
 		}
