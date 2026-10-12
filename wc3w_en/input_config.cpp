@@ -1066,7 +1066,7 @@ static void JoyConfig_Refresh_Axis_Display() {
 
 	int i_val = (int)(val * width);
 	hwnd_sub = GetDlgItem(hWin_Config_Joy_Control, IDC_STATIC_AXIS_BAR);
-	MoveWindow(hwnd_sub, pt.x + 1 + i_val, pt.y + 1, 3, 9, TRUE);
+	MoveWindow(hwnd_sub, pt.x + 1 + i_val, pt.y + 1, 3, rc.bottom-rc.top-1, TRUE);
 }
 
 
@@ -1956,7 +1956,7 @@ static void JoyConfig_Refresh(HWND hwndDlg) {
 	width = rc.right - rc.left - 2 - 3;
 	pos_x = (int)((float)(*p_wc3_joy_move_r + 256) * ((float)width / 512.0f));
 	hwnd_sub = GetDlgItem(hwndDlg, IDC_STATIC_ROLL_BAR);
-	MoveWindow(hwnd_sub, pt.x + 1 + pos_x, pt.y + 1, 3, 9, TRUE);
+	MoveWindow(hwnd_sub, pt.x + 1 + pos_x, pt.y + 1, 3, rc.bottom - rc.top - 1, TRUE);
 
 	hwnd_sub = GetDlgItem(hwndDlg, IDC_STATIC_THROTTLE_BOX);
 	GetWindowRect(hwnd_sub, &rc); //get window rect of control relative to screen
@@ -1966,7 +1966,7 @@ static void JoyConfig_Refresh(HWND hwndDlg) {
 	height = rc.bottom - rc.top - 2 - 3;
 	pos_y = (int)((float)*p_wc3_joy_throttle_pos * ((float)height / 100.0f));
 	hwnd_sub = GetDlgItem(hwndDlg, IDC_STATIC_THROTTLE_BAR);
-	MoveWindow(hwnd_sub, pt.x + 1, pt.y + 1 + pos_y, 9, 3, TRUE);
+	MoveWindow(hwnd_sub, pt.x + 1, pt.y + 1 + pos_y, rc.right - rc.left - 1, 3, TRUE);
 
 
 	Update_Controller_State_Focus();
@@ -2000,7 +2000,7 @@ static void Axis_Calibration_Refresh_Axis_Display(HWND hwndDlg, int joystick, in
 
 	int i_val = (int)(val * width);
 	hwnd_sub = GetDlgItem(hwndDlg, IDC_STATIC_AXIS_BAR);
-	MoveWindow(hwnd_sub, pt.x + 1 + i_val, pt.y + 1, 3, 9, TRUE);
+	MoveWindow(hwnd_sub, pt.x + 1 + i_val, pt.y + 1, 3, rc.bottom - rc.top - 1, TRUE);
 }
 
 
