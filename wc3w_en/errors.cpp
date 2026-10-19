@@ -47,6 +47,7 @@ static bool Is_Errors_Stream() {
         path.append(VER_PRODUCTNAME_STR);
         path.append(L".log");
         errors_stream.open(path.c_str());
+        errors_stream << VER_FILE_DESCRIPTION_STR << ", Version: " << VER_FILE_VERSION_STR << endl << endl;
     }
     if (errors_stream.is_open())
         return true;
