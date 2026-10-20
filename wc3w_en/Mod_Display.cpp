@@ -1441,6 +1441,12 @@ static bool WinProc_Main(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam) 
                 Joysticks.Re_Initiate_Axes();
         }
         return 0;
+    case WM_SETFOCUS:
+        Debug_Info("WM_SETFOCUS");
+        //if controller setup window active, return focus when main window regains focus.
+        if (hWin_Config_Control) 
+            SetFocus(hWin_Config_Control);
+        return 1;
         //case WM_ERASEBKGND:
         //    return 1;
         //case WM_DESTROY:
