@@ -78,6 +78,27 @@ bool Get_Joystick_Config_Path(wstring *p_ret_string) {
 }
 
 
+//___________________________________________________________________________________
+bool Get_Joystick_Config_Preset_Path(wstring* p_ret_string, bool create_if_not_exist) {
+	if (!p_ret_string)
+		return false;
+	if (!Get_Joystick_Config_Path(p_ret_string))
+		return false;
+
+	p_ret_string->append(L"\\presets");
+	if (GetFileAttributes(p_ret_string->c_str()) == INVALID_FILE_ATTRIBUTES) {
+		if (!create_if_not_exist)
+			return false;
+		if (!CreateDirectory(p_ret_string->c_str(), nullptr)) {
+			Debug_Info_Error("Get_Joystick_Config_Preset_Path: could not create presets path: %S", p_ret_string->c_str());
+			return false;
+		}
+	}
+	p_ret_string->append(L"\\");
+	return true;
+}
+
+
 //________________________________________________________
 bool Get_Joystick_Config_Path_Local(wstring* p_ret_string) {
 	if (!p_ret_string)
@@ -95,6 +116,27 @@ bool Get_Joystick_Config_Path_Local(wstring* p_ret_string) {
 		p_ret_string->clear();
 		return false;
 	}
+	return true;
+}
+
+
+//_________________________________________________________________________________________
+bool Get_Joystick_Config_Preset_Path_Local(wstring* p_ret_string, bool create_if_not_exist) {
+	if (!p_ret_string)
+		return false;
+	if (!Get_Joystick_Config_Path_Local(p_ret_string))
+		return false;
+
+	p_ret_string->append(L"\\presets");
+	if (GetFileAttributes(p_ret_string->c_str()) == INVALID_FILE_ATTRIBUTES) {
+		if (!create_if_not_exist)
+			return false;
+		if (!CreateDirectory(p_ret_string->c_str(), nullptr)) {
+			Debug_Info_Error("Get_Joystick_Config_Preset_Path_Local: could not create presets path: %S", p_ret_string->c_str());
+			return false;
+		}
+	}
+	p_ret_string->append(L"\\");
 	return true;
 }
 
@@ -590,8 +632,8 @@ int ACTION_SWITCH::Switch_Position(int new_pos) {
 
 //////////////////////////JOYSTICK/////////////////////////////////
 
-//_______________________________________________________________________________________________________________________________________
-JOYSTICK::JOYSTICK(winrt::Windows::Gaming::Input::RawGameController const& in_rawGameController) :rawGameController(in_rawGameController) {
+//_________________________________________________________________________________________________________________________________________________________
+JOYSTICK::JOYSTICK(winrt::Windows::Gaming::Input::RawGameController const& in_rawGameController) :rawGameController(in_rawGameController), gamepad(nullptr) {
 
 	pid = rawGameController.HardwareProductId();
 	vid = rawGameController.HardwareVendorId();
@@ -603,31 +645,50 @@ JOYSTICK::JOYSTICK(winrt::Windows::Gaming::Input::RawGameController const& in_ra
 	connected = true;
 	enabled = true;
 
-	num_buttons = rawGameController.ButtonCount();
-	buttonArray = new bool[num_buttons];
+	gamepad = Gamepad::FromGameController(rawGameController);
 
+	if (gamepad) {
+		num_buttons = 18;
+		buttonArray = new bool[num_buttons];
 
-	num_switches = rawGameController.SwitchCount();
-	switchArray = new GameControllerSwitchPosition[num_switches];
+		num_switches = 0;
+		switchArray = nullptr;
 
-	num_axes = rawGameController.AxisCount();
-	axisArray = new double[num_axes];
-	axes_init = 0;//0: get init state, 1: compare init with current state, 2: state change detected - init complete.
-	axisArray_init_state = new double[num_axes];
+		num_axes = 6;
+		axisArray = new double[num_axes];
+		axes_init = 0;//0: get init state, 1: compare init with current state, 2: state change detected - init complete.
+		axisArray_init_state = new double[num_axes];
 
-	action_button = new ACTION_KEY[num_buttons]{};
-	action_axis = new ACTION_AXIS[num_axes]{};
+		action_button = new ACTION_KEY[num_buttons]{};
+		action_axis = new ACTION_AXIS[num_axes]{};
 
-	GameControllerSwitchKind switchKind;
-	int num_switch_positions = 0;
-	action_switch = new ACTION_SWITCH[num_switches];
-	for (int i = 0; i < num_switches; i++) {
-		switchKind = rawGameController.GetSwitchKind(i);
-		//switchKind enum: 0=2, 1=4, 2=8. shift 2 left by the enum val to get number of positions.
-		num_switch_positions = 2 << static_cast<int>(switchKind);
-		action_switch[i].Set_Num_Positions(num_switch_positions);
+		action_switch = nullptr;
 	}
+	else {
+		num_buttons = rawGameController.ButtonCount();
+		buttonArray = new bool[num_buttons];
 
+		num_switches = rawGameController.SwitchCount();
+		switchArray = new GameControllerSwitchPosition[num_switches];
+
+		num_axes = rawGameController.AxisCount();
+		axisArray = new double[num_axes];
+		axes_init = 0;//0: get init state, 1: compare init with current state, 2: state change detected - init complete.
+		axisArray_init_state = new double[num_axes];
+
+		action_button = new ACTION_KEY[num_buttons]{};
+		action_axis = new ACTION_AXIS[num_axes]{};
+
+		GameControllerSwitchKind switchKind;
+		int num_switch_positions = 0;
+		action_switch = new ACTION_SWITCH[num_switches];
+		for (int i = 0; i < num_switches; i++) {
+			switchKind = rawGameController.GetSwitchKind(i);
+			//switchKind enum: 0=2, 1=4, 2=8. shift 2 left by the enum val to get number of positions.
+			num_switch_positions = 2 << static_cast<int>(switchKind);
+			action_switch[i].Set_Num_Positions(num_switch_positions);
+		}
+	}
 	if (!Profile_Load()) {
 		Profile_Load_First_Preset();
 		Profile_Save();
@@ -642,8 +703,23 @@ void JOYSTICK::Update() {
 		return;
 	if (!enabled)
 		return;
-	
-	rawGameController.GetCurrentReading(array_view<bool>(buttonArray, num_buttons), array_view<GameControllerSwitchPosition>(switchArray, num_switches), array_view<double>(axisArray, num_axes));
+
+	if (gamepad) {
+		GamepadReading readings = gamepad.GetCurrentReading();
+
+		for (int i = 0; i < num_buttons; i++) 
+			buttonArray[i] = (static_cast<GamepadButtons>(1 << i) == (readings.Buttons & static_cast<GamepadButtons>(1 << i)));
+		
+		//covert thumbstick axis data to what's expected from raw data. 
+		axisArray[0] = (readings.LeftThumbstickX + 1.0f) / 2;
+		axisArray[1] = (readings.LeftThumbstickY + 1.0f) / 2;
+		axisArray[2] = readings.LeftTrigger;
+		axisArray[3] = (readings.RightThumbstickX + 1.0f) / 2;
+		axisArray[4] = (readings.RightThumbstickY + 1.0f) / 2;
+		axisArray[5] = readings.RightTrigger;
+	}
+	else 
+		rawGameController.GetCurrentReading(array_view<bool>(buttonArray, num_buttons), array_view<GameControllerSwitchPosition>(switchArray, num_switches), array_view<double>(axisArray, num_axes));
 
 	if (axes_init == 0) {// get init state on start and after loosing window focus.
 		for (int i = 0; i < num_axes; i++)
@@ -664,7 +740,7 @@ void JOYSTICK::Update() {
 		action_button[i].SetButton(buttonArray[i]);
 	for (int i = 0; i < num_switches; i++)
 		action_switch[i].Switch_Position(static_cast<int>(switchArray[i]));
-	
+
 	if (axes_init == 2) {
 		for (int i = 0; i < num_axes; i++)
 			action_axis[i].Set_State(axisArray[i], false);
@@ -700,6 +776,39 @@ bool JOYSTICK::DisConnect(winrt::Windows::Gaming::Input::RawGameController const
 		return true;
 	}
 	return false;
+};
+
+
+//for converting old raw device gampad button layout for new general xinput gamepad profiles.
+int gamepad_pre_v4_button_remap[]{
+	2,
+	3,
+	4,
+	5,
+	10,
+	11,
+	1,
+	0,
+	12,
+	13,
+	6,
+	9,
+	7,
+	8,
+	14,
+	15,
+	16,
+	17
+};
+
+//for converting old raw device gampad axis layout to new general xinput gamepad profiles.
+int gamepad_pre_v4_axis_remap[]{
+	1,
+	0,
+	4,
+	3,
+	2,
+	5
 };
 
 
@@ -746,10 +855,13 @@ BOOL JOYSTICK::Profile_Load(const wchar_t* file_path) {
 		AXIS_LIMITS* p_limits = nullptr;
 		ACTION_KEY* p_key = nullptr;
 		ACTION_SWITCH* p_switch = nullptr;
-		for (int i = 0; i < num_axes; i++) {
-			p_axis = Get_Action_Axis(i);
+		for (int axis_num = 0; axis_num < num_axes; axis_num++) {
+			if (gamepad && version < 4)
+				p_axis = Get_Action_Axis(gamepad_pre_v4_axis_remap[axis_num]);
+			else
+				p_axis = Get_Action_Axis(axis_num);
 			if (!p_axis) {
-				Debug_Info_Error("JOYSTICK::Profile_Load() FAILED!: p_axis %d = null", i);
+				Debug_Info_Error("JOYSTICK::Profile_Load() FAILED!: p_axis %d = null", axis_num);
 				fclose(fileCache);
 				return FALSE;
 			}
@@ -787,8 +899,8 @@ BOOL JOYSTICK::Profile_Load(const wchar_t* file_path) {
 				i_data = 0;
 			p_axis->Set_Button_Action_Max(static_cast<WC3_ACTIONS>(i_data));
 			if (version >= 3) {
-				for (int i = 1; i < NUM_JOY_PROFILES; i++) {
-					current_pro_type = static_cast<PROFILE_TYPE>(i);
+				for (int jpro_num = 1; jpro_num < NUM_JOY_PROFILES; jpro_num++) {
+					current_pro_type = static_cast<PROFILE_TYPE>(jpro_num);
 					fread(&i_data, sizeof(i_data), 1, fileCache);
 					p_axis->Set_Axis_As(static_cast<AXIS_TYPE>(i_data));
 
@@ -809,19 +921,27 @@ BOOL JOYSTICK::Profile_Load(const wchar_t* file_path) {
 		}
 
 		fread(&i_data, sizeof(i_data), 1, fileCache);
-		if (i_data != num_buttons) {
+
+		int num_buttons_temp = num_buttons;
+		if (gamepad && version < 4)//fix number of buttons, to work with pre version 4 xbox gamepad profiles.
+			num_buttons_temp = 14;
+		
+		if (i_data != num_buttons_temp) {
 			fclose(fileCache);
-			Debug_Info_Error("JOYSTICK::Profile_Load(), num_buttons don't match:%d", num_buttons);
+			Debug_Info_Error("JOYSTICK::Profile_Load(), num_buttons don't match:%d", num_buttons_temp);
 			return FALSE;
 		}
 		if (version >= 3)
 			current_pro_type = PROFILE_TYPE::GUI;
 		else
 			current_pro_type = PROFILE_TYPE::Space;
-		for (int i = 0; i < num_buttons; i++) {
-			p_key = Get_Action_Button(i);
+		for (int butt_num = 0; butt_num < num_buttons_temp; butt_num++) {
+			if (gamepad && version < 4) 
+				p_key = Get_Action_Button(gamepad_pre_v4_button_remap[butt_num]);
+			else 
+				p_key = Get_Action_Button(butt_num);
 			if (!p_key) {
-				Debug_Info_Error("JOYSTICK::Profile_Load() FAILED!: p_key %d = null", i);
+				Debug_Info_Error("JOYSTICK::Profile_Load() FAILED!: p_key %d = null", butt_num);
 				fclose(fileCache);
 				current_pro_type = saved_pro_type;
 				return FALSE;
@@ -832,13 +952,16 @@ BOOL JOYSTICK::Profile_Load(const wchar_t* file_path) {
 			p_key->Set_Action(static_cast<WC3_ACTIONS>(i_data));
 		}
 		if (version >= 3) {
-			for (int i = 1; i < NUM_JOY_PROFILES; i++) {
-				current_pro_type = static_cast<PROFILE_TYPE>(i);
+			for (int jpro_num = 1; jpro_num < NUM_JOY_PROFILES; jpro_num++) {
+				current_pro_type = static_cast<PROFILE_TYPE>(jpro_num);
 				//current_pro_type = PROFILE_TYPE::Space;
-				for (int i = 0; i < num_buttons; i++) {
-					p_key = Get_Action_Button(i);
+				for (int butt_num = 0; butt_num < num_buttons_temp; butt_num++) {
+					if (gamepad && version < 4) 
+						p_key = Get_Action_Button(gamepad_pre_v4_button_remap[butt_num]);
+					else
+						p_key = Get_Action_Button(butt_num);
 					if (!p_key) {
-						Debug_Info_Error("JOYSTICK::Profile_Load() FAILED!: p_key %d = null", i);
+						Debug_Info_Error("JOYSTICK::Profile_Load() FAILED!: p_key %d = null", butt_num);
 						fclose(fileCache);
 						current_pro_type = saved_pro_type;
 						return FALSE;
@@ -854,14 +977,14 @@ BOOL JOYSTICK::Profile_Load(const wchar_t* file_path) {
 		fread(&i_data, sizeof(i_data), 1, fileCache);
 		if (i_data != num_switches) {
 			fclose(fileCache);
-			Debug_Info_Error("JOYSTICK::Profile_Load(), num_switches don't match:%d", num_buttons);
+			Debug_Info_Error("JOYSTICK::Profile_Load(), num_switches don't match:%d", num_switches);
 			current_pro_type = saved_pro_type;
 			return FALSE;
 		}
-		for (int i = 0; i < num_switches; i++) {
-			p_switch = Get_Action_Switch(i);
+		for (int switch_num = 0; switch_num < num_switches; switch_num++) {
+			p_switch = Get_Action_Switch(switch_num);
 			if (!p_switch) {
-				Debug_Info_Error("JOYSTICK::Profile_Load() FAILED!: p_switch %d = null", i);
+				Debug_Info_Error("JOYSTICK::Profile_Load() FAILED!: p_switch %d = null", switch_num);
 				fclose(fileCache);
 				current_pro_type = saved_pro_type;
 				return FALSE;
@@ -875,21 +998,21 @@ BOOL JOYSTICK::Profile_Load(const wchar_t* file_path) {
 			else
 				current_pro_type = PROFILE_TYPE::Space;
 
-			for (int i = 0; i < num_positions; i++) {
+			for (int pos_num = 0; pos_num < num_positions; pos_num++) {
 				fread(&i_data, sizeof(i_data), 1, fileCache);
 				if (i_data < 0 || i_data > WC3_ACTIONS_MAX)//ensure i_data is within WC3_ACTIONS boundaries, set to "None" is not.
 					i_data = 0;
-				p_switch->Set_Action(i, static_cast<WC3_ACTIONS>(i_data));
+				p_switch->Set_Action(pos_num, static_cast<WC3_ACTIONS>(i_data));
 			}
 			if (version >= 3) {
-				for (int i = 1; i < NUM_JOY_PROFILES; i++) {
-					current_pro_type = static_cast<PROFILE_TYPE>(i);
+				for (int jpro_num = 1; jpro_num < NUM_JOY_PROFILES; jpro_num++) {
+					current_pro_type = static_cast<PROFILE_TYPE>(jpro_num);
 					//current_pro_type = PROFILE_TYPE::Space;
-					for (int i = 0; i < num_positions; i++) {
+					for (int pos_num = 0; pos_num < num_positions; pos_num++) {
 						fread(&i_data, sizeof(i_data), 1, fileCache);
 						if (i_data < 0 || i_data > WC3_ACTIONS_MAX)//ensure i_data is within WC3_ACTIONS boundaries, set to "None" is not.
 							i_data = 0;
-						p_switch->Set_Action(i, static_cast<WC3_ACTIONS>(i_data));
+						p_switch->Set_Action(pos_num, static_cast<WC3_ACTIONS>(i_data));
 					}
 				}
 			}
@@ -910,21 +1033,43 @@ BOOL JOYSTICK::Profile_Load(const wchar_t* file_path) {
 BOOL JOYSTICK::Profile_Load() {
 
 	wstring path;
-	if (!Get_Joystick_Config_Path(&path))
-		return FALSE;
 
 	wchar_t file_name[10 + 33 + 5]{};
+
+	if (gamepad) {
+		swprintf_s(file_name, 11, L"\\XGAMEPAD_");
+
+		BYTE bHash[16];//convert the controllers unique ID to hash data.
+		HashData((BYTE*)NonRoamableId.c_str(), NonRoamableId.size(), bHash, 16);
+		wchar_t* bHashString = file_name + 10;
+
+		for (int i = 0; i < 16; ++i)//convert the hash data to a string, this will be used to make a unique file name for the controllers config data.
+			swprintf_s(&bHashString[i * 2], 33 - i * 2, L"%02x", bHash[i]);
+
+		swprintf_s(file_name + 10 + 32, 5, L".joy");
+
+		if (!Get_Joystick_Config_Path(&path))
+			return FALSE;
+		path.append(file_name);
+		Debug_Info_Joy("Profile_Load path: %S", path.c_str());
+		if (Profile_Load(path.c_str()))
+			return TRUE;
+		//if no gampad profile found, check for raw profile.
+	}
+
 	swprintf_s(file_name, 11, L"\\%04x%04x_", vid, pid);
 
-	BYTE bHash[16];//convert the game path to hash data
+	BYTE bHash[16];//convert the controllers unique ID to hash data.
 	HashData((BYTE*)NonRoamableId.c_str(), NonRoamableId.size(), bHash, 16);
 	wchar_t* bHashString = file_name + 10;
 
-	for (int i = 0; i < 16; ++i)//convert the hash data to a string, this will be a unique folder name to store the config data in.
+	for (int i = 0; i < 16; ++i)//convert the hash data to a string, this will be used to make a unique file name for the controllers config data.
 		swprintf_s(&bHashString[i * 2], 33 - i * 2, L"%02x", bHash[i]);
 
 	swprintf_s(file_name + 10 + 32, 5, L".joy");
 
+	if (!Get_Joystick_Config_Path(&path))
+		return FALSE;
 	path.append(file_name);
 	Debug_Info_Joy("Profile_Load path: %S", path.c_str());
 	return Profile_Load(path.c_str());
@@ -934,41 +1079,94 @@ BOOL JOYSTICK::Profile_Load() {
 //________________________________________
 BOOL JOYSTICK::Profile_Load_First_Preset() {
 
-	wstring search_path;
-	if (!Get_Joystick_Config_Path(&search_path))
-		return FALSE;
-
-	search_path.append(L"\\presets");
-	if (GetFileAttributes(search_path.c_str()) == INVALID_FILE_ATTRIBUTES)
-		return FALSE;
-
-	search_path.append(L"\\");
+	wstring preset_path;
 
 	wchar_t vid_pid_name[10]{ 0 };
+
+	wstring path;
+
+	if (gamepad) {
+		if (!Get_Joystick_Config_Preset_Path(&preset_path, true))
+			return FALSE;
+		swprintf_s(vid_pid_name, L"XGAMEPAD_");
+		path = preset_path;
+		path.append(vid_pid_name);
+		path.append(L"*.joy");
+
+		WIN32_FIND_DATA FindFileData{};
+		HANDLE hFind = hFind = FindFirstFile(path.c_str(), &FindFileData);
+		FindClose(hFind);
+
+		if (hFind != INVALID_HANDLE_VALUE) {
+			path = preset_path;
+			path.append(FindFileData.cFileName);
+
+			if (Profile_Load(path.c_str())) {
+				Debug_Info_Joy("Profile_Load_First_Preset: %S", path.c_str());
+				return TRUE;
+			}
+		}
+		//try local path.
+		if (!Get_Joystick_Config_Preset_Path_Local(&preset_path, true))
+			return FALSE;
+		path = preset_path;
+		path.append(vid_pid_name);
+		path.append(L"*.joy");
+
+		hFind = hFind = FindFirstFile(path.c_str(), &FindFileData);
+		FindClose(hFind);
+
+		if (hFind != INVALID_HANDLE_VALUE) {
+			path = preset_path;
+			path.append(FindFileData.cFileName);
+
+			if (Profile_Load(path.c_str())) {
+				Debug_Info_Joy("Profile_Load_First_Preset: %S", path.c_str());
+				return TRUE;
+			}
+		}
+	}
+
+	if (!Get_Joystick_Config_Preset_Path(&preset_path, true))
+		return FALSE;
+	path = preset_path;
+
 	swprintf_s(vid_pid_name, L"%04x%04x_", Get_VID(), Get_PID());
 
-	//wstring file_path = search_path;
-
-	search_path.append(vid_pid_name);
-	search_path.append(L"*.joy");
-
+	path.append(vid_pid_name);
+	path.append(L"*.joy");
 
 	WIN32_FIND_DATA FindFileData{};
-	HANDLE hFind = hFind = FindFirstFile(search_path.c_str(), &FindFileData);
+	HANDLE hFind = hFind = FindFirstFile(path.c_str(), &FindFileData);
 	FindClose(hFind);
-	if (hFind == INVALID_HANDLE_VALUE)
+
+	if (hFind != INVALID_HANDLE_VALUE) {
+		path = preset_path;
+		path.append(FindFileData.cFileName);
+
+		if (Profile_Load(path.c_str())) {
+			Debug_Info_Joy("Profile_Load_First_Preset: %S", path.c_str());
+			return TRUE;
+		}
+	}
+	//try local path.
+	if (!Get_Joystick_Config_Preset_Path_Local(&preset_path, true))
 		return FALSE;
+	path = preset_path;
+	path.append(vid_pid_name);
+	path.append(L"*.joy");
 
-	wstring file_path;
-	if (!Get_Joystick_Config_Path(&file_path))
-		return FALSE;
+	hFind = hFind = FindFirstFile(path.c_str(), &FindFileData);
+	FindClose(hFind);
 
-	file_path.append(L"\\presets\\");
-	file_path.append(FindFileData.cFileName);
+	if (hFind != INVALID_HANDLE_VALUE) {
+		path = preset_path;
+		path.append(FindFileData.cFileName);
 
-	if (Profile_Load(file_path.c_str())) {
-		Debug_Info_Joy("Profile_Load_First_Preset: %S", file_path.c_str());
-		return TRUE;
+		if (Profile_Load(path.c_str())) {
+			Debug_Info_Joy("Profile_Load_First_Preset: %S", path.c_str());
+			return TRUE;
+		}
 	}
 	return FALSE;
 }
@@ -1002,10 +1200,10 @@ BOOL JOYSTICK::Profile_Save(const wchar_t* file_path) {
 
 		fwrite(&num_axes, sizeof(num_axes), 1, fileCache);
 
-		for (int i = 0; i < num_axes; i++) {
-			p_axis = Get_Action_Axis(i);
+		for (int axis_num = 0; axis_num < num_axes; axis_num++) {
+			p_axis = Get_Action_Axis(axis_num);
 			if (!p_axis) {
-				Debug_Info_Error("JOYSTICK::Profile_Save() FAILED!: p_axis %d = null", i);
+				Debug_Info_Error("JOYSTICK::Profile_Save() FAILED!: p_axis %d = null", axis_num);
 				fclose(fileCache);
 				current_pro_type = saved_pro_type;
 				return FALSE;
@@ -1022,8 +1220,8 @@ BOOL JOYSTICK::Profile_Save(const wchar_t* file_path) {
 
 			fwrite(&p_limits->dead_zone, sizeof(p_limits->dead_zone), 1, fileCache);//added version 4
 
-			for (int i = 0; i < NUM_JOY_PROFILES; i++) {
-				current_pro_type = static_cast<PROFILE_TYPE>(i);
+			for (int jpro_num = 0; jpro_num < NUM_JOY_PROFILES; jpro_num++) {
+				current_pro_type = static_cast<PROFILE_TYPE>(jpro_num);
 				i_data = static_cast<int>(p_axis->Get_Axis_As());
 				fwrite(&i_data, sizeof(i_data), 1, fileCache);
 
@@ -1040,8 +1238,8 @@ BOOL JOYSTICK::Profile_Save(const wchar_t* file_path) {
 
 		fwrite(&num_buttons, sizeof(num_buttons), 1, fileCache);
 		
-		for (int i = 0; i < NUM_JOY_PROFILES; i++) {
-			current_pro_type = static_cast<PROFILE_TYPE>(i);
+		for (int jpro_num = 0; jpro_num < NUM_JOY_PROFILES; jpro_num++) {
+			current_pro_type = static_cast<PROFILE_TYPE>(jpro_num);
 			for (int i = 0; i < num_buttons; i++) {
 				p_key = Get_Action_Button(i);
 				i_data = static_cast<int>(p_key->GetAction());
@@ -1049,10 +1247,10 @@ BOOL JOYSTICK::Profile_Save(const wchar_t* file_path) {
 			}
 		}
 		fwrite(&num_switches, sizeof(num_switches), 1, fileCache);
-		for (int i = 0; i < num_switches; i++) {
-			p_switch = Get_Action_Switch(i);
+		for (int switch_num = 0; switch_num < num_switches; switch_num++) {
+			p_switch = Get_Action_Switch(switch_num);
 			if (!p_switch) {
-				Debug_Info_Error("JOYSTICK::Profile_Save() FAILED!: p_switch %d = null", i);
+				Debug_Info_Error("JOYSTICK::Profile_Save() FAILED!: p_switch %d = null", switch_num);
 				fclose(fileCache);
 				current_pro_type = saved_pro_type;
 				return FALSE;
@@ -1060,10 +1258,10 @@ BOOL JOYSTICK::Profile_Save(const wchar_t* file_path) {
 			int num_positions = p_switch->Get_Num_Positions();
 			fwrite(&num_positions, sizeof(num_positions), 1, fileCache);
 
-			for (int i = 0; i < NUM_JOY_PROFILES; i++) {
-				current_pro_type = static_cast<PROFILE_TYPE>(i);
-				for (int i = 0; i < num_positions; i++) {
-					i_data = static_cast<int>(p_switch->GetAction(i));
+			for (int jpro_num = 0; jpro_num < NUM_JOY_PROFILES; jpro_num++) {
+				current_pro_type = static_cast<PROFILE_TYPE>(jpro_num);
+				for (int pos_num = 0; pos_num < num_positions; pos_num++) {
+					i_data = static_cast<int>(p_switch->GetAction(pos_num));
 					fwrite(&i_data, sizeof(i_data), 1, fileCache);
 				}
 			}
@@ -1087,13 +1285,16 @@ BOOL JOYSTICK::Profile_Save() {
 		return FALSE;
 
 	wchar_t file_name[10 + 33 + 5]{};
-	swprintf_s(file_name, 11, L"\\%04x%04x_", vid, pid);
+	if (gamepad)
+		swprintf_s(file_name, 11, L"\\XGAMEPAD_");
+	else
+		swprintf_s(file_name, 11, L"\\%04x%04x_", vid, pid);
 
-	BYTE bHash[16];//convert the game path to hash data
+	BYTE bHash[16];//convert the controllers unique ID to hash data.
 	HashData((BYTE*)NonRoamableId.c_str(), NonRoamableId.size(), bHash, 16);
 	wchar_t* bHashString = file_name + 10;
 
-	for (int i = 0; i < 16; ++i)//convert the hash data to a string, this will be a unique folder name to store the config data in.
+	for (int i = 0; i < 16; ++i)//convert the hash data to a string, this will be used to make a unique file name for the controllers config data.
 		swprintf_s(&bHashString[i * 2], 33 - i * 2, L"%02x", bHash[i]);
 
 	swprintf_s(file_name + 10 + 32, 5, L".joy");

@@ -478,12 +478,13 @@ public:
 	USHORT Get_PID() const { return pid; };
 	USHORT Get_VID() const { return vid; };
 	void Re_Initiate_Axes() { axes_init = 0; };// Re-Initiate axes, wait for a change in state before using axes data.
+	BOOL IsGamepad() { if (gamepad)return TRUE; return FALSE; };
 protected:
 private:
 	bool connected;
 	bool enabled;
 	winrt::Windows::Gaming::Input::RawGameController rawGameController;
-
+	winrt::Windows::Gaming::Input::Gamepad gamepad;
 	USHORT pid;
 	USHORT vid;
 	winrt::hstring NonRoamableId;
@@ -663,6 +664,9 @@ extern JOYSTICKS Joysticks;
 
 bool Get_Joystick_Config_Path(std::wstring* p_ret_string);
 bool Get_Joystick_Config_Path_Local(std::wstring* p_ret_string);
+
+bool Get_Joystick_Config_Preset_Path(std::wstring* p_ret_string, bool create_if_not_exist);
+bool Get_Joystick_Config_Preset_Path_Local(std::wstring* p_ret_string, bool create_if_not_exist);
 
 void Simulate_Key_Press(WC3_ACTIONS action);
 void Simulate_Key_Release(WC3_ACTIONS action);

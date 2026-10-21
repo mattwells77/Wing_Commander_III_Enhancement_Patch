@@ -658,6 +658,38 @@ const UINT SWITCH_POS_UID[]{
 };
 
 
+const UINT GAMEPAD_AXIS_UID[]{
+	IDS_XGAMEPAD_AXIS_00,
+	IDS_XGAMEPAD_AXIS_01,
+	IDS_XGAMEPAD_AXIS_02,
+	IDS_XGAMEPAD_AXIS_03,
+	IDS_XGAMEPAD_AXIS_04,
+	IDS_XGAMEPAD_AXIS_05,
+};
+
+
+const UINT GAMEPAD_BUTTON_UID[]{
+	IDS_XGAMEPAD_BUTT_00,
+	IDS_XGAMEPAD_BUTT_01,
+	IDS_XGAMEPAD_BUTT_02,
+	IDS_XGAMEPAD_BUTT_03,
+	IDS_XGAMEPAD_BUTT_04,
+	IDS_XGAMEPAD_BUTT_05,
+	IDS_XGAMEPAD_BUTT_06,
+	IDS_XGAMEPAD_BUTT_07,
+	IDS_XGAMEPAD_BUTT_08,
+	IDS_XGAMEPAD_BUTT_09,
+	IDS_XGAMEPAD_BUTT_10,
+	IDS_XGAMEPAD_BUTT_11,
+	IDS_XGAMEPAD_BUTT_12,
+	IDS_XGAMEPAD_BUTT_13,
+	IDS_XGAMEPAD_BUTT_14,
+	IDS_XGAMEPAD_BUTT_15,
+	IDS_XGAMEPAD_BUTT_16,
+	IDS_XGAMEPAD_BUTT_17,
+};
+
+
 //_____________________________________________________________________
 BOOL JoyConfig_Refresh_CurrentAction(WC3_ACTIONS action, BOOL activate) {
 
@@ -798,13 +830,22 @@ static void JoyConfig_Refresh_Buttons(BOOL joy_changed) {
 		if (p_joy_selected->Buttons(nullptr) > 0) {
 			EnableWindow(hwnd_button, TRUE);
 			EnableWindow(hwnd_action, TRUE);
-			wchar_t* msg = new wchar_t[12];
-			LoadString(phinstDLL, IDS_BUTTON, general_string_buff, _countof(general_string_buff));
-			for (int i = 0; i < p_joy_selected->Buttons(nullptr); i++) {
-				swprintf_s(msg, 12, L"%s %d", general_string_buff, i);
-				SendMessage(hwnd_button, CB_ADDSTRING, (WPARAM)0, (LPARAM)msg);
+			
+			if (p_joy_selected->IsGamepad()) {
+				for (int i = 0; i < _countof(GAMEPAD_BUTTON_UID); i++) {
+					LoadString(phinstDLL, GAMEPAD_BUTTON_UID[i], general_string_buff, _countof(general_string_buff));
+					SendMessage(hwnd_button, CB_ADDSTRING, (WPARAM)0, (LPARAM)general_string_buff);
+				}
 			}
-			delete[] msg;
+			else {
+				wchar_t* msg = new wchar_t[12];
+				LoadString(phinstDLL, IDS_BUTTON, general_string_buff, _countof(general_string_buff));
+				for (int i = 0; i < p_joy_selected->Buttons(nullptr); i++) {
+					swprintf_s(msg, 12, L"%s %d", general_string_buff, i);
+					SendMessage(hwnd_button, CB_ADDSTRING, (WPARAM)0, (LPARAM)msg);
+				}
+				delete[] msg;
+			}
 		}
 		else {
 			LoadString(phinstDLL, IDS_NONE, general_string_buff, _countof(general_string_buff));
@@ -1111,13 +1152,22 @@ static void JoyConfig_Refresh_Axes(BOOL joy_changed, BOOL axis_type_change) {
 		SendMessage(hwnd_axis, CB_RESETCONTENT, (WPARAM)0, (LPARAM)0);
 		if (p_joy_selected->Axes(nullptr) > 0) {
 			EnableWindow(hwnd_axis, TRUE);
-			wchar_t* msg = new wchar_t[12];
-			LoadString(phinstDLL, IDS_AXIS, general_string_buff, _countof(general_string_buff));
-			for (int i = 0; i < p_joy_selected->Axes(nullptr); i++) {
-				swprintf_s(msg, 12, L"%s %d", general_string_buff, i);
-				SendMessage(hwnd_axis, CB_ADDSTRING, (WPARAM)0, (LPARAM)msg);
+
+			if (p_joy_selected->IsGamepad()) {
+				for (int i = 0; i < _countof(GAMEPAD_AXIS_UID); i++) {
+					LoadString(phinstDLL, GAMEPAD_AXIS_UID[i], general_string_buff, _countof(general_string_buff));
+					SendMessage(hwnd_axis, CB_ADDSTRING, (WPARAM)0, (LPARAM)general_string_buff);
+				}
 			}
-			delete[] msg;
+			else {
+				wchar_t* msg = new wchar_t[12];
+				LoadString(phinstDLL, IDS_AXIS, general_string_buff, _countof(general_string_buff));
+				for (int i = 0; i < p_joy_selected->Axes(nullptr); i++) {
+					swprintf_s(msg, 12, L"%s %d", general_string_buff, i);
+					SendMessage(hwnd_axis, CB_ADDSTRING, (WPARAM)0, (LPARAM)msg);
+				}
+				delete[] msg;
+			}
 		}
 		else {
 			LoadString(phinstDLL, IDS_NONE, general_string_buff, _countof(general_string_buff));
@@ -1409,34 +1459,38 @@ static bool JoyConfig_Preset_Set() {
 		return false;
 
 	std::wstring file_path;
-	if (!Get_Joystick_Config_Path(&file_path))
+	if (!Get_Joystick_Config_Preset_Path(&file_path, false))
 		return false;
 
-	file_path.append(L"\\presets\\");
+	SendMessage(hwnd_presets, CB_GETLBTEXT, (WPARAM)preset_selected, (LPARAM)general_string_buff);
 
 	wchar_t vid_pid_name[10]{ 0 };
-	swprintf_s(vid_pid_name, L"%04x%04x_", p_joy_selected->Get_VID(), p_joy_selected->Get_PID());
+
+	//if general_string_buff[0] == '*' is an xbox gamepad profile(v3 or below) using vid + pid name prefix.
+	if (p_joy_selected->IsGamepad() && general_string_buff[0] != L'*')
+		swprintf_s(vid_pid_name, L"XGAMEPAD_");
+	else
+		swprintf_s(vid_pid_name, L"%04x%04x_", p_joy_selected->Get_VID(), p_joy_selected->Get_PID());
 
 	file_path.append(vid_pid_name);
 	
-	SendMessage(hwnd_presets, CB_GETLBTEXT, (WPARAM)preset_selected, (LPARAM)general_string_buff);
-	file_path.append(general_string_buff);
+	if (general_string_buff[0] == L'*')//skip over '*', old gamepad marker.
+		file_path.append(general_string_buff + 1);
+	else
+		file_path.append(general_string_buff);
 	file_path.append(L".joy");
 
 	if (p_joy_selected->Profile_Load(file_path.c_str()) == FALSE) {
 		//if could not load preset from the AppData path, try loading from the local folder.
-		if (!Get_Joystick_Config_Path_Local(&file_path))
+		if (!Get_Joystick_Config_Preset_Path_Local(&file_path, false))
 			return false;
 		
-		file_path.append(L"\\presets\\");
-
-		wchar_t vid_pid_name[10]{ 0 };
-		swprintf_s(vid_pid_name, L"%04x%04x_", p_joy_selected->Get_VID(), p_joy_selected->Get_PID());
-
 		file_path.append(vid_pid_name);
 
-		SendMessage(hwnd_presets, CB_GETLBTEXT, (WPARAM)preset_selected, (LPARAM)general_string_buff);
-		file_path.append(general_string_buff);
+		if (general_string_buff[0] == '*')//skip over '*', old gamepad marker.
+			file_path.append(general_string_buff + 1);
+		else
+			file_path.append(general_string_buff);
 		file_path.append(L".joy");
 
 		p_joy_selected->Profile_Load(file_path.c_str());
@@ -1520,22 +1574,16 @@ static INT_PTR CALLBACK DialogProc_SaveAsPreset(HWND hwndDlg, UINT uMsg, WPARAM 
 			break;
 		case IDOK: {
 			std::wstring file_path;
-			if (!Get_Joystick_Config_Path(&file_path)) {
+			if (!Get_Joystick_Config_Preset_Path(&file_path, true)) {
 				DestroyWindow(hwndDlg);
 				return TRUE;
 			}
 
-			file_path.append(L"\\presets");
-			if (GetFileAttributes(file_path.c_str()) == INVALID_FILE_ATTRIBUTES) {
-				if (!CreateDirectory(file_path.c_str(), nullptr)) {
-					DestroyWindow(hwndDlg);
-					return TRUE;
-				}
-			}
-			file_path.append(L"\\");
-
 			wchar_t vid_pid_name[10]{ 0 };
-			swprintf_s(vid_pid_name, L"%04x%04x_", p_joy_selected->Get_VID(), p_joy_selected->Get_PID());
+			if (p_joy_selected->IsGamepad())
+				swprintf_s(vid_pid_name, L"XGAMEPAD_");
+			else
+				swprintf_s(vid_pid_name, L"%04x%04x_", p_joy_selected->Get_VID(), p_joy_selected->Get_PID());
 
 			file_path.append(vid_pid_name);
 			file_path.append(text_last_good);
@@ -1618,6 +1666,61 @@ static bool JoyConfig_Preset_Save() {
 }
 
 
+//____________________________________________________________________________________________________________________________________________________________________________________________________
+static bool Add_Presets(HWND hwnd_presets, bool does_list_contain_presets, std::wstring *p_search_path, std::wstring *p_campare_search_path, const wchar_t* vid_pid_name, BOOL is_old_gamepad_profile) {
+
+	if (!p_search_path)
+		return false;
+
+	std::wstring campare_path;
+
+	std::wstring file_path = *p_search_path;
+
+	file_path.append(vid_pid_name);
+	file_path.append(L"*.joy");
+	HANDLE hFind_Compare = nullptr;
+	WIN32_FIND_DATA FindFileData_Compare{};
+
+	WIN32_FIND_DATA FindFileData{};
+	//search AppData path for presets.
+	HANDLE hFind = FindFirstFile(file_path.c_str(), &FindFileData);
+	if (hFind != INVALID_HANDLE_VALUE) {
+		
+		if (!does_list_contain_presets) {
+			does_list_contain_presets = true;
+			EnableWindow(hwnd_presets, TRUE);
+			LoadString(phinstDLL, IDS_SELECT_PRESET, general_string_buff, _countof(general_string_buff));
+			SendMessage(hwnd_presets, CB_ADDSTRING, (WPARAM)0, (LPARAM)general_string_buff);
+			SendMessage(hwnd_presets, CB_SETCURSEL, (WPARAM)0, (LPARAM)0);
+		}
+		std::wstring name;
+		do {
+			
+			if (p_campare_search_path) {
+				campare_path = *p_campare_search_path;
+				campare_path.append(vid_pid_name);
+				campare_path.append(&FindFileData.cFileName[9]);
+				hFind_Compare = FindFirstFile(campare_path.c_str(), &FindFileData_Compare);
+			}
+
+			if (!p_campare_search_path || hFind_Compare == INVALID_HANDLE_VALUE) {
+				if (is_old_gamepad_profile)
+					name = L"*";
+				else
+					name = L"";
+				name.append(&FindFileData.cFileName[9]);
+				name.at(name.find_last_of(L'.')) = L'\0';
+				SendMessage(hwnd_presets, CB_ADDSTRING, (WPARAM)0, (LPARAM)name.c_str());
+				Debug_Info_Joy("JoyConfig_Refresh_Presets: add AppData preset: %S", name.c_str());
+			}
+		} while (FindNextFile(hFind, &FindFileData));
+
+		FindClose(hFind);
+	}
+	return does_list_contain_presets;
+}
+
+
 //_____________________________________
 static bool JoyConfig_Refresh_Presets() {
 
@@ -1638,63 +1741,30 @@ static bool JoyConfig_Refresh_Presets() {
 		return false;
 
 	std::wstring search_path_appdata;
-	if(!Get_Joystick_Config_Path(&search_path_appdata))
+	if (!Get_Joystick_Config_Preset_Path(&search_path_appdata, true))
 		return false;
 
-	search_path_appdata.append(L"\\presets");
-	if (GetFileAttributes(search_path_appdata.c_str()) == INVALID_FILE_ATTRIBUTES) {
-		if (!CreateDirectory(search_path_appdata.c_str(), nullptr)) {
-			Debug_Info_Error("JoyConfig_Refresh_Presets: could not create presets path: %S", search_path_appdata.c_str());
-			return false;
-		}
-	}
-	search_path_appdata.append(L"\\");
-
+	bool preset_found = false;
+	std::wstring file_path_appdata;
+	WIN32_FIND_DATA FindFileData{};
+	HANDLE hFind = nullptr;
 	// create vendor/productID string
 	wchar_t vid_pid_name[10]{ 0 };
-	swprintf_s(vid_pid_name, L"%04x%04x_", p_joy_selected->Get_VID(), p_joy_selected->Get_PID());
-
-	std::wstring file_path_appdata = search_path_appdata;
-
-	file_path_appdata.append(vid_pid_name);
-	file_path_appdata.append(L"*.joy");
-	bool preset_found = false;
-
-	WIN32_FIND_DATA FindFileData{};
-	//search AppData path for presets.
-	HANDLE hFind = FindFirstFile(file_path_appdata.c_str(), &FindFileData);
-	if (hFind != INVALID_HANDLE_VALUE) {
-		preset_found = true;
-		EnableWindow(hwnd_presets, TRUE);
-		LoadString(phinstDLL, IDS_SELECT_PRESET, general_string_buff, _countof(general_string_buff));
-		SendMessage(hwnd_presets, CB_ADDSTRING, (WPARAM)0, (LPARAM)general_string_buff);
-		SendMessage(hwnd_presets, CB_SETCURSEL, (WPARAM)0, (LPARAM)0);
-
-		std::wstring name;
-		do {
-			name = &FindFileData.cFileName[9];
-			name.at(name.find_last_of(L'.')) = L'\0';
-			SendMessage(hwnd_presets, CB_ADDSTRING, (WPARAM)0, (LPARAM)name.c_str());
-			Debug_Info_Joy("JoyConfig_Refresh_Presets: add AppData preset: %S", name.c_str());
-
-		} while (FindNextFile(hFind, &FindFileData));
-
-		FindClose(hFind);
+	
+	if (p_joy_selected->IsGamepad()) {
+		swprintf_s(vid_pid_name, L"XGAMEPAD_");
+		preset_found |= Add_Presets(hwnd_presets, preset_found, &search_path_appdata, nullptr, vid_pid_name, FALSE);
 	}
+	swprintf_s(vid_pid_name, L"%04x%04x_", p_joy_selected->Get_VID(), p_joy_selected->Get_PID());
+	preset_found |= Add_Presets(hwnd_presets, preset_found, &search_path_appdata, nullptr, vid_pid_name, p_joy_selected->IsGamepad());
 
+	//add presets from local path
 	std::wstring search_path_local;
-	if (!Get_Joystick_Config_Path_Local(&search_path_local))
+	if (!Get_Joystick_Config_Preset_Path_Local(&search_path_local, false))
 		return false;
-
-	search_path_local.append(L"\\presets");
-	if (GetFileAttributes(search_path_local.c_str()) == INVALID_FILE_ATTRIBUTES)
-		return true;
-
-	search_path_local.append(L"\\");
-
+	//don't add presets if local and appdata path are the same.
 	if (search_path_local.compare(search_path_appdata) == 0) {
-		//Debug_Info_Joy("JoyConfig_Refresh_Presets: local path == Appdata path :%S"search_path_local.c_str());
-		if(!preset_found){
+		if (!preset_found) {
 			//no presets found, add "None" string and disable combo.
 			LoadString(phinstDLL, IDS_NONE, general_string_buff, _countof(general_string_buff));
 			SendMessage(hwnd_presets, CB_ADDSTRING, (WPARAM)0, (LPARAM)general_string_buff);
@@ -1704,46 +1774,14 @@ static bool JoyConfig_Refresh_Presets() {
 		}
 		return true;
 	}
-	std::wstring file_path_local = search_path_local;
-
-	file_path_local.append(vid_pid_name);
-	file_path_local.append(L"*.joy");
-
-	WIN32_FIND_DATA FindFileData_Local{};
-	//search local path for presets.
-	HANDLE hFind_Local = FindFirstFile(file_path_local.c_str(), &FindFileData_Local);
-	if (hFind_Local != INVALID_HANDLE_VALUE) {
-		if (!preset_found) {
-			EnableWindow(hwnd_presets, TRUE);
-			LoadString(phinstDLL, IDS_SELECT_PRESET, general_string_buff, _countof(general_string_buff));
-			SendMessage(hwnd_presets, CB_ADDSTRING, (WPARAM)0, (LPARAM)general_string_buff);
-			SendMessage(hwnd_presets, CB_SETCURSEL, (WPARAM)0, (LPARAM)0);
-			preset_found = true;
-		}
-		std::wstring name;
-		do {
-			name = &FindFileData_Local.cFileName[9];
-
-			file_path_appdata = search_path_appdata;
-			file_path_appdata.append(vid_pid_name);
-			file_path_appdata.append(name);
-
-			name.at(name.find_last_of(L'.')) = L'\0';
-
-			//don't add the local preset if a preset with the same name exists in AppData presets.
-			//Debug_Info_Joy("JoyConfig_Refresh_Presets: add local preset check appdata: L:%S, A:%S", name.c_str(), file_path_appdata.c_str());
-			hFind = FindFirstFile(file_path_appdata.c_str(), &FindFileData);
-			if (hFind == INVALID_HANDLE_VALUE) {
-				SendMessage(hwnd_presets, CB_ADDSTRING, (WPARAM)0, (LPARAM)name.c_str());
-				Debug_Info_Joy("JoyConfig_Refresh_Presets: add local preset: %S", name.c_str());
-			}
-			else
-				FindClose(hFind);
-			
-		} while (FindNextFile(hFind_Local, &FindFileData_Local));
-
-		FindClose(hFind_Local);
+	//only add presets from local path if their names differ from those in appdata.
+	if (p_joy_selected->IsGamepad()) {
+		swprintf_s(vid_pid_name, L"XGAMEPAD_");
+		preset_found |= Add_Presets(hwnd_presets, preset_found, &search_path_local, &search_path_appdata, vid_pid_name, FALSE);
 	}
+	swprintf_s(vid_pid_name, L"%04x%04x_", p_joy_selected->Get_VID(), p_joy_selected->Get_PID());
+	preset_found |= Add_Presets(hwnd_presets, preset_found, &search_path_local, &search_path_appdata, vid_pid_name, p_joy_selected->IsGamepad());
+
 	if (!preset_found) {
 		//no presets found, add "None" string and disable combo.
 		LoadString(phinstDLL, IDS_NONE, general_string_buff, _countof(general_string_buff));
