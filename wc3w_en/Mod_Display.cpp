@@ -296,6 +296,7 @@ static BOOL Window_Setup(HWND hwnd) {
         winPlace.length = sizeof(WINDOWPLACEMENT);
         
         SetWindowLongPtr(hwnd, GWL_STYLE, WIN_MODE_STYLE);
+        SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE);
         //Debug_Info("is_windowed set style");
 
         if (ConfigReadWinData(L"MAIN", L"WIN_DATA", &winPlace)) {
@@ -1192,6 +1193,7 @@ static void Toggle_WindowMode(HWND hwnd) {
         winPlace.length = sizeof(WINDOWPLACEMENT);
 
         SetWindowLongPtr(hwnd, GWL_STYLE, WIN_MODE_STYLE);
+        SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE);
 
         if (ConfigReadWinData(L"MAIN", L"WIN_DATA", &winPlace)) {
             if (winPlace.showCmd != SW_MAXIMIZE)
@@ -1212,6 +1214,7 @@ static void Toggle_WindowMode(HWND hwnd) {
         Debug_Info("Toggle_WindowMode: Fullscreen");
         SetWindowLongPtr(hwnd, GWL_STYLE, WS_POPUP);
         //SetWindowPos(hwnd, 0, 0, 0, 0, 0, 0);
+        SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE);
         ShowWindow(hwnd, SW_MAXIMIZE);
     }
     Display_Dx_Present();
