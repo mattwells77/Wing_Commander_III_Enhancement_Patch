@@ -3132,9 +3132,13 @@ static INT_PTR CALLBACK DialogProc_Config_Control(HWND hwndDlg, UINT uMsg, WPARA
 
 			if (tabNum == 1) {
 				ShowWindow(hWin_Config_Joy_Active, SW_HIDE);
+				HWND hwndTab = GetDlgItem(hWin_Config_Mouse, IDC_TAB_MOUSE_CONTROL);
+				TabCtrl_SetCurFocus(hwndTab, input_protype_tab_list[static_cast<int>(current_pro_type)]);
 				ShowWindow(hWin_Config_Mouse, SW_SHOW);
 			}
 			else if (tabNum == 0) {
+				HWND hwndTab = GetDlgItem(hWin_Config_Joy_Active, IDC_TAB_JOY_CONTROL);
+				TabCtrl_SetCurFocus(hwndTab, input_protype_tab_list[static_cast<int>(current_pro_type)]);
 				ShowWindow(hWin_Config_Joy_Active, SW_SHOW);
 				ShowWindow(hWin_Config_Mouse, SW_HIDE);
 			}
