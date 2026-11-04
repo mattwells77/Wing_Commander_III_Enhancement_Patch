@@ -149,30 +149,34 @@ void MOUSE::Load() {
 
 	for (int i = 0; i < NUM_JOY_PROFILES; i++) {
 		switch (i) {
-		case 0:
+		case static_cast<int>(PROFILE_TYPE::GUI):
 			current_pro_type = PROFILE_TYPE::GUI;
 			swprintf(profile_name, _countof(profile_name), L"MOUSE_GUI");
 			action_key_button[0].SetAction(static_cast<WC3_ACTIONS>(ConfigReadInt_InGame(profile_name, L"BUTTON_01", static_cast<int>(WC3_ACTIONS::B1_Select))));
 			action_key_button[1].SetAction(static_cast<WC3_ACTIONS>(ConfigReadInt_InGame(profile_name, L"BUTTON_02", static_cast<int>(WC3_ACTIONS::B2_Cycle_Hotspots))));
 			break;
-		case 1:
+		case static_cast<int>(PROFILE_TYPE::NAV):
 			current_pro_type = PROFILE_TYPE::NAV;
 			swprintf(profile_name, _countof(profile_name), L"MOUSE_NAV");
 			action_key_button[0].SetAction(static_cast<WC3_ACTIONS>(ConfigReadInt_InGame(profile_name, L"BUTTON_01", static_cast<int>(WC3_ACTIONS::NAV_Cycle_Points))));
 			action_key_button[1].SetAction(static_cast<WC3_ACTIONS>(ConfigReadInt_InGame(profile_name, L"BUTTON_02", static_cast<int>(WC3_ACTIONS::B2_Modifier))));
 			break;
-		case 2:
+		case static_cast<int>(PROFILE_TYPE::Space):
 			current_pro_type = PROFILE_TYPE::Space;
 			swprintf(profile_name, _countof(profile_name), L"MOUSE_SPACE");
 			action_key_button[0].SetAction(static_cast<WC3_ACTIONS>(ConfigReadInt_InGame(profile_name, L"BUTTON_01", static_cast<int>(WC3_ACTIONS::B1_Fire_Guns))));
 			action_key_button[1].SetAction(static_cast<WC3_ACTIONS>(ConfigReadInt_InGame(profile_name, L"BUTTON_02", static_cast<int>(WC3_ACTIONS::B2_Modifier))));
 			break;
-		default:
+		case static_cast<int>(PROFILE_TYPE::ReMap_1):
+		case static_cast<int>(PROFILE_TYPE::ReMap_2):
+		case static_cast<int>(PROFILE_TYPE::ReMap_3):
 			current_pro_type = static_cast<PROFILE_TYPE>(i);
-			swprintf(profile_name, _countof(profile_name), L"MOUSE_REMAP_%02d", i - 1);
+			swprintf(profile_name, _countof(profile_name), L"MOUSE_REMAP_%02d", i - static_cast<int>(PROFILE_TYPE::ReMap_1) + 1);
 			action_key_button[0].SetAction(static_cast<WC3_ACTIONS>(ConfigReadInt_InGame(profile_name, L"BUTTON_01", static_cast<int>(WC3_ACTIONS::None))));
 			action_key_button[1].SetAction(static_cast<WC3_ACTIONS>(ConfigReadInt_InGame(profile_name, L"BUTTON_02", static_cast<int>(WC3_ACTIONS::None))));
 			break;
+		default:
+			continue;
 		}
 
 		action_key_button[2].SetAction(static_cast<WC3_ACTIONS>(ConfigReadInt_InGame(profile_name, L"BUTTON_03", static_cast<int>(WC3_ACTIONS::None))));
@@ -204,22 +208,26 @@ void MOUSE::Save() {
 
 	for (int i = 0; i < NUM_JOY_PROFILES; i++) {
 		switch (i) {
-		case 0:
+		case static_cast<int>(PROFILE_TYPE::GUI):
 			current_pro_type = PROFILE_TYPE::GUI;
 			swprintf(profile_name, _countof(profile_name), L"MOUSE_GUI");
 			break;
-		case 1:
+		case static_cast<int>(PROFILE_TYPE::NAV):
 			current_pro_type = PROFILE_TYPE::NAV;
 			swprintf(profile_name, _countof(profile_name), L"MOUSE_NAV");
 			break;
-		case 2:
+		case static_cast<int>(PROFILE_TYPE::Space):
 			current_pro_type = PROFILE_TYPE::Space;
 			swprintf(profile_name, _countof(profile_name), L"MOUSE_SPACE");
 			break;
-		default:
+		case static_cast<int>(PROFILE_TYPE::ReMap_1):
+		case static_cast<int>(PROFILE_TYPE::ReMap_2):
+		case static_cast<int>(PROFILE_TYPE::ReMap_3):
 			current_pro_type = static_cast<PROFILE_TYPE>(i);
-			swprintf(profile_name, _countof(profile_name), L"MOUSE_REMAP_%02d", i - 1);
+			swprintf(profile_name, _countof(profile_name), L"MOUSE_REMAP_%02d", i - static_cast<int>(PROFILE_TYPE::ReMap_1) + 1);
 			break;
+		default:
+			continue;
 		}
 
 		for (int button = 0; button < NUM_MOUSE_BUTTONS; button++) {
@@ -232,7 +240,6 @@ void MOUSE::Save() {
 
 		ConfigWriteInt_InGame(profile_name, L"MOUSE_WHEEL_LEFT", static_cast<int>(action_key_wheel_h[0].GetAction()));
 		ConfigWriteInt_InGame(profile_name, L"MOUSE_WHEEL_RIGHT", static_cast<int>(action_key_wheel_h[1].GetAction()));
-
 	}
 
 	current_pro_type = saved_pro_type;
