@@ -448,3 +448,5 @@ extern LONG(*wc3_draw_line)(DRAW_BUFFER_MAIN* p_db, LONG x1, LONG y1, LONG x2, L
 
 extern BOOL(*wc3_save_game)(DWORD save_num, const char* title);
 extern BOOL(*wc3_delete_file)(const char* file_path);
+
+extern BOOL(*wc3_exit_game)(BOOL exit_code);

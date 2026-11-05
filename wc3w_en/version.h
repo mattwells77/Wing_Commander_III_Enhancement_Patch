@@ -33,9 +33,9 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #define VER_FILE_DESCRIPTION_STR    L"Wing Commander III Enhancement Patch"
 #define VER_FILE_VERSION            VERSION_MAJOR, VERSION_MINOR, VERSION_REVISION, VERSION_BUILD
 #define VER_FILE_VERSION_STR        STRINGIZE(VERSION_MAJOR)        \
-                                    "." STRINGIZE(VERSION_MINOR)    \
-                                    "." STRINGIZE(VERSION_REVISION) \
-                                    "." STRINGIZE(VERSION_BUILD)    \
+                                    L"." STRINGIZE(VERSION_MINOR)    \
+                                    L"." STRINGIZE(VERSION_REVISION) \
+                                    L"." STRINGIZE(VERSION_BUILD)    \
 
 #define VER_PRODUCTNAME_STR         L"wc3w_en"
 #define VER_PRODUCT_VERSION         VER_FILE_VERSION

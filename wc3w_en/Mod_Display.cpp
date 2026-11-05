@@ -248,8 +248,8 @@ static HWND __stdcall CreateWindowEx_DPIAware(DWORD dwExStyle, LPCSTR lpClassNam
 
 //_________________________________
 static BOOL Window_Setup(HWND hwnd) {
-    
-    Check_Command_Line_Overrides();
+
+    //Check_Command_Line_Overrides();
 
     if (*p_wc3_subtitles_enabled == 0) {
         if (ConfigReadInt_InGame(L"MAIN", L"ENABLE_SUBTITLES", CONFIG_MAIN_ENABLE_SUBTITLES))

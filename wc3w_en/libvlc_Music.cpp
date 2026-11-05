@@ -31,19 +31,21 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 LibVlc_Music* p_Music_Player = nullptr;
 
 
-//___________________________________________
-static const char* Get_Alt_Music_ConfigPath() {
+//____________________________________
+const char* Get_Alt_Music_ConfigPath() {
 
     static bool config_path_set = false;
     static std::string alt_music_config_path;
     if (!config_path_set) {
         config_path_set = true;
 
-        char* pAltMusicPath = new char[MAX_PATH];
-        GetCurrentDirectoryA(MAX_PATH, pAltMusicPath);
-        alt_music_config_path.append(pAltMusicPath);
+        DWORD currentDirSize = GetCurrentDirectoryA(0, nullptr);//get the path size
+        char* dirCurrent = new char[currentDirSize];
+        GetCurrentDirectoryA(currentDirSize, dirCurrent);
+        alt_music_config_path.assign("\\\\?\\");
+        alt_music_config_path.append(dirCurrent);
+        delete[] dirCurrent;
         alt_music_config_path.append("\\");
-        delete[] pAltMusicPath;
 
         size_t len = _countof(VER_PRODUCTNAME_STR);
         char* s_product_name = new char[len];

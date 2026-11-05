@@ -1175,6 +1175,20 @@ void Modifications_Random_Crash_Check() {
 }
 
 
+//_____________________________________________________________
+static void __declspec(naked) check_command_line_overides(void) {
+
+    __asm {
+        pushad
+        call Check_Command_Line_Overrides
+        popad
+
+        and eax, 0xFF
+        ret
+    }
+}
+
+
 //_______________________________
 void Modifications_GeneralFixes() {
 
@@ -1648,4 +1662,8 @@ void Modifications_GeneralFixes() {
     FuncWrite32(0x47BB4D, 0x0D130204, (DWORD)&test_texture_address_2);
     MemWrite32(0x47BB51, 0x4A7590, 0x90909090);
     //----------------------------------------------------------------------------
+
+
+    MemWrite8(0x4925D9, 0x25, 0xE8);
+    FuncWrite32(0x4925DA, 0xFF, (DWORD)&check_command_line_overides);
 }

@@ -191,4 +191,6 @@ private:
     //};
 };
 
+const char* Get_Alt_Music_ConfigPath();
+
 extern LibVlc_Music* p_Music_Player;

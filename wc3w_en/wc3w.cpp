@@ -265,6 +265,7 @@ BOOL(*wc3_save_game)(DWORD save_num, const char* title) = nullptr;
 BOOL(*wc3_delete_file)(const char* file_path) = nullptr;
 char* p_wc3_cmd_mission_name = nullptr;
 
+BOOL(*wc3_exit_game)(BOOL exit_code) = nullptr;
 
 //_______________
 void WC3W_Setup() {
@@ -515,4 +516,6 @@ void WC3W_Setup() {
     wc3_save_game = (BOOL(*)(DWORD, const char*))0x408830;
     wc3_delete_file = (BOOL(*)(const char*))0x49AC80;
     p_wc3_cmd_mission_name = (char*)0x49F720;
+
+    wc3_exit_game = (BOOL(*)(BOOL))0x490EF0;
 }
