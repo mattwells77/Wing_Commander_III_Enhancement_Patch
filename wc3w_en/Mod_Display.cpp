@@ -582,10 +582,10 @@ static void __fastcall Set_Space_View_POV3(void* p_space_class, DRAW_BUFFER_MAIN
     WORD width = (WORD)spaceWidth;
     WORD height = (WORD)spaceHeight;
 
-    //rear view vdu screen is 122*100, check for it here to prevent it being resized.
-    if (p_db && p_db->rc.right == 121 && p_db->rc.bottom == 99) {
-        width = 122;
-        height = 100;
+    //rear view vdu screen isn't 640*480, check for it here to prevent it being resized.
+    if (p_db && (p_db->rc.right != 639 || p_db->rc.bottom != 479)) {
+        width = (WORD)p_db->rc.right + 1;
+        height = (WORD)p_db->rc.bottom + 1;
         //if in cockpit view, make sure flag is set to enable clipping rect.
         if (*p_wc3_view_current_dir == SPACE_VIEW_TYPE::Cockpit)
             space_view_has_BG_image = TRUE;
