@@ -509,7 +509,7 @@ bool LibVlc_Movie::Play() {
             mediaPlayer.setMarqueeInt(libvlc_marquee_Timeout, 8000);
             mediaPlayer.setMarqueeInt(libvlc_marquee_Enable, 1);
         }
-
+        Sleep(150);//add a small delay to allow movie to settle.
         return isPlaying;
     }
     else {
@@ -517,7 +517,7 @@ bool LibVlc_Movie::Play() {
             return Play();
 
     }
-
+    Sleep(150);//add a small delay to allow movie to settle.
     return isPlaying;
 }
 
