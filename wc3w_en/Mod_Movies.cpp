@@ -978,4 +978,7 @@ void Modifications_Movies() {
     FuncWrite32(0x433733, 0x4A3338, (DWORD)&inflight_movie_audio_check);
     MemWrite8(0x433737, 0x00, 0x90);
     //---------------------------------------------------------
+
+    //prevent music being stopped while a scripted VDU movie is playing that is larger than 150000 bytes. 
+    MemWrite8(0x422E55, 0x7E, 0xEB);
 }
