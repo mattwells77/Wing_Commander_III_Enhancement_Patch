@@ -111,7 +111,7 @@ static void UnlockShowMovieSurface() {
 //______________________________________________________________________________________________________
 static BOOL Play_Movie_Sequence(void* p_wc3_movie_class, void* p_sig_movie_class, DWORD sig_movie_flags) {
 
-    while (is_Music_Player_Starting)//attempting to play a movie before vlc music is initialized can cause instability.
+    while (is_Music_Player_Initializing)//attempting to play a movie before vlc music is initialized can cause instability.
         Sleep(0);
 
     char* mve_path = (char*)((DWORD*)p_wc3_movie_class)[28];
@@ -250,7 +250,7 @@ static void __declspec(naked) movie_fade_out(void) {
 //________________________________________________
 static BOOL Play_HD_Movie_Sequence(char* mve_path) {
     
-    while (is_Music_Player_Starting)//attempting to play a movie before vlc music is initialized can cause instability.
+    while (is_Music_Player_Initializing)//attempting to play a movie before vlc music is initialized can cause instability.
         Sleep(0);
 
     Debug_Info_Movie("Play_HD_Movie_Sequence: main_path: %s", mve_path);
@@ -528,7 +528,7 @@ static BOOL Play_Inflight_Movie(HUD_CLASS_01* p_hud_class_01) {
             //if the movie file name has an extension, DON'T ADD a letter appendix by setting "appendix_offset = -1".
             char* ext = strrchr((*pp_movie_class_inflight_01)->file_name, '.');
 
-            while (is_Music_Player_Starting)///attempting to play a movie before vlc music is initialized can cause instability.
+            while (is_Music_Player_Initializing)///attempting to play a movie before vlc music is initialized can cause instability.
                 Sleep(0);
 
             if (ext) {

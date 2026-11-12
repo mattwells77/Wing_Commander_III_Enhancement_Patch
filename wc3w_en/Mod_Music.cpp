@@ -29,14 +29,14 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "wc3w.h"
 
 
-bool is_Music_Player_Starting = false;
+bool is_Music_Player_Initializing = false;
 
 
 //_________________________________________________
 static DWORD Music_Player(MUSIC_CLASS* music_class) {
     //This function runs in a seperate thread.
 
-    is_Music_Player_Starting = true;
+    is_Music_Player_Initializing = true;
     static bool deleting_music_player = false;
 
     while (deleting_music_player)
@@ -54,7 +54,7 @@ static DWORD Music_Player(MUSIC_CLASS* music_class) {
         Debug_Info_Music("Music_Player Init: Waiting...");
     }
     Debug_Info_Music("Music_Player Init: DONE");
-    is_Music_Player_Starting = false;
+    is_Music_Player_Initializing = false;
 
     //periodically check for tune changes and update.
     while (!(music_class->header.flags & 0x80)) {

@@ -43,4 +43,4 @@ void Set_WindowActive_State(BOOL isActive);
 void Modifications_Random_Crash_Check();
 void Random_Crash_Report();
 
-extern bool is_Music_Player_Starting;
+extern bool is_Music_Player_Initializing;
