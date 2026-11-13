@@ -455,7 +455,12 @@ LibVlc_Movie::LibVlc_Movie(std::string movie_name, LONG* branch_list, LONG branc
             }
         }
         if (branch_state == 0 || branch < 0) {
-            Debug_Info_Error("LibVlc_Movie: Create Movie Branch Path FAILED: %s, branch:%d", movie_name.c_str(), branch);
+            if (branch_state == -1) {
+                Debug_Info_Movie("LibVlc_Movie: first and only branch skipped.");
+                hasPlayed = true;
+            }
+            else
+                Debug_Info_Error("LibVlc_Movie: Create Movie Branch Path FAILED: %s, branch:%d", movie_name.c_str(), branch);
             isError = true;
         }
         else {
@@ -744,7 +749,7 @@ void LibVlc_Movie::Initialise_Audio() {
 bool LibVlc_Movie::InitialiseForPlay_Start() {
     if (initialised_for_play)
         return true;
-    if (isPlaying) {
+    if (isPlaying || hasPlayed) {
         Debug_Info_Movie("LibVlc_Movie: InitialiseForPlay_Start, Play still initialising - cut short: %s", path.c_str());
         InitialiseForPlay_End();
         return true;

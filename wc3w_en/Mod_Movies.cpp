@@ -263,15 +263,19 @@ static BOOL Play_HD_Movie_Sequence(char* mve_path) {
     Get_Movie_Name_From_Path(mve_path, &movie_name);
     pMovie_vlc = new LibVlc_Movie(movie_name, p_wc3_movie_branch_list, *p_wc3_movie_branch_current_list_num);
 
+    BOOL play_successfull = FALSE;
+
     if (pMovie_vlc->IsError()) {
+        if (pMovie_vlc->HasPlayed())//if whole movie sequence has been marked to be skipped in movies.ini.
+            play_successfull = TRUE;
         delete pMovie_vlc;
         pMovie_vlc = nullptr;
-        Debug_Info("Play_HD_Movie_Sequence: Failed");
+        if (!play_successfull)
+            Debug_Info("Play_HD_Movie_Sequence: Failed");
         return FALSE;
     }
 
     BOOL exit_flag = FALSE;
-    BOOL play_successfull = FALSE;
     MOVIE_STATE movie_state{ 0 };
 
     if (pMovie_vlc->Play()) {
@@ -295,6 +299,8 @@ static BOOL Play_HD_Movie_Sequence(char* mve_path) {
         }
         pMovie_vlc->Stop();
     }
+    else if (pMovie_vlc->HasPlayed())//if movie was very short and finished before pMovie_vlc->Play() could return.
+        play_successfull = TRUE;
 
     Sleep(150);//add a small delay to reduce unintended button clicks after ending a movie by double-clicking.
     
