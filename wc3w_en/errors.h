@@ -22,6 +22,7 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #pragma once
 
+#define DEBUG_INFO_CRITICAL    0x80000000
 #define DEBUG_INFO_ERROR    1
 #define DEBUG_INFO_GENERAL	2
 #define DEBUG_INFO_FLIGHT   4
@@ -33,6 +34,7 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //void Debug_Info(const char* format, ...);
 void __Debug_Info(DWORD flags, const char* format, ...);
 
+#define Debug_Info_Critical_Error(...)  __Debug_Info( DEBUG_INFO_CRITICAL|DEBUG_INFO_ERROR, __VA_ARGS__)
 #define Debug_Info_Error(...)  __Debug_Info( DEBUG_INFO_ERROR, __VA_ARGS__)
 #define Debug_Info(...)  __Debug_Info( DEBUG_INFO_GENERAL, __VA_ARGS__)
 #define Debug_Info_Flight(...)  __Debug_Info( DEBUG_INFO_FLIGHT, __VA_ARGS__)

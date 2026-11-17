@@ -644,10 +644,10 @@ void Display_Dx_Present(PRESENT_TYPE present_type) {
     if (FAILED(hr)) {
         if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET) {
             //To-Do HandleDeviceLost();
-            Debug_Info_Error("Present - DeviceLost.");
+            Debug_Info_Critical_Error("Present - DeviceLost.");
         }
         else
-            Debug_Info_Error("Present Failed.");
+            Debug_Info_Critical_Error("Present Failed.");
     }
 }
 
@@ -1495,7 +1495,7 @@ BOOL Display_Dx_Setup(HWND hwnd, UINT width, UINT height) {
         &g_d3dDeviceContext //The created device context.
     );
     if (FAILED(hr)) {
-        Debug_Info_Error("DxSetup - Failed D3D11CreateDevice.");
+        Debug_Info_Critical_Error("DxSetup - Failed D3D11CreateDevice.");
         return 0;
     }
 
@@ -1530,7 +1530,7 @@ BOOL Display_Dx_Setup(HWND hwnd, UINT width, UINT height) {
     }
 
     if (FAILED(hr)) {
-        Debug_Info_Error("DxSetup - Failed Obtain DXGI factory.");
+        Debug_Info_Critical_Error("DxSetup - Failed Obtain DXGI factory.");
         Display_Dx_Destroy();
         return 0;
     }
@@ -1589,7 +1589,7 @@ BOOL Display_Dx_Setup(HWND hwnd, UINT width, UINT height) {
     dxgiFactory->Release();
 
     if (FAILED(hr)) {
-        Debug_Info_Error("DxSetup - Failed CreateSwapChainForHwnd.");
+        Debug_Info_Critical_Error("DxSetup - Failed CreateSwapChainForHwnd.");
         Display_Dx_Destroy();
         return 0;
     }
@@ -1608,7 +1608,7 @@ BOOL Display_Dx_Setup(HWND hwnd, UINT width, UINT height) {
     ID3D11Texture2D* backBuffer = nullptr;
     hr = g_d3dSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&backBuffer);
     if (FAILED(hr)) {
-        Debug_Info_Error("DxSetup - Failed GetBuffer.");
+        Debug_Info_Critical_Error("DxSetup - Failed GetBuffer.");
         Display_Dx_Destroy();
         return 0;
     }
@@ -1618,7 +1618,7 @@ BOOL Display_Dx_Setup(HWND hwnd, UINT width, UINT height) {
         backBuffer->Release();
     backBuffer = nullptr;
     if (FAILED(hr)) {
-        Debug_Info_Error("DxSetup - Failed CreateRenderTargetView.");
+        Debug_Info_Critical_Error("DxSetup - Failed CreateRenderTargetView.");
         Display_Dx_Destroy();
         return 0;
     }
@@ -1640,12 +1640,14 @@ BOOL Display_Dx_Setup(HWND hwnd, UINT width, UINT height) {
 
     hr = g_d3dDevice->CreateTexture2D(&depthStencilBufferDesc, nullptr, &g_d3dDepthStencilBuffer);
     if (FAILED(hr)) {
+        Debug_Info_Critical_Error("DxSetup - Create DepthStencilBuffer Failed");
         Display_Dx_Destroy();
         return 0;
     }
 
     hr = g_d3dDevice->CreateDepthStencilView(g_d3dDepthStencilBuffer, nullptr, &g_d3dDepthStencilView);
     if (FAILED(hr)) {
+        Debug_Info_Critical_Error("DxSetup - Create DepthStencilView Failed");
         Display_Dx_Destroy();
         return 0;
     }
@@ -1690,7 +1692,7 @@ BOOL Display_Dx_Setup(HWND hwnd, UINT width, UINT height) {
     ID3D11RasterizerState* pRState = nullptr;
     hr = g_d3dDevice->CreateRasterizerState(&RSDesc, &pRState);
     if (FAILED(hr)) {
-        Debug_Info_Error("DxSetup - Failed CreateRasterizerState.");
+        Debug_Info_Critical_Error("DxSetup - Failed CreateRasterizerState.");
         Display_Dx_Destroy();
         return 0;
     }
@@ -1701,7 +1703,7 @@ BOOL Display_Dx_Setup(HWND hwnd, UINT width, UINT height) {
     SetScreenProjectionMatrix_XM(width, height);
 
     if (!Shader_Main_Setup()) {
-        Debug_Info_Error("DxSetup - Shader_Main_Setup Failed.");
+        Debug_Info_Critical_Error("DxSetup - Shader_Main_Setup Failed.");
         Display_Dx_Destroy();
         return 0;
     }
@@ -1724,7 +1726,7 @@ BOOL Display_Dx_Resize(UINT width, UINT height) {
     }
 
     if (!g_d3dSwapChain) {
-        Debug_Info_Error("Display_Dx_Resize - no g_d3dSwapChain");
+        Debug_Info_Critical_Error("Display_Dx_Resize - no g_d3dSwapChain");
         return FALSE;
     }
 
@@ -1737,20 +1739,20 @@ BOOL Display_Dx_Resize(UINT width, UINT height) {
     //Use the client windows width and height.
     hr = g_d3dSwapChain->ResizeBuffers(0, 0, 0, DXGI_FORMAT_UNKNOWN, 0);
     if (hr != S_OK)
-        Debug_Info_Error("Display_Dx_Resize - Failed ResizeBuffers");
+        Debug_Info_Critical_Error("Display_Dx_Resize - Failed ResizeBuffers");
 
     //Get buffer and create a render-target-view.
     ID3D11Texture2D* pBuffer = nullptr;
     hr = g_d3dSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&pBuffer);
     if (hr != S_OK)
-        Debug_Info_Error("Display_Dx_Resize - Failed GetBuffer");
+        Debug_Info_Critical_Error("Display_Dx_Resize - Failed GetBuffer");
 
     if (pBuffer != nullptr)
         hr = g_d3dDevice->CreateRenderTargetView(pBuffer, nullptr, &g_d3dRenderTargetView);
     else
-        Debug_Info_Error("Display_Dx_Resize - Failed pBuffer");
+        Debug_Info_Critical_Error("Display_Dx_Resize - Failed pBuffer");
     if (hr != S_OK)
-        Debug_Info_Error("Display_Dx_Resize - Failed CreateRenderTargetView");
+        Debug_Info_Critical_Error("Display_Dx_Resize - Failed CreateRenderTargetView");
     pBuffer->Release();
 
     //Resize the stencil buffer
@@ -1781,11 +1783,11 @@ BOOL Display_Dx_Resize(UINT width, UINT height) {
 
     hr = g_d3dDevice->CreateTexture2D(&depthStencilBufferDesc, nullptr, &g_d3dDepthStencilBuffer);
     if (FAILED(hr))
-        Debug_Info_Error("Display_Dx_Resize - Create DepthStencilBuffer Failed");
+        Debug_Info_Critical_Error("Display_Dx_Resize - Create DepthStencilBuffer Failed");
     if (g_d3dDepthStencilBuffer != nullptr)
         hr = g_d3dDevice->CreateDepthStencilView(g_d3dDepthStencilBuffer, nullptr, &g_d3dDepthStencilView);
     if (FAILED(hr))
-        Debug_Info_Error("Display_Dx_Resize - Create DepthStencilView Failed");
+        Debug_Info_Critical_Error("Display_Dx_Resize - Create DepthStencilView Failed");
 
     Set_ViewPort(width, height);
     SetScreenProjectionMatrix_XM(width, height);

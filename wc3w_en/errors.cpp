@@ -25,6 +25,7 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "memwrite.h"
 #include "configTools.h"
 #include "version.h"
+#include "wc3w.h"
 
 using namespace std;
 
@@ -90,6 +91,11 @@ void __Debug_Info(DWORD flags, const char* format, ...) {
     if (Is_Errors_Stream() && (flags & Get_Debug_Flags()))
         errors_stream << msg_buff << endl;
 #endif // PRINT_DEBUG_INFO
+
+    if (flags & DEBUG_INFO_CRITICAL) {
+        MessageBoxA(*p_wc3_hWinMain, format, "Critical Error", MB_ICONERROR| MB_SYSTEMMODAL);
+        wc3_exit_game(0);
+    }
 }
 
 
