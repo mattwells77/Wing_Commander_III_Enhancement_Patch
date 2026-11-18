@@ -640,9 +640,9 @@ JOYSTICK::JOYSTICK(winrt::Windows::Gaming::Input::RawGameController const& in_ra
 	try {
 		NonRoamableId = rawGameController.NonRoamableId();
 	}
-	catch (const exception& e) {
+	catch (winrt::hresult_error const& e) {
 		NonRoamableId.clear();
-		Debug_Info_Error("NonRoamableId Failed.Exception: %s", e.what());
+		Debug_Info_Error("NonRoamableId Failed, HRESULT 0x%08X", static_cast<unsigned>(e.code().value));
 	}
 
 	DisplayName = rawGameController.DisplayName();
@@ -692,9 +692,9 @@ JOYSTICK::JOYSTICK(winrt::Windows::Gaming::Input::RawGameController const& in_ra
 			try {
 				switchKind = rawGameController.GetSwitchKind(i);
 			}
-			catch (const exception& e) {
+			catch (winrt::hresult_error const& e) {
 				switchKind = GameControllerSwitchKind::EightWay;
-				Debug_Info_Error("GetSwitchKind Failed.Exception: %s", e.what());
+				Debug_Info_Error("GetSwitchKind Failed, HRESULT 0x%08X", static_cast<unsigned>(e.code().value));
 			}
 			//switchKind enum: 0=2, 1=4, 2=8. shift 2 left by the enum val to get number of positions.
 			num_switch_positions = 2 << static_cast<int>(switchKind);
@@ -766,11 +766,11 @@ bool JOYSTICK::Connect(winrt::Windows::Gaming::Input::RawGameController const& i
 	//if (!connected) {
 		hstring NonRoamableId_check;
 		try {
-			NonRoamableId_check = rawGameController.NonRoamableId();
+			NonRoamableId_check = in_rawGameController.NonRoamableId();
 		}
-		catch (const exception& e) {
+		catch (winrt::hresult_error const& e) {
 			NonRoamableId_check.clear();
-			Debug_Info_Error("NonRoamableId Failed.Exception: %s", e.what());
+			Debug_Info_Error("NonRoamableId Failed, HRESULT 0x%08X", static_cast<unsigned>(e.code().value));
 		}
 
 		if (pid == in_rawGameController.HardwareProductId() && vid == in_rawGameController.HardwareVendorId() && NonRoamableId == NonRoamableId_check) {
@@ -1063,7 +1063,7 @@ BOOL JOYSTICK::Profile_Load() {
 
 		BYTE bHash[16];//convert the controllers unique ID to hash data.
 		if (NonRoamableId.empty())
-			memcpy(bHash, "NON_UNIQUE_DEV", 15);
+			memcpy(bHash, "NON_UNIQUE_DEV_", 16);
 		else
 			HashData((BYTE*)NonRoamableId.c_str(), NonRoamableId.size(), bHash, 16);
 		wchar_t* bHashString = file_name + 10;
@@ -1317,7 +1317,7 @@ BOOL JOYSTICK::Profile_Save() {
 
 	BYTE bHash[16];//convert the controllers unique ID to hash data.
 	if (NonRoamableId.empty())
-		memcpy(bHash, "NON_UNIQUE_DEV", 15);
+		memcpy(bHash, "NON_UNIQUE_DEV_", 16);
 	else
 		HashData((BYTE*)NonRoamableId.c_str(), NonRoamableId.size(), bHash, 16);
 	wchar_t* bHashString = file_name + 10;
