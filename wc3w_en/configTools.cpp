@@ -55,7 +55,8 @@ static BOOL Build_Config() {
     config_stream << "VERSION=" << VER_FILE_VERSION_STR << endl;
     config_stream << "UAC_AWARE=" << CONFIG_MAIN_UAC_AWARE << endl;
     config_stream << "ENABLE_DPI_AWARENESS=" << CONFIG_MAIN_ENABLE_DPI_AWARENESS << endl;
-
+    config_stream << "ENABLE_DATA_EXECUTION_PREVENTION=" << CONFIG_MAIN_ENABLE_DATA_EXECUTION_PREVENTION << endl;
+    
     config_stream << "ENABLE_CONTROLLER_ENHANCEMENTS=" << CONFIG_MAIN_ENABLE_CONTROLLER_ENHANCEMENTS << endl;
     config_stream << "ENABLE_MUSIC_ENHANCEMENTS=" << CONFIG_MAIN_ENABLE_MUSIC_ENHANCEMENTS << endl;
 
@@ -331,6 +332,9 @@ static BOOL Update_Config() {
 
     val = ConfigReadInt(L"MAIN", L"ENABLE_DPI_AWARENESS", CONFIG_MAIN_ENABLE_DPI_AWARENESS);
     ConfigWriteInt(L"MAIN", L"ENABLE_DPI_AWARENESS", val);
+
+    val = ConfigReadInt(L"MAIN", L"ENABLE_DATA_EXECUTION_PREVENTION", CONFIG_MAIN_ENABLE_DATA_EXECUTION_PREVENTION);
+    ConfigWriteInt(L"MAIN", L"ENABLE_DATA_EXECUTION_PREVENTION", val);
 
     val = ConfigReadInt(L"MAIN", L"ENABLE_CONTROLLER_ENHANCEMENTS", CONFIG_MAIN_ENABLE_CONTROLLER_ENHANCEMENTS);
     ConfigWriteInt(L"MAIN", L"ENABLE_CONTROLLER_ENHANCEMENTS", val);
@@ -714,6 +718,11 @@ void Check_Command_Line_Overrides() {
         }
     }
     LocalFree(szArglist);
+
+    if (ConfigReadInt(L"MAIN", L"ENABLE_DATA_EXECUTION_PREVENTION", CONFIG_MAIN_ENABLE_DATA_EXECUTION_PREVENTION)) {
+        if (!SetProcessDEPPolicy(PROCESS_DEP_ENABLE))
+            Debug_Info_Error("SetProcessDEPPolicy: Enable DEP Failed.");
+    }
 
     Check_Config_Files_Exist();
 }
