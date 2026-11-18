@@ -637,7 +637,13 @@ JOYSTICK::JOYSTICK(winrt::Windows::Gaming::Input::RawGameController const& in_ra
 
 	pid = rawGameController.HardwareProductId();
 	vid = rawGameController.HardwareVendorId();
-	NonRoamableId = rawGameController.NonRoamableId();
+	try {
+		NonRoamableId = rawGameController.NonRoamableId();
+	}
+	catch (const exception& e) {
+		NonRoamableId.clear();
+		Debug_Info_Error("NonRoamableId Failed.Exception: %s", e.what());
+	}
 
 	DisplayName = rawGameController.DisplayName();
 	//Debug_Info("NonRoamableId: %S", NonRoamableId.c_str());
@@ -683,7 +689,13 @@ JOYSTICK::JOYSTICK(winrt::Windows::Gaming::Input::RawGameController const& in_ra
 		int num_switch_positions = 0;
 		action_switch = new ACTION_SWITCH[num_switches];
 		for (int i = 0; i < num_switches; i++) {
-			switchKind = rawGameController.GetSwitchKind(i);
+			try {
+				switchKind = rawGameController.GetSwitchKind(i);
+			}
+			catch (const exception& e) {
+				switchKind = GameControllerSwitchKind::EightWay;
+				Debug_Info_Error("GetSwitchKind Failed.Exception: %s", e.what());
+			}
 			//switchKind enum: 0=2, 1=4, 2=8. shift 2 left by the enum val to get number of positions.
 			num_switch_positions = 2 << static_cast<int>(switchKind);
 			action_switch[i].Set_Num_Positions(num_switch_positions);
@@ -751,9 +763,19 @@ void JOYSTICK::Update() {
 //__________________________________________________________________________________________________
 bool JOYSTICK::Connect(winrt::Windows::Gaming::Input::RawGameController const& in_rawGameController) {
 
-	if (!connected) {
-		if (pid == in_rawGameController.HardwareProductId() && vid == in_rawGameController.HardwareVendorId() && NonRoamableId == rawGameController.NonRoamableId()) {
+	//if (!connected) {
+		hstring NonRoamableId_check;
+		try {
+			NonRoamableId_check = rawGameController.NonRoamableId();
+		}
+		catch (const exception& e) {
+			NonRoamableId_check.clear();
+			Debug_Info_Error("NonRoamableId Failed.Exception: %s", e.what());
+		}
+
+		if (pid == in_rawGameController.HardwareProductId() && vid == in_rawGameController.HardwareVendorId() && NonRoamableId == NonRoamableId_check) {
 			rawGameController = in_rawGameController;
+			gamepad = Gamepad::FromGameController(rawGameController);
 			Debug_Info_Joy("%S reconnected", rawGameController.DisplayName().c_str());
 			//Debug_Info("%S prev NonRoamableId", NonRoamableId.c_str());
 			//NonRoamableId = rawGameController.NonRoamableId();
@@ -762,7 +784,7 @@ bool JOYSTICK::Connect(winrt::Windows::Gaming::Input::RawGameController const& i
 
 			return true;
 		}
-	}
+	//}
 	return false;
 };
 
@@ -1040,7 +1062,10 @@ BOOL JOYSTICK::Profile_Load() {
 		swprintf_s(file_name, 11, L"\\XGAMEPAD_");
 
 		BYTE bHash[16];//convert the controllers unique ID to hash data.
-		HashData((BYTE*)NonRoamableId.c_str(), NonRoamableId.size(), bHash, 16);
+		if (NonRoamableId.empty())
+			memcpy(bHash, "NON_UNIQUE_DEV", 15);
+		else
+			HashData((BYTE*)NonRoamableId.c_str(), NonRoamableId.size(), bHash, 16);
 		wchar_t* bHashString = file_name + 10;
 
 		for (int i = 0; i < 16; ++i)//convert the hash data to a string, this will be used to make a unique file name for the controllers config data.
@@ -1291,7 +1316,10 @@ BOOL JOYSTICK::Profile_Save() {
 		swprintf_s(file_name, 11, L"\\%04x%04x_", vid, pid);
 
 	BYTE bHash[16];//convert the controllers unique ID to hash data.
-	HashData((BYTE*)NonRoamableId.c_str(), NonRoamableId.size(), bHash, 16);
+	if (NonRoamableId.empty())
+		memcpy(bHash, "NON_UNIQUE_DEV", 15);
+	else
+		HashData((BYTE*)NonRoamableId.c_str(), NonRoamableId.size(), bHash, 16);
 	wchar_t* bHashString = file_name + 10;
 
 	for (int i = 0; i < 16; ++i)//convert the hash data to a string, this will be used to make a unique file name for the controllers config data.
@@ -1346,6 +1374,25 @@ void JOYSTICKS::Setup() {
 			}
 			Debug_Info_Error("RawGameControllerRemoved: controller was not found in list!!!");
 		});
+
+	for (auto const& rawGameController : RawGameController::RawGameControllers()) {
+
+		concurrency::critical_section::scoped_lock lock{ controllerListLock };
+		bool new_joy = true;
+		for (auto& joystick : joysticks) {
+			if (joystick->Connect(rawGameController)) {
+				Debug_Info_Joy("JOYSTICKS::Setup: controller reconnected");
+				new_joy = false;
+				//JoyConfig_Refresh_JoyList();
+				break;
+			}
+		}
+		if (new_joy) {
+			JOYSTICK* joy = new JOYSTICK(rawGameController);
+			joysticks.push_back(joy);
+			Debug_Info_Joy("JOYSTICKS::Setup: controller added");
+		}
+	}
 
 	setup = true;
 };

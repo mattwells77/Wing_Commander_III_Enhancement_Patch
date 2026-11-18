@@ -24,6 +24,7 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <ppl.h>
 #include <winrt/Windows.Gaming.Input.h>
 #include <winrt/Windows.Foundation.h>
+#include <winrt/Windows.Foundation.Collections.h>
 
 //#define KEYS_DAT_CODE	'K' + ('E' << 8) + ('Y' << 16) + ('S' << 24)
 #define GAME_CODE		'W' + ('C' << 8) + ('3' << 16) + ('W' << 24)
