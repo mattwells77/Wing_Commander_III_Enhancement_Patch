@@ -1061,10 +1061,8 @@ BOOL JOYSTICK::Profile_Load() {
 	if (gamepad) {
 		swprintf_s(file_name, 11, L"\\XGAMEPAD_");
 
-		BYTE bHash[16];//convert the controllers unique ID to hash data.
-		if (NonRoamableId.empty())
-			memcpy(bHash, "NON_UNIQUE_DEV_", 16);
-		else
+		BYTE bHash[16]{0};//convert the controllers unique ID to hash data.
+		if (!NonRoamableId.empty())
 			HashData((BYTE*)NonRoamableId.c_str(), NonRoamableId.size(), bHash, 16);
 		wchar_t* bHashString = file_name + 10;
 
@@ -1315,10 +1313,8 @@ BOOL JOYSTICK::Profile_Save() {
 	else
 		swprintf_s(file_name, 11, L"\\%04x%04x_", vid, pid);
 
-	BYTE bHash[16];//convert the controllers unique ID to hash data.
-	if (NonRoamableId.empty())
-		memcpy(bHash, "NON_UNIQUE_DEV_", 16);
-	else
+	BYTE bHash[16]{0};//convert the controllers unique ID to hash data.
+	if (!NonRoamableId.empty())
 		HashData((BYTE*)NonRoamableId.c_str(), NonRoamableId.size(), bHash, 16);
 	wchar_t* bHashString = file_name + 10;
 
