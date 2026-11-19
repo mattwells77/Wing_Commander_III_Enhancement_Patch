@@ -1983,6 +1983,54 @@ static void __declspec(naked) check_sys_key(void) {
 }
 
 
+//__________________________________
+static void MultiMedia_Wait(LONG ms) {
+
+    LONGLONG duration = (LONGLONG)ms * p_wc3_frequency->QuadPart / 1000LL;//ms to ticks
+
+    LARGE_INTEGER waitTime = { 0LL };
+    static LARGE_INTEGER current_time = { 0 };
+
+    QueryPerformanceCounter(&waitTime);
+    waitTime.QuadPart += duration;
+
+    while (waitTime.QuadPart > current_time.QuadPart) {
+        QueryPerformanceCounter(&current_time);
+        Sleep(0);
+    }
+}
+
+
+//_________________________________________________________________________________________________________________
+static BOOL PreFlight_Screen_Delay_Short(DRAW_BUFFER_MAIN* p_draw_buff, LONG left, LONG top, LONG right, LONG bottom) {
+   
+    DXBlt(p_draw_buff->db->buff, top, bottom-top+1);
+    MultiMedia_Wait(150);
+    return 1;
+}
+void* p_preflight_screen_short = &PreFlight_Screen_Delay_Short;
+
+
+//________________________________________________________________________________________________________________
+static BOOL PreFlight_Screen_Delay_Long(DRAW_BUFFER_MAIN* p_draw_buff, LONG left, LONG top, LONG right, LONG bottom) {
+
+    DXBlt(p_draw_buff->db->buff, top, bottom - top + 1);
+    MultiMedia_Wait(300);
+    return 1;
+}
+void* p_preflight_screen_long = &PreFlight_Screen_Delay_Long;
+
+
+//________________________________________________________________________________________________________________
+static BOOL PreFlight_Screen_Delay_Last(DRAW_BUFFER_MAIN* p_draw_buff, LONG left, LONG top, LONG right, LONG bottom) {
+
+    DXBlt(p_draw_buff->db->buff, top, bottom - top + 1);
+    MultiMedia_Wait(1000);
+    return 1;
+}
+void* p_preflight_screen_last = &PreFlight_Screen_Delay_Last;
+
+
 //___________________________
 void Modifications_Display() {
 
@@ -2302,6 +2350,42 @@ void Modifications_Display() {
     MemWrite16(0x404E16, 0xD5FF, 0x9090);
     MemWrite8(0x404E18, 0xA3, 0xE8);
     FuncWrite32(0x404E19, 0x4A5AAC, (DWORD)&CreateWindowEx_DPIAware);
+
+
+    //--------------Slow-down-preflight-checklist-screen-----------------
+    //"Atomic Batteries to Power"
+     MemWrite32(0x41FCD0, 0x49F9BC, (DWORD)&p_preflight_screen_short);
+    //"Turbines to Speed"
+    MemWrite32(0x41FD40, 0x49F9BC, (DWORD)&p_preflight_screen_short);
+    //"Internal Power to Enable"
+    MemWrite32(0x41FDDB, 0x49F9BC, (DWORD)&p_preflight_screen_short);
+    //"Starting Internal Power"
+    MemWrite32(0x41FE52, 0x49F9BC, (DWORD)&p_preflight_screen_short);
+    //"Internal Power Started"
+    MemWrite32(0x41FF03, 0x49F9BC, (DWORD)&p_preflight_screen_short);
+    //"Internal Life Support Enabled"
+    MemWrite32(0x41FF73, 0x49F9BC, (DWORD)&p_preflight_screen_short);
+    //"Disconnecting External Power"
+    MemWrite32(0x41FFFF, 0x49F9BC, (DWORD)&p_preflight_screen_short);
+    //"Disconnecting External Life Support"
+    MemWrite32(0x42006F, 0x49F9BC, (DWORD)&p_preflight_screen_short);
+    //"Repulsors to Enable"
+    MemWrite32(0x42012C, 0x49F9BC, (DWORD)&p_preflight_screen_short);
+    //"Repulsors Engaged"
+    MemWrite32(0x4201CA, 0x49F9BC, (DWORD)&p_preflight_screen_short);
+    //"Landing Gear Retracted"
+    MemWrite32(0x420297, 0x49F9BC, (DWORD)&p_preflight_screen_long);
+    //"Shield System to Enable"
+    MemWrite32(0x42035E, 0x49F9BC, (DWORD)&p_preflight_screen_long);
+    //"Weapon System to Enable"
+    MemWrite32(0x4203E5, 0x49F9BC, (DWORD)&p_preflight_screen_long);
+    //"Targeting System to Enable"
+    MemWrite32(0x420468, 0x49F9BC, (DWORD)&p_preflight_screen_long);
+    //"Damage Repair System to Enable"
+    MemWrite32(0x4204F4, 0x49F9BC, (DWORD)&p_preflight_screen_long);
+    //"Downloading Navigation System Data"
+    MemWrite32(0x4205D9, 0x49F9BC, (DWORD)&p_preflight_screen_last);
+    //--------------------------------------------------------------------
 }
 
 
