@@ -272,7 +272,7 @@ static BOOL Play_HD_Movie_Sequence(char* mve_path) {
         pMovie_vlc = nullptr;
         if (!play_successfull)
             Debug_Info("Play_HD_Movie_Sequence: Failed");
-        return FALSE;
+        return play_successfull;
     }
 
     BOOL exit_flag = FALSE;
