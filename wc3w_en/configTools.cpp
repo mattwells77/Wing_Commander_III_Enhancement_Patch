@@ -308,8 +308,8 @@ static BOOL Build_Alt_Music_Config() {
 //_____________________________
 static BOOL Is_Config_Updated() {
 
-    wchar_t wchar_buff[_countof(VER_FILE_VERSION_STR)];
-    ConfigReadString(L"MAIN", L"VERSION", L"", wchar_buff, MAX_PATH);
+    wchar_t wchar_buff[32];
+    ConfigReadString(L"MAIN", L"VERSION", L"", wchar_buff, _countof(wchar_buff));
     if (wcsncmp(wchar_buff, VER_FILE_VERSION_STR, _countof(VER_FILE_VERSION_STR)) == 0)
         return TRUE;
     return FALSE;
