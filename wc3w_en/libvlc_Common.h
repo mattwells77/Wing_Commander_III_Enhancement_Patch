@@ -26,3 +26,7 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 extern VLC::Instance vlc_instance;
+
+extern VLC::Equalizer vlc_equalizer;
+
+void LibVlc_Set_Preamp(float preamp);

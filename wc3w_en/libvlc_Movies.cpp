@@ -413,6 +413,8 @@ LibVlc_Movie::LibVlc_Movie(std::string movie_name, LONG* branch_list, LONG branc
     paused = false;
     is_vlc_playing = false;
    
+    mediaPlayer.setEqualizer(vlc_equalizer);
+
     using namespace std::placeholders; // for `_1`
 
     mediaPlayer.eventManager().onPlaying(std::bind(&LibVlc_Movie::on_play, this));
@@ -931,6 +933,7 @@ LibVlc_MovieInflight::LibVlc_MovieInflight(const char* file_name, RECT* p_rc_des
 
 //__________________________________________________________
 void LibVlc_MovieInflight::libvlc_movieinflight_initialise() {
+    
     Set_Movie_Settings();
     isPlaying = false;
     hasPlayed = false;
@@ -951,6 +954,8 @@ void LibVlc_MovieInflight::libvlc_movieinflight_initialise() {
     time_ms_start = 0;
     time_ms_length = 0;
     play_end_time_in_ticks.QuadPart = 0;
+
+    mediaPlayer.setEqualizer(vlc_equalizer);
 
     using namespace std::placeholders; // for `_1`
 

@@ -189,6 +189,8 @@ LibVlc_Music::LibVlc_Music(MUSIC_CLASS* p_in_music_class) {
     p_music_class = p_in_music_class;
     Debug_Info_Music("LibVlc_Music current:%d", p_music_class->header.current_tune);
 
+    mediaPlayer.setEqualizer(vlc_equalizer);
+
     using namespace std::placeholders; // for `_1`
 
     mediaPlayer.eventManager().onPlaying(std::bind(&LibVlc_Music::on_play, this));

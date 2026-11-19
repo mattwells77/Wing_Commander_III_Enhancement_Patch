@@ -42,3 +42,20 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
      //VLC::Instance vlc_instance = VLC::Instance(_countof(vlc_options), vlc_options);
 VLC::Instance vlc_instance = VLC::Instance(0, nullptr);
+
+VLC::Equalizer vlc_equalizer = VLC::Equalizer();
+
+
+//__________________________________
+void LibVlc_Set_Preamp(float preamp) {
+    static bool is_set = false;
+    if (!is_set) {
+        vlc_equalizer.setPreamp(preamp);
+        
+        //int num_bands = vlc_equalizer.bandCount();
+        //for (int i = 0; i < num_bands; i++)
+        //    Debug_Info("band %d, amp %f", i, vlc_equalizer.amp(i));
+        Debug_Info("Set preamp %f", vlc_equalizer.preamp());
+    }
+    is_set = true;
+}

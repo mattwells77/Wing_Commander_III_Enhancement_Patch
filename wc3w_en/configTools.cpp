@@ -96,6 +96,9 @@ static BOOL Build_Config() {
     config_stream << "EXT=" << CONFIG_MOVIES_EXT << endl;
     config_stream << "BRANCH_OFFSET_MS=" << CONFIG_MOVIES_BRANCH_OFFSET_MS << endl;
 
+    config_stream << endl << "[AUDIO]" << endl;
+    config_stream << "VLC_PREAMP_VOLUME=" << CONFIG_AUDIO_VLC_PREAMP_VOLUME << endl;
+
     config_stream << endl << "[MOUSE]" << endl;
     config_stream << "DEAD_ZONE=" << CONFIG_MOUSE_DEAD_ZONE << endl;
     config_stream << "AXIS_LIMIT_PERCENTAGE=" << CONFIG_MOUSE_AXIS_LIMIT_PERCENTAGE << endl;
@@ -404,6 +407,10 @@ static BOOL Update_Config() {
 
     val = ConfigReadInt(L"MOVIES", L"BRANCH_OFFSET_MS", CONFIG_MOVIES_BRANCH_OFFSET_MS);
     ConfigWriteInt(L"MOVIES", L"BRANCH_OFFSET_MS", val);
+
+
+    ConfigReadString(L"AUDIO", L"VLC_PREAMP_VOLUME", CONFIG_AUDIO_VLC_PREAMP_VOLUME, wchar_buff, MAX_PATH);
+    ConfigWriteString(L"AUDIO", L"VLC_PREAMP_VOLUME", wchar_buff);
 
 
     val = ConfigReadInt(L"MOUSE", L"DEAD_ZONE", CONFIG_MOUSE_DEAD_ZONE);
